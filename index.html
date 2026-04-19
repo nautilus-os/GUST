@@ -444,7 +444,7 @@
             transition: background .1s, color .1s;
         }
 
-        .tab-ctx-item:hover {
+        .tab-ctx-item:hover:not(:disabled):not(.disabled) {
             background: var(--surface2);
             color: var(--tx);
         }
@@ -457,7 +457,7 @@
             flex-shrink: 0;
         }
 
-        .tab-ctx-item:hover i {
+        .tab-ctx-item:hover:not(:disabled):not(.disabled) i {
             color: var(--ac);
         }
 
@@ -477,7 +477,8 @@
         .tab-ctx-item:disabled,
         .tab-ctx-item.disabled {
             opacity: .38;
-            pointer-events: none;
+            pointer-events: all;
+            cursor: not-allowed;
         }
 
         .tab-ctx-separator {
@@ -565,15 +566,15 @@
         /* forward — slide right */
         #fwd:hover:not(:disabled) i  { transform: translateX(3px); }
         /* reload — spin */
-        #reload:hover i               { transform: rotate(180deg); transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
+        #reload:hover:not(:disabled) i               { transform: rotate(180deg); transition: transform .35s cubic-bezier(.34,1.56,.64,1); }
         /* stop — pulse shrink */
-        #stop:hover i                 { transform: scale(.78); transition: transform .18s ease; }
+        #stop:hover:not(:disabled) i                 { transform: scale(.78); transition: transform .18s ease; }
         /* home — bob up */
-        #home:hover i                 { transform: translateY(-3px); }
+        #home:hover:not(:disabled) i                 { transform: translateY(-3px); }
         /* history/clock — spin quarter */
-        #historyBtn:hover i           { transform: rotate(-45deg); transition: transform .28s cubic-bezier(.34,1.56,.64,1); }
+        #historyBtn:hover:not(:disabled) i           { transform: rotate(-45deg); transition: transform .28s cubic-bezier(.34,1.56,.64,1); }
         /* fullscreen — expand outward */
-        #fullscreenBtn:hover i        { transform: scale(1.22); }
+        #fullscreenBtn:hover:not(:disabled) i        { transform: scale(1.22); }
 
         .nav-btn:hover:not(:disabled) {
             background: var(--surface2);
@@ -582,7 +583,13 @@
 
         .nav-btn:disabled {
             opacity: .35;
-            cursor: not-allowed
+            cursor: not-allowed;
+        }
+
+        .nav-btn:disabled i,
+        .nav-btn:disabled:hover i {
+            transition: none !important;
+            transform: none !important;
         }
 
         .nav-btn.hidden {
@@ -711,7 +718,7 @@
         }
 
         /* bookmark — pop upward like saving */
-        #bookmarkBtn:hover i   { transform: translateY(-3px) scale(1.15); }
+        #bookmarkBtn:hover:not(.bookmark-btn-disabled) i   { transform: translateY(-3px) scale(1.15); }
         /* go arrow — shoot right */
         .omni-btn.go:hover i   { transform: translateX(3px); transition: transform .18s ease; }
 
@@ -721,7 +728,7 @@
         }
 
         .bookmark-btn-disabled {
-            pointer-events: none !important;
+            pointer-events: all !important;
             cursor: not-allowed !important;
             opacity: 0.4 !important;
         }
@@ -729,6 +736,12 @@
         .bookmark-btn-disabled:hover {
             background: transparent !important;
             color: var(--tx2) !important;
+        }
+
+        .bookmark-btn-disabled i,
+        .bookmark-btn-disabled:hover i {
+            transform: none !important;
+            transition: none !important;
         }
 
         .omni-btn.go {
@@ -2231,7 +2244,7 @@
         .context-menu-item.disabled {
             opacity: 0.35;
             cursor: not-allowed;
-            pointer-events: none;
+            pointer-events: all;
         }
 
         .context-menu-item:disabled:hover,
@@ -2818,7 +2831,7 @@
         .settings-btn-icon[disabled] {
             opacity: 0.5;
             cursor: not-allowed;
-            pointer-events: none;
+            pointer-events: all;
         }
 
         .settings-btn-icon:disabled:hover,
@@ -2826,6 +2839,7 @@
             background: none;
             color: var(--tx2);
             border-color: var(--bd);
+            transition: none;
         }
 
         .settings-btn-danger {
@@ -11279,6 +11293,11 @@ _VIEWER_DL_JS +
             bookmarkBtn.onclick = (e) => {
                 e.stopPropagation();
 
+                if (bookmarkBtn.classList.contains("bookmark-btn-disabled")) {
+                    e.preventDefault();
+                    return;
+                }
+
                 if (isSettingsPage(pageUrl)) {
                     e.preventDefault();
                     return;
@@ -12238,7 +12257,7 @@ _VIEWER_DL_JS +
                 if (isInternal || isError) {
                     bookmarkBtn.classList.add("bookmark-btn-disabled");
                     bookmarkBtn.style.opacity = "0.35";
-                    bookmarkBtn.style.pointerEvents = "none";
+                    bookmarkBtn.style.pointerEvents = "";
                     bookmarkBtn.style.cursor = "not-allowed";
                     bookmarkBtn.querySelector("i").className = "far fa-bookmark";
                     bookmarkBtn.title = isError ? "Cannot bookmark error pages" : "Cannot bookmark internal pages";
@@ -12636,6 +12655,7 @@ _VIEWER_DL_JS +
             });
 
             $("tabCtxReload").onclick = () => {
+                if ($("tabCtxReload").classList.contains("disabled")) return;
                 const tab = tabs.find(t => t.id === tabCtxTargetId);
                 if (tab && tab.url && tab.url !== HOME_INTERNAL && !isSettingsPage(tab.url)) {
                     // Switch to that tab then reload
@@ -12664,6 +12684,7 @@ _VIEWER_DL_JS +
             };
 
             $("tabCtxClose").onclick = () => {
+                if ($("tabCtxClose").classList.contains("disabled")) return;
                 if (tabs.length > 1 && tabCtxTargetId != null) {
                     closeTabAnimated(tabCtxTargetId);
                 }
