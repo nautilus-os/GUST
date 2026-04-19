@@ -2,7 +2,7 @@
 
 # GUST Browser
 
-**The web proxy that runs from a single HTML file — because overengineering is a skill.**
+**simply better**
 
 *by [Nautilus Labs](https://github.com/nautilus-os)*
 
