@@ -43,7 +43,7 @@ The short version: most blockers can only block URLs. GUST is a file. You can't 
 
 ## Roadmap
 
-Done? | Target deadline | Details\
+Done? | Target deadline | Details<br><br>
 
 [ ] 4/30/2026 | Create and deploy website for GUST, not actual GUST Browser, instead a custom patcher to download your desired version. Should not be blocked by blocking software, as it will have no proxy related text on it, only options for a custom gust version and a download button.
 
