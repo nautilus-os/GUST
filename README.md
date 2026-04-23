@@ -50,17 +50,6 @@ The short version: most blockers can only block URLs. GUST is a file. You can't 
 
 ---
 
-## Roadmap
-
-Done? | Target deadline | Details<br><br>
-
-- [x] 4/30/2026 | Create and deploy website for GUST, not actual GUST Browser, instead a custom patcher to download your desired version. Should not be blocked by blocking software, as it will have no proxy related text on it, only options for a custom gust version and a download button.
-- [ ] ??? | Add feature to auto update GUST so the user doesnt have to keep downloading from GitHub
-- [ ] beats me | fix following links by clicking
-- [ ] dunno | fix bug where element highlighting in custom element inspector is broken, also u cant untoggle the details in element inspector
-- [ ] uhm | adblock modal is misplaced
-
----
 ## How it works
 
 When you type a URL, GUST fetches the entire page through a WebAssembly HTTP client, rewrites every resource URL, injects a proxy runtime script, and renders the result in a sandboxed iframe. Here's what that looks like step by step:
