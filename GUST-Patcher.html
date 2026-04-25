@@ -1252,18 +1252,18 @@ function buildPatchScript(removedPatches) {
 
   // ---- localStorage pre-seeds (keys verified against GUST source) ----
   if (rm.has('search-favicon'))  { ls('gust:favicon-proxy:v1','0'); }
-  if (rm.has('webrtc-block'))    { ls('gust:webrtc:block:v1','false'); }
-  if (rm.has('media-headers'))   { ls('gust:media:headers:v1','false'); }
+  if (rm.has('webrtc-block'))    { ls('gust:webrtc:block:v1','0'); }
+  if (rm.has('media-headers'))   { ls('gust:media:headers:v1','0'); }
   if (rm.has('adblock-toggle'))  { ls('gust:block:v1','false'); }
   if (rm.has('js-proxy'))        { ls('gust:jsproxy:v1','false'); }
   if (rm.has('tab-cache'))       { ls('gust:tabcache:v1','false'); }
-  if (rm.has('media-range'))     { ls('gust:media:range:v1','false'); }
-  if (rm.has('media-download'))  { ls('gust:media:download:v1','false'); }
-  if (rm.has('media-pdf'))       { ls('gust:media:pdf:v1','false'); }
-  if (rm.has('media-img'))       { ls('gust:media:img:v1','false'); }
-  if (rm.has('media-video'))     { ls('gust:media:video:v1','false'); }
-  if (rm.has('media-audio'))     { ls('gust:media:audio:v1','false'); }
-  if (rm.has('media-text'))      { ls('gust:media:text:v1','false'); }
+  if (rm.has('media-range'))     { ls('gust:media:range:v1','0'); }
+  if (rm.has('media-download'))  { ls('gust:media:download:v1','0'); }
+  if (rm.has('media-pdf'))       { ls('gust:media:pdf:v1','0'); }
+  if (rm.has('media-img'))       { ls('gust:media:img:v1','0'); }
+  if (rm.has('media-video'))     { ls('gust:media:video:v1','0'); }
+  if (rm.has('media-audio'))     { ls('gust:media:audio:v1','0'); }
+  if (rm.has('media-text'))      { ls('gust:media:text:v1','0'); }
   if (rm.has('panel-widths'))    { ls('gust:panelwidthpersist:v1','false'); }
   if (rm.has('panels-left'))     { ls('gust:panelsleft','0'); }
   if (rm.has('auto-fullscreen')) { ls('gust:autoFullscreen','0'); }
@@ -1296,9 +1296,6 @@ function buildPatchScript(removedPatches) {
     badge('#settingsIdleStepper');
     badge('#settingsActiveStepper');
     badge('#settingsThreadsSaveRow');
-    badge('#mainRetryStepper');
-    badge('#fallbackRetryStepper');
-    badge('#fallbackDelayStepper');
   }
   if (rm.has('webrtc-block'))
     badge('#webrtcBlockSwitch');
@@ -1335,10 +1332,29 @@ function buildPatchScript(removedPatches) {
   }
   if (rm.has('js-proxy'))
     badge('#settingsJsProxySwitch');
-  if (rm.has('ua-request'))
+  if (rm.has('ua-request')) {
     css('#settingsRequestUA');
-  if (rm.has('ua-page'))
+    js('(function(){');
+    js('  function _hideUAReq(){');
+    js('    var el=document.getElementById("settingsRequestUA");');
+    js('    if(el&&el.parentNode){el.parentNode.style.display="none";}');
+    js('  }');
+    js('  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_hideUAReq);}else{_hideUAReq();}');
+    js('})();');
+  }
+  if (rm.has('ua-page')) {
     css('#settingsPageUA');
+    js('(function(){');
+    js('  function _hideUAPage(){');
+    js('    var el=document.getElementById("settingsPageUA");');
+    js('    if(el&&el.parentNode){el.parentNode.style.display="none";}');
+    js('  }');
+    js('  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_hideUAPage);}else{_hideUAPage();}');
+    js('})();');
+  }
+  if (rm.has('ua-request') && rm.has('ua-page')) {
+    css('#settingsSaveUA,#settingsResetUA,#settingsUAStatus');
+  }
   if (rm.has('custom-filters'))
     css('#settingsCustomFilters,#settingsSaveFilters');
 
