@@ -1495,15 +1495,11 @@
         }
 
         .element-toggle.collapsed::before {
-            content: '\f054';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
+            content: '▶';
         }
 
         .element-toggle.expanded::before {
-            content: '\f054';
-            font-family: 'Font Awesome 6 Free';
-            font-weight: 900;
+            content: '▶';
             display: inline-block;
             transform: rotate(90deg);
         }
@@ -3940,7 +3936,7 @@
                                     </div>
                                     <div class="settings-card-body">
                                         <label class="settings-label">WebSocket URL</label>
-                                        <div style="display:flex; gap:8px;" id="settingsWispRow">
+                                        <div style="display:flex; gap:8px;">
                                             <input type="text" class="settings-input" id="settingsWispInput" value=""
                                                 placeholder="wss://...">
                                             <button class="settings-btn-icon" id="settingsWispSave" title="Save"><i
@@ -3963,7 +3959,7 @@
                                                 <div class="settings-hint">Max simultaneous requests when page is loaded
                                                     (default: 3). Lower = less background CPU.</div>
                                             </div>
-                                            <div style="display:flex;align-items:center;gap:6px;" id="settingsIdleStepper">
+                                            <div style="display:flex;align-items:center;gap:6px;">
                                                 <button class="settings-btn-icon" id="settingsIdleMinus"
                                                     style="width:28px;height:28px;font-size:14px;">−</button>
                                                 <span id="settingsIdleVal"
@@ -3978,7 +3974,7 @@
                                                 <div class="settings-hint">Max simultaneous requests during page load
                                                     (default: 6). Higher = faster loads but more CPU.</div>
                                             </div>
-                                            <div style="display:flex;align-items:center;gap:6px;" id="settingsActiveStepper">
+                                            <div style="display:flex;align-items:center;gap:6px;">
                                                 <button class="settings-btn-icon" id="settingsActiveMinus"
                                                     style="width:28px;height:28px;font-size:14px;">−</button>
                                                 <span id="settingsActiveVal"
@@ -3988,7 +3984,7 @@
                                             </div>
                                         </div>
                                         <hr style="border:none;border-top:1px solid var(--bd);margin:12px 0 10px;">
-                                        <div style="display:flex;justify-content:flex-end;gap:8px;" id="settingsThreadsSaveRow">
+                                        <div style="display:flex;justify-content:flex-end;gap:8px;">
                                             <button class="settings-btn-icon" id="settingsThreadsSave" title="Save"><i
                                                     class="fas fa-check"></i></button>
                                             <button class="settings-btn-icon" id="settingsThreadsReset"
@@ -4042,9 +4038,9 @@
                                     </div>
                                 </div>
                                 <div class="settings-card">
-                                    <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck <span style="color:#ff4444; font-size:0.85em; font-weight:700;">[BROKEN]</span></div>
+                                    <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck</div>
                                     <div class="settings-card-body">
-                                        <div class="settings-switch-row" style="opacity:0.35; pointer-events:none; user-select:none;">
+                                        <div class="settings-switch-row">
                                             <div>
                                                 <div class="settings-switch-label">Enable spellcheck</div>
                                                 <div class="settings-hint">Check spelling in text fields and textareas (e.g. search bar, forms).</div>
@@ -4538,16 +4534,16 @@
                             
                             <div class="settings-section" data-section="language" style="display:none;">
                                 <div class="settings-card">
-                                    <div class="settings-card-head"><i class="fas fa-language"></i> Language <span style="color:#ff4444; font-size:0.85em; font-weight:700;">[BROKEN]</span></div>
+                                    <div class="settings-card-head"><i class="fas fa-language"></i> Language</div>
                                     <div class="settings-card-body">
                                         <div style="margin-bottom: 16px;">
                                             <div class="settings-switch-label">Preferred language</div>
                                             <div class="settings-hint">Choose the language for the interface and spellcheck when supported.</div>
                                         </div>
-                                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; opacity:0.35; pointer-events:none; user-select:none;">
+                                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                                             <div class="locale-dropdown-wrap" style="width:420px; flex-shrink:0; position:relative;">
                                                 <input type="hidden" id="settingsLanguage" value="">
-                                                <button type="button" class="locale-dropdown-trigger settings-input" id="settingsLanguageTrigger" disabled style="text-align:left; cursor:not-allowed; display:flex; align-items:center; justify-content:space-between;">
+                                                <button type="button" class="locale-dropdown-trigger settings-input" id="settingsLanguageTrigger" style="text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
                                                     <span class="locale-dropdown-label">System default</span>
                                                     <i class="fas fa-chevron-down" style="font-size:10px; opacity:0.7;"></i>
                                                 </button>
@@ -4556,7 +4552,7 @@
                                                     <div class="locale-dropdown-list" id="settingsLanguageList"></div>
                                                 </div>
                                             </div>
-                                            <button class="settings-btn-icon" id="settingsLanguageSave" disabled title="Save"><i class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="settingsLanguageSave" title="Save"><i class="fas fa-check"></i></button>
                                         </div>
                                         <div class="settings-hint" id="settingsLanguageStatus" style="margin-top:8px;"></div>
                                     </div>
@@ -4761,12 +4757,12 @@
                                     </div>
                                 </div>
 
-                                <div class="settings-card" id="fallbackWispCard">
+                                <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-server"></i> Fallback WISP Server</div>
                                     <div class="settings-card-body">
                                         <label class="settings-label">Fallback WebSocket URL</label>
                                         <div class="settings-hint" style="margin-bottom:10px;">Used only when the primary WISP server is unreachable or returns an error. Leave blank to disable.</div>
-                                        <div style="display:flex; gap:8px;" id="settingsFallbackWispRow">
+                                        <div style="display:flex; gap:8px;">
                                             <input type="text" class="settings-input" id="settingsFallbackWispInput"
                                                 placeholder="wss://fallback.example.com/wisp/">
                                             <button class="settings-btn-icon" id="settingsFallbackWispSave" title="Save"><i
@@ -4778,7 +4774,7 @@
                                     </div>
                                 </div>
 
-                                <div class="settings-card" id="fallbackRetryCard">
+                                <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-clock-rotate-left"></i> Retry Policy</div>
                                     <div class="settings-card-body">
                                         <div class="settings-switch-row" style="align-items:center;">
@@ -4786,7 +4782,7 @@
                                                 <div class="settings-switch-label">Max retry attempts (main)</div>
                                                 <div class="settings-hint">How many times Gust retries on the primary WISP server before switching to the fallback.</div>
                                             </div>
-                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;" id="mainRetryStepper">
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                                 <button class="settings-btn-icon" id="mainRetryMinus" title="Decrease"><i class="fas fa-minus"></i></button>
                                                 <span id="mainRetryVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
                                                 <button class="settings-btn-icon" id="mainRetryPlus" title="Increase"><i class="fas fa-plus"></i></button>
@@ -4797,7 +4793,7 @@
                                                 <div class="settings-switch-label">Max retry attempts (fallback)</div>
                                                 <div class="settings-hint">How many times Gust will attempt the fallback WISP before giving up and showing an error.</div>
                                             </div>
-                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;" id="fallbackRetryStepper">
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                                 <button class="settings-btn-icon" id="fallbackRetryMinus" title="Decrease"><i class="fas fa-minus"></i></button>
                                                 <span id="fallbackRetryVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
                                                 <button class="settings-btn-icon" id="fallbackRetryPlus" title="Increase"><i class="fas fa-plus"></i></button>
@@ -4808,7 +4804,7 @@
                                                 <div class="settings-switch-label">Retry delay (seconds)</div>
                                                 <div class="settings-hint">Wait time between each retry attempt before switching to the fallback server.</div>
                                             </div>
-                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;" id="fallbackDelayStepper">
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
                                                 <button class="settings-btn-icon" id="fallbackDelayMinus" title="Decrease"><i class="fas fa-minus"></i></button>
                                                 <span id="fallbackDelayVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
                                                 <button class="settings-btn-icon" id="fallbackDelayPlus" title="Increase"><i class="fas fa-plus"></i></button>
@@ -4817,7 +4813,7 @@
                                     </div>
                                 </div>
 
-                                <div class="settings-card" id="fallbackTriggersCard">
+                                <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-triangle-exclamation"></i> Error Triggers</div>
                                     <div class="settings-card-body">
                                         <div class="settings-switch-row">
@@ -5140,7 +5136,14 @@
 
             let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.mercurywork.shop/"; } catch { return "wss://wisp.mercurywork.shop/"; } })();
             const $ = s => document.getElementById(s);
-            const frame = $("frame");
+            const frame = $('frame');
+            let _pendingNavHint = null;
+            // Set to true right before we assign a blob URL to frame.src.
+            // Cleared at the start of the load event so we can distinguish
+            // our own intentional blob loads from native iframe escapes.
+            // (Chrome treats blob URLs from file:// pages as cross-origin,
+            //  so .location.href throws for both cases in the catch below.)
+            let _blobLoadPending = false;
 
             // ── Native navigation escape interceptor ──────────────────────
             // If a proxied page causes the iframe to navigate natively
@@ -5148,21 +5151,36 @@
             // click intercept), catch the load event, read the landed URL,
             // and re-route it through the proxy immediately.
             frame.addEventListener('load', () => {
+                const _wasBlobLoad = _blobLoadPending;
+                _blobLoadPending = false;
                 try {
                     const landed = frame.contentWindow?.location?.href;
                     if (!landed || landed === 'about:blank' || landed === 'about:srcdoc' || landed.startsWith('blob:')) return;
                     // iframe landed on a real URL natively — reroute via proxy
+                    _pendingNavHint = null;
                     frame.src = 'about:blank';
                     go(landed, true);
                 } catch (crossOriginErr) {
-                    // Cross-origin frames throw on .location access — that itself
-                    // confirms the iframe escaped to a real origin. Try to recover
-                    // via the frame's src attribute as a fallback.
+                    // .location.href throws for cross-origin pages AND for blob URLs
+                    // loaded from a file:// context (Chrome treats them as null-origin).
+                    // Use _wasBlobLoad to tell them apart: if we just intentionally
+                    // loaded a blob, this is not a native escape — bail out.
+                    if (_wasBlobLoad) return;
+                    // Real native escape to a cross-origin URL — recover.
                     try {
+                        const hint = _pendingNavHint;
+                        _pendingNavHint = null;
                         const escapedSrc = frame.src;
-                        if (escapedSrc && !escapedSrc.startsWith('blob:') && escapedSrc !== 'about:blank') {
+                        const recoveryUrl = (hint && !hint.startsWith('blob:') && hint !== 'about:blank')
+                            ? hint
+                            : (escapedSrc && !escapedSrc.startsWith('blob:') && escapedSrc !== 'about:blank')
+                                ? escapedSrc
+                                : null;
+                        if (recoveryUrl) {
                             frame.src = 'about:blank';
-                            go(escapedSrc, true);
+                            go(recoveryUrl, true);
+                        } else {
+                            frame.src = 'about:blank';
                         }
                     } catch (_) {}
                 }
@@ -5255,9 +5273,8 @@
                 return true;
             }
 
-            function renderErrorPage(url, errorType, errorCode, errorDescription, errorSuggestions, errorReasons) {
-                const suggestionsHTML = (errorSuggestions || []).map(s => `<li><i class="fas fa-arrow-right"></i><span>${s}</span></li>`).join("");
-                const reasonsHTML = (errorReasons || []).map(r => `<li><i class="fas fa-circle-question"></i><span>${r}</span></li>`).join("");
+            function renderErrorPage(url, errorType, errorCode, errorDescription, errorSuggestions) {
+                const suggestionsHTML = (errorSuggestions || []).map(s => `<li>${s}</li>`).join("");
                 frame.srcdoc = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5395,29 +5412,17 @@
             font-size: 15px;
         }
         
-        .error-boxes-row {
-            display: flex;
-            gap: 16px;
-            width: 100%;
-            max-width: 860px;
-            align-items: stretch;
-        }
-
-        .error-suggestions,
-        .error-reasons {
+        .error-suggestions {
             text-align: left;
             background: rgba(255, 255, 255, 0.03);
-            padding: 24px 28px;
+            padding: 24px 32px;
             border-radius: 12px;
-            border: 1px solid #9de5ff;
-            flex: 1 1 0;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 500px;
         }
         
-        .error-suggestions h3,
-        .error-reasons h3 {
+        .error-suggestions h3 {
             font-size: 14px;
             font-weight: 600;
             color: #9de5ff;
@@ -5426,49 +5431,23 @@
             letter-spacing: 0.5px;
         }
         
-        .error-suggestions ul,
-        .error-reasons ul {
+        .error-suggestions ul {
             list-style: none;
-            flex: 1;
-            overflow-y: scroll;
-            max-height: calc(14px * 1.6 * 3.5);
-            scrollbar-width: auto;
-            scrollbar-color: #9de5ff rgba(157,229,255,0.1);
-        }
-
-        .error-suggestions ul::-webkit-scrollbar,
-        .error-reasons ul::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .error-suggestions ul::-webkit-scrollbar-track,
-        .error-reasons ul::-webkit-scrollbar-track {
-            background: rgba(157,229,255,0.1);
-            border-radius: 4px;
-        }
-
-        .error-suggestions ul::-webkit-scrollbar-thumb,
-        .error-reasons ul::-webkit-scrollbar-thumb {
-            background: #9de5ff;
-            border-radius: 4px;
         }
         
-        .error-suggestions li,
-        .error-reasons li {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
+        .error-suggestions li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 8px;
             color: #b8c4d0;
             font-size: 14px;
-            line-height: 1.6;
         }
-
-        .error-suggestions li i,
-        .error-reasons li i {
+        
+        .error-suggestions li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
             color: #70d4ff;
-            font-size: 13px;
-            margin-top: 3px;
-            flex-shrink: 0;
         }
         
         .error-actions {
@@ -5516,7 +5495,7 @@
             transform: translateY(-1px);
         }
         
-        @media (max-width: 700px) {
+        @media (max-width: 600px) {
             body {
                 padding: 12px;
             }
@@ -5546,11 +5525,6 @@
             .error-icon i {
                 font-size: 28px;
             }
-
-            .error-boxes-row {
-                flex-direction: column;
-                max-width: 100%;
-            }
         }
     </style>
 </head>
@@ -5575,22 +5549,12 @@
             ${errorDescription}
         </div>
 
-        ${(suggestionsHTML || reasonsHTML) ? `
-        <div class="error-boxes-row">
-            ${suggestionsHTML ? `
-            <div class="error-suggestions">
-                <h3>Try This</h3>
-                <ul>
-                    ${suggestionsHTML}
-                </ul>
-            </div>` : ''}
-            ${reasonsHTML ? `
-            <div class="error-reasons">
-                <h3>Possible Reasons</h3>
-                <ul>
-                    ${reasonsHTML}
-                </ul>
-            </div>` : ''}
+        ${suggestionsHTML ? `
+        <div class="error-suggestions">
+            <h3>Try these steps</h3>
+            <ul>
+                ${suggestionsHTML}
+            </ul>
         </div>` : ''}
         
         <div class="error-actions">
@@ -5893,6 +5857,7 @@
                         }
                         frame.onload = null;
                     };
+                    _blobLoadPending = true;
                     frame.src = tab.blobSrc;
                     isErrorPage = !!tab.hasError;
                     updateSecurityChip(tab.url, tab.hasError ? 'error' : undefined);
@@ -6367,7 +6332,7 @@
             let wsSeq = 0;
             const wsMap = new Map();
 
-            let MAX_CONCURRENT = (function () { try { return parseInt(ls.getItem('gust:idlethreads:v1')) || 3; } catch { return 3; } })();
+            let MAX_CONCURRENT = (function () { try { return parseInt(ls.getItem('gust:idlethreads:v1')) || 6; } catch { return 6; } })();
             let MAX_CONCURRENT_ACTIVE = (function () { try { return parseInt(ls.getItem('gust:activethreads:v1')) || 6; } catch { return 6; } })();
             let _isPageLoading = false;
             let syncState = 1;
@@ -8090,7 +8055,7 @@
                 while (resp.status >= 300 && resp.status < 400 && resp.headers?.get?.("location") && redirectCount < 12) {
                     const loc = resp.headers.get("location");
                     const nextUrl = new URL(loc, url).href;
-                    log(`<i class="fas fa-arrow-right-arrow-left" style="color:var(--warn)"></i><span style="color:var(--tx3)">${resp.status}</span> <i class="fas fa-arrow-right" style="color:var(--warn);font-size:10px;"></i> ${nextUrl.slice(0, 60)}`, "warn");
+                    log(`<i class="fas fa-arrow-right-arrow-left" style="color:var(--warn)"></i><span style="color:var(--tx3)">${resp.status}</span> → ${nextUrl.slice(0, 60)}`, "warn");
                     url = nextUrl;
                     origin = new URL(url).origin;
                     const nextCookie = getCookieHeader(origin);
@@ -8393,11 +8358,13 @@
                 return src;
             }
 
-            function makeProxyScript(baseUrl, jsProxy = true, blockEnabled = true, webrtcBlock = false, pageUA = null) {
+            function makeProxyScript(baseUrl, jsProxy = true, blockEnabled = true, webrtcBlock = false, pageUA = null, spellcheck = false) {
                 const proxySkipList = [...SKIP_DOMAINS, ...getCustomFilters().network];
                 return `(function(){
 if(window.__P) return;
 window.__P = true;
+// Diagnostic: confirm proxy script started
+try { parent.postMessage({ t: 'c', m: 'log', a: ['[GUST-PROXY] script started'] }, '*'); } catch(e) {}
 
 const BASE = ${JSON.stringify(baseUrl)};
 const ORIGIN = new URL(BASE).origin;
@@ -8406,6 +8373,7 @@ const JS_PROXY = ${JSON.stringify(!!jsProxy)};
 const BLOCK_ENABLED = ${JSON.stringify(!!blockEnabled)};
 const WEBRTC_BLOCK = ${JSON.stringify(!!webrtcBlock)};
 const SPOOF_UA = ${JSON.stringify(pageUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')};
+const SPELLCHECK = ${JSON.stringify(!!spellcheck)};
 
 function shouldSkip(url) {
   if (!BLOCK_ENABLED) return false;
@@ -8569,6 +8537,9 @@ window.addEventListener('message', e => {
   if (d.type === 'gust:scrollTo' && d.selector) {
     try { document.querySelector(d.selector)?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e) {}
   }
+  if (d.type === 'gust:spellcheck') {
+    try { document.querySelectorAll('input, textarea').forEach(el => el.spellcheck = !!d.enabled); } catch(e) {}
+  }
 });
 
 function req(url, opts = {}) {
@@ -8624,13 +8595,19 @@ async function fetchBlob(url, type) {
 
 const _fetch = window.fetch;
 window.fetch = async function(input, init = {}) {
-  let url = typeof input === 'string' ? input : (input?.url || String(input));
+  let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input?.url || String(input)));
+  try { parent.postMessage({ t: 'c', m: 'log', a: ['[fetch] ' + url.slice(0, 80)] }, '*'); } catch(e) {}
   if (/^blob:/i.test(url)) return _fetch.call(window, input, init);
   url = resolve(url);
   if (shouldSkip(url)) return new Response('', { status: 200 });
-  const method = init.method || 'GET';
-  let body = init.body;
+  // Handle Request objects: extract method/headers/body from the Request,
+  // then let init override (per fetch spec). This fixes sites like YouTube
+  // that call fetch(new Request(url, {method:'POST', headers:{...}, body:...})).
+  const isRequest = typeof Request !== 'undefined' && input instanceof Request;
+  const method = init.method || (isRequest ? input.method : null) || 'GET';
+  let body = init.body !== undefined ? init.body : (isRequest && !input.bodyUsed ? input.body : undefined);
   const headers = {};
+  if (isRequest) { try { input.headers.forEach((v, k) => { headers[k] = v; }); } catch(e) {} }
   if (init.headers) { if (init.headers instanceof Headers) init.headers.forEach((v,k) => headers[k] = v); else if (typeof init.headers === 'object') Object.assign(headers, init.headers); }
   if (body instanceof FormData) body = new URLSearchParams(body).toString();
   else if (body instanceof URLSearchParams) body = body.toString();
@@ -8933,11 +8910,16 @@ function processEl(el) {
       if (poster && !/^(data:|blob:)/i.test(poster) && !el.getAttribute('data-real-poster')) el.poster = poster;
     }
   }
-  // Rewrite anchor hrefs to absolute proxy URLs and strip escape targets
+  // Defuse anchor hrefs: store real URL in data-gust-href, set href to javascript:void(0)
+  // so the browser can NEVER navigate the iframe natively via a link click.
   if (tag === 'A') {
     const href = el.getAttribute('href');
     if (href && !/^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(href)) {
-      try { el.setAttribute('href', resolve(href)); } catch {}
+      try {
+        const abs = resolve(href);
+        el.setAttribute('data-gust-href', abs);
+        el.setAttribute('href', 'javascript:void(0)');
+      } catch {}
     }
     const tgt = (el.getAttribute('target') || '').toLowerCase();
     if (tgt && tgt !== '_self') el.setAttribute('target', '_self');
@@ -8970,12 +8952,15 @@ const observer = new MutationObserver(muts => {
         const val = el.getAttribute('srcset');
         if (val && !/blob:/.test(val)) el.srcset = val;
       }
-      // Rewrite anchor hrefs added/mutated dynamically so they are always absolute
-      // before any click or native navigation can fire.
-      if (tag === 'A' && attr === 'href') {
+      // Defuse dynamically-mutated anchor hrefs.
+      if ((tag === 'A' || tag === 'AREA') && attr === 'href') {
         const val = el.getAttribute('href');
         if (val && !/^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(val)) {
-          try { el.setAttribute('href', resolve(val)); } catch {}
+          try {
+            const abs = resolve(val);
+            el.setAttribute('data-gust-href', abs);
+            el.setAttribute('href', 'javascript:void(0)');
+          } catch {}
         }
         // Strip target so links never escape the proxy iframe
         const tgt = (el.getAttribute('target') || '').toLowerCase();
@@ -8986,11 +8971,17 @@ const observer = new MutationObserver(muts => {
 });
 observer.observe(document, { childList: true, subtree: true, attributes: true, attributeFilter: ['src', 'srcset', 'poster', 'data-src', 'data-lazy', 'data-original', 'data-lazy-src', 'href', 'target'] });
 
-// Pre-rewrite all existing anchors on initial load
-document.querySelectorAll('a[href]').forEach(a => {
+// Pre-defuse all existing anchors on initial load.
+// Store real URL in data-gust-href, set href=javascript:void(0) so the
+// browser can never navigate the iframe natively from a link click.
+document.querySelectorAll('a[href], area[href]').forEach(a => {
   const href = a.getAttribute('href');
   if (href && !/^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(href)) {
-    try { a.setAttribute('href', resolve(href)); } catch {}
+    try {
+      const abs = resolve(href);
+      a.setAttribute('data-gust-href', abs);
+      a.setAttribute('href', 'javascript:void(0)');
+    } catch {}
   }
   const tgt = (a.getAttribute('target') || '').toLowerCase();
   if (tgt && tgt !== '_self') a.setAttribute('target', '_self');
@@ -8998,7 +8989,7 @@ document.querySelectorAll('a[href]').forEach(a => {
 document.querySelectorAll('*').forEach(processEl);
 
 const fakeLoc = new URL(BASE);
-const locProxy = new Proxy({}, { get(_, p) { if (p === 'href') return fakeLoc.href; if (p === 'origin') return fakeLoc.origin; if (p === 'protocol') return fakeLoc.protocol; if (p === 'host') return fakeLoc.host; if (p === 'hostname') return fakeLoc.hostname; if (p === 'port') return fakeLoc.port; if (p === 'pathname') return fakeLoc.pathname; if (p === 'search') return fakeLoc.search; if (p === 'hash') return fakeLoc.hash; if (p === 'assign' || p === 'replace') return u => parent.postMessage({ t: 'n', u: resolve(u) }, '*'); if (p === 'reload') return () => parent.postMessage({ t: 'rl' }, '*'); if (p === 'toString' || p === Symbol.toPrimitive) return () => fakeLoc.href; if (p === 'ancestorOrigins') return { length: 0 }; }, set(_, p, v) { if (p === 'href') { if (!v || /^about:/i.test(v) || /^javascript:/i.test(v)) return true; parent.postMessage({ t: 'n', u: resolve(v) }, '*'); return true; } if (p === 'hash') { fakeLoc.hash = v; window.dispatchEvent(new HashChangeEvent('hashchange')); return true; } if (p === 'search') { parent.postMessage({ t: 'n', u: fakeLoc.origin + fakeLoc.pathname + v + fakeLoc.hash }, '*'); return true; } return true; } });
+const locProxy = new Proxy({}, { get(_, p) { if (p === 'href') return fakeLoc.href; if (p === 'origin') return fakeLoc.origin; if (p === 'protocol') return fakeLoc.protocol; if (p === 'host') return fakeLoc.host; if (p === 'hostname') return fakeLoc.hostname; if (p === 'port') return fakeLoc.port; if (p === 'pathname') return fakeLoc.pathname; if (p === 'search') return fakeLoc.search; if (p === 'hash') return fakeLoc.hash; if (p === 'assign' || p === 'replace') return u => { try { const _r=resolve(u); const du=new URL(_r); const bu=new URL(BASE); if(du.origin===bu.origin&&du.pathname===bu.pathname&&du.search===bu.search) return; parent.postMessage({t:'n',u:_r},'*'); } catch { parent.postMessage({t:'n',u:resolve(u)},'*'); } }; if (p === 'reload') return () => parent.postMessage({ t: 'rl' }, '*'); if (p === 'toString' || p === Symbol.toPrimitive) return () => fakeLoc.href; if (p === 'ancestorOrigins') return { length: 0 }; }, set(_, p, v) { if (p === 'href') { if (!v || /^about:/i.test(v) || /^javascript:/i.test(v)) return true; try { const _r=resolve(v); const du=new URL(_r); const bu=new URL(BASE); if(du.origin===bu.origin&&du.pathname===bu.pathname&&du.search===bu.search) return true; parent.postMessage({t:'n',u:_r},'*'); return true; } catch {} parent.postMessage({ t: 'n', u: resolve(v) }, '*'); return true; } if (p === 'hash') { fakeLoc.hash = v; window.dispatchEvent(new HashChangeEvent('hashchange')); return true; } if (p === 'search') { parent.postMessage({ t: 'n', u: fakeLoc.origin + fakeLoc.pathname + v + fakeLoc.hash }, '*'); return true; } return true; } });
 try { Object.defineProperty(window, 'location', { value: locProxy }); } catch {}
 // Fix 3a: Override document.location — this IS configurable on all major browsers.
 try { Object.defineProperty(document, 'location', { get: () => locProxy, set(v) { if (v && typeof v === 'string') parent.postMessage({ t: 'n', u: resolve(v) }, '*'); }, configurable: true }); } catch {}
@@ -9089,9 +9080,17 @@ document.createElement = function(tag, opts) {
       set(val) {
         if (!val || /^(data:|blob:)/i.test(val)) { _src = val; return; }
         const absUrl = resolve(val);
-        if (shouldSkip(absUrl)) { _src = val; return; }
+        if (shouldSkip(absUrl)) { _src = val; el.dispatchEvent(new Event('load')); return; }
         _src = absUrl;
-        el.setAttribute('data-proxy-src', absUrl);
+        origSetAttr.call(el, 'data-proxy-src', absUrl);
+        if (!el.parentNode) {
+          // Not yet in DOM. Set src attribute so Node.prototype.appendChild / insertBefore
+          // will proxy it correctly — preserving onload/onerror on the original element.
+          origSetAttr.call(el, 'src', absUrl);
+          return;
+        }
+        // Already in DOM — fetch now and replace with a clone that carries all handlers.
+        origSetAttr.call(el, 'src', absUrl);
         req(absUrl).then(r => {
           const bin = atob(r.d || '');
           const arr = new Uint8Array(bin.length);
@@ -9102,17 +9101,25 @@ document.createElement = function(tag, opts) {
           const burl = URL.createObjectURL(blob);
           _src = burl;
           scriptUrls.set(el, absUrl);
-          if (el.parentNode) {
+          const par = el.parentNode;
+          if (par) {
             const clone = _createElement('script', opts);
-            clone.setAttribute('src', burl);
-            if (el.getAttribute('type')) clone.setAttribute('type', el.getAttribute('type'));
-            el.parentNode.replaceChild(clone, el);
-          } else {
-            Object.defineProperty(el, 'src', { value: burl, writable: true, configurable: true });
+            // Copy all attributes (except src/data-proxy-src which we set manually)
+            [...el.attributes].forEach(a => {
+              if (a.name !== 'src' && a.name !== 'data-proxy-src') {
+                try { origSetAttr.call(clone, a.name, a.value); } catch {}
+              }
+            });
+            origSetAttr.call(clone, 'src', burl);
+            // Preserve IDL event handlers and script properties
+            if (el.onload)  clone.onload  = el.onload;
+            if (el.onerror) clone.onerror = el.onerror;
+            clone.async = el.async;
+            clone.defer = el.defer;
+            scriptUrls.set(clone, absUrl);
+            par.replaceChild(clone, el);
           }
-        }).catch(() => {
-          Object.defineProperty(el, 'src', { value: absUrl, writable: true, configurable: true });
-        });
+        }).catch(() => { /* leave src as-is, browser may load directly */ });
       },
       configurable: true
     });
@@ -9135,25 +9142,25 @@ document.createElement = function(tag, opts) {
 } 
 
 document.addEventListener('mousedown', e => {
-  const a = e.target?.closest?.('a[href]');
+  const a = e.target?.closest?.('a, area');
   if (!a) return;
-  const href = a.getAttribute('href');
-  if (!href || /^(javascript:|#|data:|blob:)/i.test(href)) return;
-  // Resolve to absolute first, then stash it and defuse the native href so the
-  // browser cannot follow the link natively regardless of what fires after this.
+  // Read the real URL from data-gust-href (set by defuse sweep) or fall back to href.
+  const href = a.getAttribute('data-gust-href') || a.getAttribute('href');
+  if (!href || /^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(href)) return;
   try {
     const abs = resolve(href);
     a._gustHref = abs;
-    a.setAttribute('href', 'javascript:void(0)');
+    parent.postMessage({ t: 'hint', u: abs }, '*');
   } catch {}
 }, true);
 document.addEventListener('click', e => {
-  const a = e.target?.closest?.('a[href]');
-  if (!a) return;
-  // Prefer the resolved href stashed by mousedown (the live attribute may now be
-  // 'javascript:void(0)' after we defused it in the mousedown handler).
-  const href = a._gustHref || a.getAttribute('href');
-  if (!href || /^javascript:/i.test(href)) return;
+  const a = e.target?.closest?.('a, area');
+  if (!a) { console.log('[GUST-click] no anchor'); return; }
+  const _raw_href = a.getAttribute('href');
+  const _gust_href = a.getAttribute('data-gust-href');
+  const href = a._gustHref || _gust_href || _raw_href;
+  console.log('[GUST-click] href=' + href + ' data-gust-href=' + _gust_href + ' raw=' + _raw_href);
+  if (!href) return;
   if (href.startsWith('#')) {
     const id = href.slice(1);
     const el = document.getElementById(id);
@@ -9163,13 +9170,15 @@ document.addEventListener('click', e => {
     e.preventDefault();
     return;
   }
+  // Skip non-navigatable schemes (javascript:void(0) with no data-gust-href).
+  if (/^(javascript:|mailto:|tel:|data:|blob:)/i.test(href)) { console.log('[GUST-click] skipped scheme: ' + href); return; }
   e.preventDefault();
   e.stopPropagation();
   e.stopImmediatePropagation();
-  const resolved = a._gustHref || resolve(href);
-  parent.postMessage({ t: 'n', u: resolved }, '*');
+  console.log('[GUST-click] posting nav: ' + href);
+  parent.postMessage({ t: 'n', u: resolve(href) }, '*');
 }, true);
-document.addEventListener('auxclick', e => { if (e.button !== 1) return; const a = e.target?.closest?.('a[href]'); if (!a) return; const href = a.getAttribute('href'); if (!href || /^(javascript:|#)/i.test(href)) return; e.preventDefault(); e.stopPropagation(); parent.postMessage({ t: 'n', u: resolve(href) }, '*'); }, true);
+document.addEventListener('auxclick', e => { if (e.button !== 1) return; const a = e.target?.closest?.('a, area'); if (!a) return; const href = a._gustHref || a.getAttribute('data-gust-href') || a.getAttribute('href'); if (!href || /^(javascript:|#)/i.test(href)) return; e.preventDefault(); e.stopPropagation(); parent.postMessage({ t: 'n', u: resolve(href) }, '*'); }, true);
 document.addEventListener('submit', e => { const form = e.target; if (!form || form.tagName !== 'FORM') return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const action = resolve(form.action || BASE); const method = (form.method || 'GET').toUpperCase(); const fd = new FormData(form); if (method === 'GET') { parent.postMessage({ t: 'n', u: action.split('?')[0] + '?' + new URLSearchParams(fd).toString() }, '*'); } else { parent.postMessage({ t: 'n', u: action, m: 'POST', b: new URLSearchParams(fd).toString() }, '*'); } }, true);
 
 const _open = window.open;
@@ -9182,13 +9191,31 @@ try {
   if (window.navigation) {
     window.navigation.addEventListener('navigate', e => {
       const dest = e.destination?.url;
-      if (!dest || dest === BASE || /^(about:|blob:|javascript:)/i.test(dest)) return;
-      if (e.canIntercept) {
-        e.intercept({ handler: () => {} });
-      } else if (e.preventDefault) {
-        e.preventDefault();
-      }
+      if (!dest || /^(about:|blob:|javascript:)/i.test(dest)) return;
+      // Only intercept real forward navigations (link clicks, programmatic navigate()).
+      // 'replace' and 'reload' are used by SPAs for state management — intercepting
+      // them causes pages like YouTube to reload mid-initialization.
+      const navType = e.navigationType;
+      if (navType === 'replace' || navType === 'reload' || navType === 'traverse') return;
+      // Don't intercept navigations to the same origin+path (e.g. YouTube adding
+      // query params via pushState after our check fires).
+      try {
+        const du = new URL(dest); const bu = new URL(BASE);
+        if (du.origin === bu.origin && du.pathname === bu.pathname) return;
+      } catch { if (dest === BASE) return; }
+      // Send the navigation message FIRST so the parent can route it even
+      // if the interception attempt below throws or fails.
       parent.postMessage({ t: 'n', u: resolve(dest) }, '*');
+      // Then try to prevent the native navigation.
+      try {
+        if (e.canIntercept) {
+          e.intercept({ handler: () => Promise.resolve() });
+        } else {
+          try { e.preventDefault(); } catch(_) {}
+        }
+      } catch(_interceptErr) {
+        try { e.preventDefault(); } catch(_) {}
+      }
     });
   }
 } catch (_navApiErr) {}
@@ -9206,27 +9233,37 @@ if (formTargetDesc) { Object.defineProperty(HTMLFormElement.prototype, 'target',
 const anchorHrefDesc = Object.getOwnPropertyDescriptor(HTMLAnchorElement.prototype, 'href');
 if (anchorHrefDesc && anchorHrefDesc.set) {
   Object.defineProperty(HTMLAnchorElement.prototype, 'href', {
-    get() { return anchorHrefDesc.get.call(this); },
+    // Return data-gust-href (the real URL) if present, so site JS that reads
+    // el.href after setting it still gets the correct absolute URL.
+    get() { return this.getAttribute('data-gust-href') || anchorHrefDesc.get.call(this); },
     set(v) {
       // Let the browser normalise the value first (resolves relative paths)
       anchorHrefDesc.set.call(this, v);
       const normalised = anchorHrefDesc.get.call(this);
       if (normalised && !/^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(normalised)) {
-        try { anchorHrefDesc.set.call(this, resolve(normalised)); } catch {}
+        try {
+          const abs = resolve(normalised);
+          this.setAttribute('data-gust-href', abs);
+          anchorHrefDesc.set.call(this, 'javascript:void(0)');
+        } catch {}
       }
     },
     configurable: true
   });
 }
 
-// Deferred sweep: JS-rendered pages (SPAs, search result pages) build their
-// anchor tags after the initial sweep runs. Catch them at 300 ms and 1500 ms.
+// Deferred sweep: defuse anchor hrefs on JS-rendered/SPA pages.
 const _rewriteAnchors = () => {
-  document.querySelectorAll('a[href]').forEach(a => {
+  document.querySelectorAll('a, area').forEach(a => {
     const href = a.getAttribute('href');
     if (href && !/^(javascript:|#|data:|blob:|mailto:|tel:)/i.test(href)) {
-      try { a.setAttribute('href', resolve(href)); } catch {}
+      try {
+        const abs = resolve(href);
+        a.setAttribute('data-gust-href', abs);
+        a.setAttribute('href', 'javascript:void(0)');
+      } catch {}
     }
+    // Also pick up anchors that only have data-gust-href but lost href somehow
     const tgt = (a.getAttribute('target') || '').toLowerCase();
     if (tgt && tgt !== '_self') a.setAttribute('target', '_self');
   });
@@ -9367,6 +9404,26 @@ try {
   // language/languages intentionally left as-is so locale-aware sites work correctly
 } catch(e) {}
 
+try { document.querySelectorAll('input, textarea').forEach(el => el.spellcheck = SPELLCHECK); } catch(e) {}
+
+// Page-health diagnostic: runs ~3 s after load to report key framework state
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    try {
+      const hasCE = typeof customElements !== 'undefined';
+      const ytApp = hasCE && customElements.get('ytd-app');
+      const ytInitDefined = typeof window.ytInitialData !== 'undefined';
+      const ytInitKeys = ytInitDefined ? Object.keys(window.ytInitialData || {}).length : -1;
+      const ytcfgDefined = typeof window.ytcfg !== 'undefined';
+      parent.postMessage({ t: 'c', m: 'info', a: [
+        '[diag2] ytInitialData=' + (ytInitDefined ? ytInitKeys + ' keys' : 'MISSING') +
+        ' ytd-app=' + (ytApp ? 'defined' : 'UNDEFINED') +
+        ' ytcfg=' + (ytcfgDefined ? 'ok' : 'MISSING')
+      ]}, '*');
+    } catch(e) {}
+  }, 3000);
+});
+
 parent.postMessage({ t: 'ready' }, '*');
 console.log('[Proxy] Ready');
 })();`;
@@ -9376,6 +9433,10 @@ console.log('[Proxy] Ready');
                 const d = ev.data;
                 if (!d?.t) return;
 
+                if (d.t === 'hint') {
+                    if (d.u && typeof d.u === 'string') _pendingNavHint = d.u;
+                    return;
+                }
                 if (d.t === 'ctx') {
                     const rect = frame.getBoundingClientRect();
                     const x = rect.left + d.x;
@@ -9390,7 +9451,7 @@ console.log('[Proxy] Ready');
                         url,
                         opts
                     } = d;
-                    const priority = getPriority(url, opts?.headers?.['Accept']);
+                    const priority = (opts?.method === 'POST') ? PRIORITY.html : getPriority(url, opts?.headers?.['Accept']);
                     const msgTabId = activeTabId;
                     if (closedTabIds.has(msgTabId)) return;
                     const msgSignal = tabAbortControllers.get(msgTabId)?.signal || abortCtrl?.signal;
@@ -9459,6 +9520,21 @@ console.log('[Proxy] Ready');
                     return;
                 }
                 if (d.t === "n") {
+                    _pendingNavHint = null;
+                    // Guard: don't full-reload for same-origin/same-path navigations
+                    // (YouTube SPA calls location.assign/replace with its own URL or adds
+                    // query params via pushState — these must not trigger a new go()).
+                    if (!d.m && !d.b && d.u) {
+                        try {
+                            const _du = new URL(normUrl(d.u)); const _pu = new URL(pageUrl || '');
+                            // Compare origin + pathname only — ignore search/hash differences
+                            // which SPAs update without intending a real navigation.
+                            if (_du.origin === _pu.origin && _du.pathname === _pu.pathname) {
+                                log('[nav] same-page nav ignored: ' + d.u.slice(0, 60), 'info');
+                                return;
+                            }
+                        } catch {}
+                    }
                     // Immediately refresh the URL bar, pageUrl, and tab.url — always,
                     // even if the URL appears unchanged, so any stale state from a
                     // prior intercept (Navigation API + click double-post) gets
@@ -9478,7 +9554,15 @@ console.log('[Proxy] Ready');
                     return;
                 }
                 if (d.t === "rl") {
-                    if (pageUrl) go(pageUrl, false);
+                    // Throttle: ignore location.reload() calls within 15s of page load
+                    // to stop SPAs like YouTube from reloading mid-initialization.
+                    const _now = Date.now();
+                    if (!window._lastPageLoadTime || (_now - window._lastPageLoadTime) > 15000) {
+                        log('[nav] location.reload() → reloading', 'info');
+                        if (pageUrl) go(pageUrl, false);
+                    } else {
+                        log('[nav] location.reload() suppressed (too soon after page load)', 'warn');
+                    }
                     return;
                 }
                 if (d.t === "uc") {
@@ -9503,6 +9587,7 @@ console.log('[Proxy] Ready');
                     return;
                 }
                 if (d.t === "ready") {
+                    window._lastPageLoadTime = Date.now();
                     log("Page ready", "info");
                     if (pageUrl) { try { syncCookiesToFrame(new URL(pageUrl).origin); } catch { } }
                     return;
@@ -10045,6 +10130,7 @@ _VIEWER_DL_JS +
                 const blobUrl = URL.createObjectURL(blob);
                 const prevBlobUrl = frame.src;
                 frame.style.opacity = '0';
+                _blobLoadPending = true;
                 frame.src = blobUrl;
                 frame.onload = () => {
                     const loadedTab = tabs.find(t => t.id === initiatorTabId);
@@ -10096,8 +10182,7 @@ _VIEWER_DL_JS +
                                 "Unknown Settings Page",
                                 "ERR_INVALID_GUST_SETTINGS",
                                 `The settings page <code>${url}</code> does not exist.`,
-                                ["Check the URL for typos — valid sections are: " + [...VALID_SETTINGS_SECTIONS].join(", ")],
-                                ["A gust:// settings URL was entered with an unrecognized section name"]
+                                ["Check for typos in the address", "Valid settings pages: " + [...VALID_SETTINGS_SECTIONS].join(", ")]
                             );
                             setTabTitle("Settings — Not Found");
                             isErrorPage = true;
@@ -10125,26 +10210,18 @@ _VIEWER_DL_JS +
 
                 isErrorPage = false;
 
-                let tabCtrl;
-                if (!_isRetry) {
-                    const prevCtrl = tabAbortControllers.get(initiatorTabId);
-                    if (prevCtrl) prevCtrl.abort();
-                    tabCtrl = new AbortController();
-                    tabAbortControllers.set(initiatorTabId, tabCtrl);
-                    if (initiatorTabId === activeTabId) abortCtrl = tabCtrl;
+                const prevCtrl = tabAbortControllers.get(initiatorTabId);
+                if (prevCtrl) prevCtrl.abort();
+                const tabCtrl = new AbortController();
+                tabAbortControllers.set(initiatorTabId, tabCtrl);
+                if (initiatorTabId === activeTabId) abortCtrl = tabCtrl;
 
-                    if (activeTabId === initiatorTabId && !isInvalidInternal(url)) {
-                        frame.onload = null;
-                        frame.src = 'about:blank';
-                    }
-
-                    if (initiatorTabId === activeTabId) { abortAllRequests(); closeAllSockets(); }
-                } else {
-                    // Reuse the existing abort controller — retries share the same
-                    // cancellation signal and must not blank the frame or kill
-                    // in-flight sub-resource requests mid-retry.
-                    tabCtrl = tabAbortControllers.get(initiatorTabId) || new AbortController();
+                if (activeTabId === initiatorTabId && !isInvalidInternal(url)) {
+                    frame.onload = null;
+                    frame.src = 'about:blank';
                 }
+
+                if (initiatorTabId === activeTabId) { abortAllRequests(); closeAllSockets(); }
 
                 const currentTab = getActiveTab();
                 if (currentTab) {
@@ -10163,8 +10240,7 @@ _VIEWER_DL_JS +
                             "Invalid Internal URL",
                             "ERR_INVALID_GUST_URL",
                             `The internal address <code>${url}</code> is not a valid Gust page.`,
-                            ["Use the Home button to return to the new tab page — valid pages are gust://newtab and gust://settings"],
-                            ["A gust:// address was entered manually with an unrecognized path"]
+                            ["Check for typos in the address", "Use the Home button to return to the search page", "Common pages: gust://newtab, gust://settings"]
                         );
 
                         setTabTitle("Invalid URL");
@@ -10189,7 +10265,7 @@ _VIEWER_DL_JS +
                     return;
                 }
 
-                if (!_isRetry && activeTabId === initiatorTabId) {
+                if (activeTabId === initiatorTabId) {
                     hideNewTab();
                     hideSettingsPage();
                     pageUrl = url;
@@ -10385,29 +10461,74 @@ _VIEWER_DL_JS +
                         if (tgt && tgt !== '_self') a.setAttribute('target', '_self');
 
                         // Rewrite href to absolute URL so resolve() inside the proxy
-                        // script has a clean absolute URL to work with
+                        // Defuse href at parse-time: store real absolute URL in
+                        // data-gust-href and set href=javascript:void(0) so the
+                        // browser can never navigate natively from a click.
+                        // The proxy script click handler reads data-gust-href.
                         const href = a.getAttribute('href');
                         if (!href) return;
                         if (/^javascript:/i.test(href)) {
-                            // javascript: hrefs — turn into a plain '#' so they do nothing
-                            // natively; our click listener will still intercept any click
-                            a.setAttribute('href', '#');
+                            a.setAttribute('href', 'javascript:void(0)');
                             return;
                         }
                         if (/^(#|mailto:|tel:|data:|blob:)/i.test(href)) return;
                         try {
-                            a.setAttribute('href', new URL(href, url).href);
+                            const abs = new URL(href, url).href;
+                            a.setAttribute('data-gust-href', abs);
+                            a.setAttribute('href', 'javascript:void(0)');
                         } catch {}
                     });
                     // ─────────────────────────────────────────────────────────────────
 
                     // Insert proxy script as very first child so it runs before any page scripts
                     const proxyScript = doc.createElement("script");
-                    proxyScript.textContent = makeProxyScript(url, jsProxyEnabled, blockEnabled, mediaPref('gust:webrtc:block:v1'), (() => { try { return ls.getItem('gust:ua:page:v1') || null; } catch { return null; } })());
+                    proxyScript.setAttribute('data-gust-injected', '1');
+                    proxyScript.textContent = makeProxyScript(url, jsProxyEnabled, blockEnabled, mediaPref('gust:webrtc:block:v1'), (() => { try { return ls.getItem('gust:ua:page:v1') || null; } catch { return null; } })(), (() => { try { return ls.getItem('gust:spellcheck:v1') === 'true'; } catch { return false; } })());
                     doc.head.insertBefore(proxyScript, doc.head.firstChild);
 
                     // Ensure base tag stays right after the proxy script
                     proxyScript.insertAdjacentElement('afterend', base);
+
+                    // ── Standalone click router ───────────────────────────────────────
+                    // A minimal self-contained script that handles link clicks using
+                    // the data-gust-href attributes set at parse-time above.
+                    // Runs independently of the main proxy script so link navigation
+                    // works even if the proxy script has an error.
+                    const clickRouterScript = doc.createElement("script");
+                    clickRouterScript.setAttribute('data-gust-injected', '1');
+                    clickRouterScript.textContent = `(function(){
+  document.addEventListener('click', function(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a,area') : null;
+    if (!a) return;
+    var dest = a.getAttribute('data-gust-href');
+    if (!dest) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    try { parent.postMessage({t:'n',u:dest},'*'); } catch(err) {}
+  }, true);
+  document.addEventListener('submit', function(e) {
+    var form = e.target;
+    if (!form || form.tagName !== 'FORM') return;
+    var dest = form.getAttribute('data-gust-action') || form.action;
+    if (!dest || /^(javascript:|blob:|data:)/i.test(dest)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    var method = (form.getAttribute('method') || 'GET').toUpperCase();
+    var fd = new FormData(form);
+    if (method === 'POST') {
+      try { parent.postMessage({t:'n',u:dest,m:'POST',b:new URLSearchParams(fd).toString()},'*'); } catch(err) {}
+    } else {
+      var qs = new URLSearchParams(fd).toString();
+      try { parent.postMessage({t:'n',u:dest.split('?')[0]+(qs?'?'+qs:'')},'*'); } catch(err) {}
+    }
+  }, true);
+})();`;
+                    // Insert right after the proxy script so it runs immediately
+                    proxyScript.insertAdjacentElement('afterend', clickRouterScript);
+                    clickRouterScript.insertAdjacentElement('afterend', base);
+                    // ─────────────────────────────────────────────────────────────────
 
                     if (blockEnabled) {
                         const adStyle = doc.createElement("style");
@@ -10469,9 +10590,11 @@ _VIEWER_DL_JS +
                         return cssText;
                     }
 
+                    log(`[diag] CSS links: ${cssLinks.length}, Scripts: ${doc.querySelectorAll('script[src]').length}, tabMatch: ${activeTabId === initiatorTabId}`, 'info');
+
                     const BATCH_SIZE = 15;
                     for (let i = 0; i < cssLinks.length; i += BATCH_SIZE) {
-                        if (activeTabId !== initiatorTabId) return;
+                        if (activeTabId !== initiatorTabId) { log('[diag] tab mismatch before CSS batch', 'warn'); return; }
                         const batch = cssLinks.slice(i, i + BATCH_SIZE);
                         const batchPromises = batch.map(async link => {
                             const href = link.getAttribute("href");
@@ -10556,7 +10679,7 @@ _VIEWER_DL_JS +
                     // External scripts get rewriteJsSource via processScriptBatch below;
                     // inline scripts were previously skipped entirely.
                     if (jsProxyEnabled) {
-                        doc.querySelectorAll('script:not([src])').forEach(scr => {
+                        doc.querySelectorAll('script:not([src]):not([data-gust-injected])').forEach(scr => {
                             const type = (scr.getAttribute('type') || '').toLowerCase();
                             if (type && type !== 'text/javascript' && type !== 'module' && type !== 'application/javascript') return;
                             const text = scr.textContent;
@@ -10767,6 +10890,7 @@ _VIEWER_DL_JS +
                         type: "text/html;charset=utf-8"
                     }));
                     frame.style.opacity = '0';
+                    _blobLoadPending = true;
                     frame.src = newBlobUrl;
                     frame.onload = () => {
                         // Re-apply mute state after new content loads
@@ -10832,7 +10956,7 @@ _VIEWER_DL_JS +
                     if (!_isRetry && _triggerMatches && !tabAbortControllers.get(initiatorTabId)?.signal?.aborted) {
 
                         // ── Phase 1: retry on primary WISP ──────────────────────
-                        log(`<i class="fas fa-rotate-left" style="color:var(--warn)"></i><span style="color:var(--warn)">Initial attempt failed (${_primaryHost}):</span> <span style="color:var(--tx3)">${e.message}</span>`, 'warn');
+                        log(`<i class="fas fa-rotate-left" style="color:var(--warn)"></i><span style="color:var(--warn)">Initial attempt failed (${_primaryHost}):</span> <span style="color:var(--tx3)">${e.message.slice(0, 55)}</span>`, 'warn');
 
                         let _mainSuccess = false;
                         for (let _mi = 0; _mi < _mainRetries; _mi++) {
@@ -10848,7 +10972,7 @@ _VIEWER_DL_JS +
                             } catch (_mErr) {
                                 if (_mErr.name === 'AbortError') break;
                                 if (_mi + 1 < _mainRetries) {
-                                    log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Main retry ${_mi + 1}/${_mainRetries} failed:</span> <span style="color:var(--tx3)">${_mErr.message}</span>`, 'err');
+                                    log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Main retry ${_mi + 1}/${_mainRetries} failed:</span> <span style="color:var(--tx3)">${_mErr.message.slice(0, 55)}</span>`, 'err');
                                 } else {
                                     log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">All ${_mainRetries} main retries failed on ${_primaryHost}</span>${_fbEnabled && _fbWisp ? ' — switching to fallback' : ''}`, 'err');
                                 }
@@ -10869,7 +10993,7 @@ _VIEWER_DL_JS +
                                 curl = new libcurl.HTTPSession();
                                 curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
                             } catch (_swErr) {
-                                log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Failed to switch to fallback WISP:</span> <span style="color:var(--tx3)">${_swErr.message}</span>`, 'err');
+                                log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Failed to switch to fallback WISP:</span> <span style="color:var(--tx3)">${_swErr.message.slice(0, 55)}</span>`, 'err');
                             }
 
                             let _fbSuccess = false;
@@ -10888,7 +11012,7 @@ _VIEWER_DL_JS +
                                 } catch (_fbErr) {
                                     if (_fbErr.name === 'AbortError') break;
                                     if (_ri + 1 < _fbRetries) {
-                                        log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Fallback retry ${_ri + 1}/${_fbRetries} failed:</span> <span style="color:var(--tx3)">${_fbErr.message}</span>`, 'err');
+                                        log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Fallback retry ${_ri + 1}/${_fbRetries} failed:</span> <span style="color:var(--tx3)">${_fbErr.message.slice(0, 55)}</span>`, 'err');
                                     } else {
                                         log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">All ${_fbRetries} fallback retries failed — ${_fbHost} also unavailable</span>`, 'err');
                                         // Restore primary WISP before showing error page
@@ -10898,12 +11022,12 @@ _VIEWER_DL_JS +
                             }
                             if (_fbSuccess) return;
                         } else if (_fbEnabled && !_fbWisp) {
-                            log(`<i class="fas fa-triangle-exclamation" style="color:var(--warn)"></i><span style="color:var(--warn)">Fallback enabled but no fallback WISP configured</span> — set one in Settings <i class="fas fa-arrow-right" style="font-size:10px;color:var(--tx3);"></i> Fallback`, 'warn');
+                            log(`<i class="fas fa-triangle-exclamation" style="color:var(--warn)"></i><span style="color:var(--warn)">Fallback enabled but no fallback WISP configured</span> — set one in Settings → Fallback`, 'warn');
                         }
                     }
                     // ─────────────────────────────────────────────────────────
 
-                    log(`<i class="fas fa-circle-xmark" style="color:var(--err)"></i><span style="color:var(--err)">Failed:</span> <span style="color:var(--tx3)">${e.message}</span>`, "err");
+                    log("Failed: " + e.message, "err");
                     progressBar.classList.add("error");
                     hideOverlay();
                     setStatus("error", "Error");
@@ -10913,139 +11037,118 @@ _VIEWER_DL_JS +
                     let errorCode = "";
                     let errorDescription = "";
                     let errorSuggestions = [];
-                    let errorReasons = [];
 
                     const errorMsg = e.message.toLowerCase();
 
-                    if (errorMsg.includes("dns") || errorMsg.includes("getaddrinfo") || errorMsg.includes("name resolution") || errorMsg.includes("could not resolve") || errorMsg.includes("error code 6") || errorMsg.includes("resolve host")) {
+                    if (errorMsg.includes("dns") || errorMsg.includes("getaddrinfo") || errorMsg.includes("name resolution")) {
                         errorType = "DNS Resolution Failed";
                         errorCode = "ERR_NAME_NOT_RESOLVED";
-                        errorDescription = "The domain name could not be resolved. The website's address might be incorrect, or the DNS server is unavailable.";
+                        errorDescription = "The domain name could not be resolved. The website's address might be incorrect or the DNS server is unavailable.";
                         errorSuggestions = [
-                            "Double-check the URL spelling, then open Settings &gt; Connection and confirm your Wisp server URL is correct"
+                            "Check if the URL is spelled correctly",
+                            "Try accessing the site later",
+                            "Check your DNS settings",
+                            "Try using a different DNS server (e.g., 8.8.8.8)"
                         ];
-                        errorReasons = [
-                            "The domain doesn't exist or was typed incorrectly",
-                            "Your Wisp server can't reach a DNS resolver",
-                            "A DNS filter or firewall on your network may be blocking the connection to Wisp"
-                        ];
-                    } else if (errorMsg.includes("timeout") || errorMsg.includes("timed out") || errorMsg.includes("error code 28")) {
+                    } else if (errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
                         errorType = "Connection Timeout";
                         errorCode = "ERR_CONNECTION_TIMED_OUT";
                         errorDescription = "The server took too long to respond. This could be due to a slow connection, server issues, or network problems.";
                         errorSuggestions = [
-                            "Reload the page — if it keeps timing out, raise the retry count in Settings &gt; Connection"
+                            "Check your internet connection",
+                            "Try reloading the page",
+                            "The server might be experiencing high traffic",
+                            "Try again in a few moments"
                         ];
-                        errorReasons = [
-                            "The destination server is overloaded or temporarily unavailable",
-                            "Your Wisp server is experiencing high latency",
-                            "A firewall or network filter may be slowing or blocking the connection"
-                        ];
-                    } else if (errorMsg.includes("refused") || errorMsg.includes("econnrefused") || errorMsg.includes("could not connect") || errorMsg.includes("error code 7")) {
-                        errorType = "Could Not Connect to Server";
+                    } else if (errorMsg.includes("refused") || errorMsg.includes("econnrefused")) {
+                        errorType = "Connection Refused";
                         errorCode = "ERR_CONNECTION_REFUSED";
-                        errorDescription = "Gust couldn't establish a connection. The server may be down, or something on your network may be blocking the connection to Wisp.";
+                        errorDescription = "The server refused to connect. The website might be down or blocking connections.";
                         errorSuggestions = [
-                            "Check if the site is down for everyone at downdetector.com, then try again — or check your Wisp server URL in Settings &gt; Connection"
+                            "Check if the website is down for everyone",
+                            "The site might be temporarily unavailable",
+                            "Try accessing the site later",
+                            "Check your firewall settings"
                         ];
-                        errorReasons = [
-                            "A DNS filter or firewall on your network may be blocking the connection to Wisp",
-                            "You may be disconnected from Wi-Fi or your internet connection dropped",
-                            "The Wisp server may be offline or the URL may be incorrect",
-                            "The destination server is not listening on that port"
-                        ];
-                    } else if (errorMsg.includes("ssl") || errorMsg.includes("tls") || errorMsg.includes("certificate") || errorMsg.includes("error code 35") || errorMsg.includes("error code 51") || errorMsg.includes("error code 60")) {
+                    } else if (errorMsg.includes("ssl") || errorMsg.includes("tls") || errorMsg.includes("certificate")) {
                         errorType = "SSL/TLS Error";
                         errorCode = "ERR_SSL_PROTOCOL_ERROR";
                         errorDescription = "There was a problem with the website's security certificate or SSL/TLS connection.";
                         errorSuggestions = [
-                            "Verify your system clock shows the correct date and time — a wrong clock is the most common cause of SSL errors"
-                        ];
-                        errorReasons = [
-                            "The site's SSL certificate is expired or self-signed",
-                            "The server uses a TLS version that is no longer accepted",
-                            "Your system clock may be set to the wrong date or time"
+                            "The website's certificate might be invalid or expired",
+                            "Try accessing the HTTP version (not recommended)",
+                            "Check your system date and time",
+                            "The site might be using outdated security protocols"
                         ];
                     } else if (errorMsg.includes("network") || errorMsg.includes("offline")) {
                         errorType = "Network Error";
                         errorCode = "ERR_NETWORK_CHANGED";
                         errorDescription = "A network error occurred. You might be offline or your connection was interrupted.";
                         errorSuggestions = [
-                            "Check your Wi-Fi or ethernet connection, then reload — if nothing loads, try restarting your router"
-                        ];
-                        errorReasons = [
-                            "Your device lost its internet connection or switched networks mid-request",
-                            "The Wisp WebSocket tunnel was dropped due to the network change",
-                            "You may be disconnected from Wi-Fi"
+                            "Check your internet connection",
+                            "Try reconnecting to your network",
+                            "Check if other sites load correctly",
+                            "Restart your router if the problem persists"
                         ];
                     } else if (errorMsg.includes("blocked") || errorMsg.includes("cors")) {
                         errorType = "Request Blocked";
                         errorCode = "ERR_BLOCKED_BY_CLIENT";
-                        errorDescription = "The request was blocked, possibly by a CORS policy, security settings, or a browser extension.";
+                        errorDescription = "The request was blocked, possibly by CORS policy or security settings.";
                         errorSuggestions = [
-                            "Disable browser extensions that intercept requests, or check if the site explicitly blocks proxy connections"
-                        ];
-                        errorReasons = [
-                            "The site's CORS or Content Security Policy rejected the proxied request",
-                            "A local browser extension blocked the request before it was sent",
-                            "A network-level filter or firewall is intercepting the connection"
+                            "The website might not support proxy access",
+                            "Try accessing the site directly",
+                            "Check your privacy/security settings",
+                            "Some sites block proxy connections"
                         ];
                     } else if (errorMsg.includes("404") || errorMsg.includes("not found")) {
                         errorType = "Page Not Found";
-                        errorCode = "HTTP_404_NOT_FOUND";
+                        errorCode = "HTTP 404";
                         errorDescription = "The requested page could not be found on the server.";
                         errorSuggestions = [
-                            "Go to the site's home page and navigate from there, or search for the page title in a search engine"
-                        ];
-                        errorReasons = [
-                            "The page was deleted or moved to a new URL",
-                            "The link you followed contained a typo or is outdated"
+                            "Check the URL for typos",
+                            "The page might have been moved or deleted",
+                            "Try going to the website's home page",
+                            "Search for the page using a search engine"
                         ];
                     } else if (errorMsg.includes("500") || errorMsg.includes("internal server")) {
                         errorType = "Internal Server Error";
-                        errorCode = "HTTP_500_INTERNAL_SERVER_ERROR";
+                        errorCode = "HTTP 500";
                         errorDescription = "The server encountered an error and could not complete your request.";
                         errorSuggestions = [
-                            "Wait 30–60 seconds and reload — if it persists, check the site's status page for a known outage"
-                        ];
-                        errorReasons = [
-                            "The web server crashed or encountered an unhandled exception",
-                            "A backend service the site depends on (database, API) is currently down"
+                            "Try reloading the page",
+                            "The server might be temporarily down",
+                            "Try again in a few minutes",
+                            "Contact the website administrator if the problem persists"
                         ];
                     } else if (errorMsg.includes("403") || errorMsg.includes("forbidden")) {
                         errorType = "Access Forbidden";
-                        errorCode = "HTTP_403_FORBIDDEN";
+                        errorCode = "HTTP 403";
                         errorDescription = "You don't have permission to access this resource.";
                         errorSuggestions = [
-                            "Try logging in to the site — if already logged in, the resource may require a higher-tier account"
+                            "You might need to log in",
+                            "The page might be restricted",
+                            "Check if you have the necessary permissions",
+                            "Contact the website administrator"
                         ];
-                        errorReasons = [
-                            "Your session expired or you are not logged in",
-                            "The site is blocking the Wisp server's IP address from accessing this resource",
-                            "The resource requires permissions you don't have"
-                        ];
-                    } else if (errorMsg.includes("aborted")) {
+                    } else if (errorMsg.includes("aborted") || errorMsg.includes("operation")) {
                         errorType = "Connection Interrupted";
                         errorCode = "ERR_CONNECTION_ABORTED";
-                        errorDescription = "The connection to the proxy server was interrupted. Gust will attempt to reconnect automatically on the next request.";
+                        errorDescription = "The connection to the proxy server was interrupted. GUST will attempt to reconnect automatically on the next request.";
                         errorSuggestions = [
-                            "Open Settings &gt; Connection and update your Wisp URL to an active server, then reload"
-                        ];
-                        errorReasons = [
-                            "The Wisp WebSocket was forcibly closed — the server went offline or restarted",
-                            "The Wisp URL may no longer be valid",
-                            "A firewall or DNS filter on your network may have blocked the connection mid-session"
+                            "Click the reload button to try again",
+                            "The proxy server may have briefly disconnected",
+                            "Check that your WISP server is running",
+                            "Try reloading the page - the connection should auto-recover"
                         ];
                     } else {
                         errorType = "Error Loading Page";
-                        errorCode = "ERR_UNKNOWN";
-                        errorDescription = "An error occurred while trying to load this page: " + e.message.slice(0, 120);
+                        errorCode = e.message;
+                        errorDescription = "An error occurred while trying to load this page.";
                         errorSuggestions = [
-                            "Open the Logs panel below to read the raw error, then check your Wisp connection in Settings &gt; Connection"
-                        ];
-                        errorReasons = [
-                            "An unexpected error occurred that doesn't match a known pattern",
-                            "It may be a one-off glitch or a Wisp connection issue"
+                            "Try reloading the page",
+                            "Check your internet connection",
+                            "Try accessing the site later",
+                            "Clear your cache in settings"
                         ];
                     }
 
@@ -11053,7 +11156,7 @@ _VIEWER_DL_JS +
                     const errTab = tabs.find(t => t.id === initiatorTabId);
                     if (errTab) errTab.hasError = true;
                     if (!tabs.find(t => t.id === initiatorTabId)) return; 
-                    renderErrorPage(pageUrl, errorType, errorCode, errorDescription, errorSuggestions, errorReasons);
+                    renderErrorPage(pageUrl, errorType, errorCode, errorDescription, errorSuggestions);
                     updateSecurityChip(pageUrl, 'error');
                     renderTabs();
                 }
@@ -12507,8 +12610,16 @@ _VIEWER_DL_JS +
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ q: texts, source: 'en', target: targetLang })
                     }).then(function(r) { return r.json(); }).then(function(data) {
-                        var translated = (data && data.translated) ? data.translated : (Array.isArray(data) ? data : []);
-                        if (!Array.isArray(translated)) translated = [translated];
+                        var translated;
+                        if (Array.isArray(data)) {
+                            translated = data.map(function(d) { return typeof d === 'string' ? d : (d && d.translatedText) || ''; });
+                        } else if (data && Array.isArray(data.translatedText)) {
+                            translated = data.translatedText;
+                        } else if (data && typeof data.translatedText === 'string') {
+                            translated = [data.translatedText];
+                        } else {
+                            translated = [];
+                        }
                         nodesAndTexts.forEach(function(item, i) {
                             if (translationOriginals.get(item.node) === undefined)
                                 translationOriginals.set(item.node, item.text);
@@ -12632,6 +12743,7 @@ _VIEWER_DL_JS +
                         const nowOn = spellSwitch.classList.toggle("on");
                         try { ls.setItem(spellKey, nowOn ? 'true' : 'false'); } catch (_) { }
                         document.querySelectorAll('input[type=text], textarea').forEach(el => el.spellcheck = nowOn);
+                        try { frame.contentWindow?.postMessage({ type: 'gust:spellcheck', enabled: nowOn }, '*'); } catch (_) { }
                     };
                 }
 
@@ -13816,21 +13928,8 @@ _VIEWER_DL_JS +
                     sw.addEventListener('click', () => {
                         const isOn = sw.classList.toggle('on');
                         try { ls.setItem(key, isOn ? '1' : '0'); } catch(e) {}
-                        if (id === 'fallbackEnabledSwitch') applyFallbackEnabledState(isOn);
                     });
                 });
-
-                const _fbSubCards = ['fallbackWispCard','fallbackRetryCard','fallbackTriggersCard'].map(i => document.getElementById(i));
-                function applyFallbackEnabledState(enabled) {
-                    _fbSubCards.forEach(card => {
-                        if (!card) return;
-                        card.style.opacity = enabled ? '' : '0.38';
-                        card.style.pointerEvents = enabled ? '' : 'none';
-                        card.style.transition = 'opacity .2s';
-                    });
-                }
-                // Apply initial state
-                try { applyFallbackEnabledState(ls.getItem('gust:fallback:enabled') !== '0'); } catch(e) { applyFallbackEnabledState(true); }
 
                 // Fallback WISP URL
                 const fbInput  = document.getElementById('settingsFallbackWispInput');
