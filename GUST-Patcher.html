@@ -1287,15 +1287,15 @@ function buildPatchScript(removedPatches) {
 
   // Connection
   if (rm.has('wisp-url')) {
-    badge('#settingsWispRow');
+    badge('#settingsWispInput,#settingsWispSave,#settingsWispReset');
     css('#settingsWispStatus');
   }
   if (rm.has('search-favicon'))
     badge('#faviconProxySwitch');
   if (rm.has('threads')) {
-    badge('#settingsIdleStepper');
-    badge('#settingsActiveStepper');
-    badge('#settingsThreadsSaveRow');
+    badge('#settingsIdleMinus,#settingsIdleVal,#settingsIdlePlus');
+    badge('#settingsActiveMinus,#settingsActiveVal,#settingsActivePlus');
+    badge('#settingsThreadsSave,#settingsThreadsReset,#settingsThreadsStatus');
   }
   if (rm.has('webrtc-block'))
     badge('#webrtcBlockSwitch');
@@ -1306,13 +1306,13 @@ function buildPatchScript(removedPatches) {
   if (rm.has('fallback-enabled'))
     badge('#fallbackEnabledSwitch');
   if (rm.has('fallback-wisp')) {
-    badge('#settingsFallbackWispRow');
+    badge('#settingsFallbackWispInput,#settingsFallbackWispSave,#settingsFallbackWispReset');
     css('#settingsFallbackWispStatus');
   }
   if (rm.has('fallback-retries')) {
-    badge('#mainRetryStepper');
-    badge('#fallbackRetryStepper');
-    badge('#fallbackDelayStepper');
+    badge('#mainRetryMinus,#mainRetryVal,#mainRetryPlus');
+    badge('#fallbackRetryMinus,#fallbackRetryVal,#fallbackRetryPlus');
+    badge('#fallbackDelayMinus,#fallbackDelayVal,#fallbackDelayPlus');
   }
   if (rm.has('fallback-triggers'))
     badge('#fallback5xxSwitch,#fallbackTimeoutSwitch,#fallbackDnsSwitch');
