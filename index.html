@@ -3452,6 +3452,101 @@
 </head>
 
 <body>
+    <noscript>
+        <style>
+            .gust-noscript {
+                position: fixed;
+                inset: 0;
+                z-index: 999999;
+                background: #0d0f12;
+                color: #f0f4f8;
+                font-family: 'Segoe UI', Arial, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+            }
+            .gust-noscript-box {
+                max-width: 520px;
+                width: 100%;
+                background: #1c2026;
+                border: 1px solid #4f5963;
+                border-radius: 16px;
+                padding: 40px 36px 36px;
+                box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+                text-align: center;
+            }
+            .gust-noscript-icon {
+                font-size: 48px;
+                margin-bottom: 20px;
+            }
+            .gust-noscript-title {
+                font-size: 22px;
+                font-weight: 700;
+                margin-bottom: 12px;
+                color: #f0f4f8;
+            }
+            .gust-noscript-body {
+                font-size: 14px;
+                color: #b8c4d0;
+                line-height: 1.7;
+                margin-bottom: 24px;
+            }
+            .gust-noscript-steps {
+                background: #252b33;
+                border-radius: 10px;
+                padding: 18px 20px;
+                text-align: left;
+                margin-bottom: 24px;
+            }
+            .gust-noscript-steps p {
+                font-size: 13px;
+                font-weight: 600;
+                color: #9de5ff;
+                margin-bottom: 10px;
+            }
+            .gust-noscript-steps ol {
+                margin: 0;
+                padding-left: 20px;
+                font-size: 13px;
+                color: #b8c4d0;
+                line-height: 1.9;
+            }
+            .gust-noscript-alt {
+                font-size: 12px;
+                color: #7d8a98;
+                line-height: 1.6;
+            }
+            .gust-noscript-alt a {
+                color: #9de5ff;
+            }
+        </style>
+        <div class="gust-noscript">
+            <div class="gust-noscript-box">
+                <div class="gust-noscript-icon">⚡</div>
+                <div class="gust-noscript-title">JavaScript Required</div>
+                <div class="gust-noscript-body">
+                    GUST needs JavaScript to run. It looks like JavaScript is currently
+                    disabled — possibly because this file is being opened as a
+                    <code style="background:#252b33;padding:1px 5px;border-radius:4px;font-size:12px;">file://</code>
+                    URL and your browser has JavaScript blocked for local files.
+                </div>
+                <div class="gust-noscript-steps">
+                    <p>To fix this in Chrome / Edge:</p>
+                    <ol>
+                        <li>Go to <strong>Settings → Privacy and security → Site settings → JavaScript</strong></li>
+                        <li>Under <em>Customized behaviors</em>, remove any rule blocking <code>file://*</code></li>
+                        <li>Reload this page</li>
+                    </ol>
+                </div>
+                <div class="gust-noscript-alt">
+                    Alternatively, host GUST on any static file server or open it from
+                    <a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GitHub Pages</a>
+                    where JavaScript is always allowed.
+                </div>
+            </div>
+        </div>
+    </noscript>
     <div class="app">
         <div class="titlebar">
             <div class="tab-strip-wrapper">
