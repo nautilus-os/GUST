@@ -1184,6 +1184,16 @@
             gap: 10px;
         }
 
+        /* Splash mode: covers the entire viewport with a blur, like the tutorial backdrop */
+        .overlay.splash {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 12, 16, .55);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 99990;
+        }
+
         .overlay.hidden {
             display: none
         }
@@ -1209,6 +1219,83 @@
             to {
                 transform: rotate(360deg)
             }
+        }
+
+        @keyframes error-alarm-ring {
+            0%   { box-shadow: 0 0 0 0px rgba(255,149,149,0.5); }
+            40%  { box-shadow: 0 0 0 22px rgba(255,149,149,0); }
+            100% { box-shadow: 0 0 0 0px rgba(255,149,149,0); }
+        }
+        @keyframes error-alarm-shake {
+            0%,100% { transform: rotate(0deg)   scale(1); }
+            8%       { transform: rotate(-18deg) scale(1.15); }
+            16%      { transform: rotate(16deg)  scale(1.1); }
+            24%      { transform: rotate(-12deg) scale(1.05); }
+            32%      { transform: rotate(10deg)  scale(1.05); }
+            40%      { transform: rotate(-6deg)  scale(1); }
+            48%      { transform: rotate(4deg)   scale(1); }
+            56%      { transform: rotate(-2deg)  scale(1); }
+            62%,100% { transform: rotate(0deg)   scale(1); }
+        }
+
+        /* ── Overlay error state: large ringing triangle ────────────────── */
+        .overlay-error-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 149, 149, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            animation: error-alarm-ring 1.8s ease-out 0.4s infinite;
+        }
+        .overlay-error-icon i {
+            font-size: 36px;
+            color: var(--err);
+            animation: error-alarm-shake 1.8s cubic-bezier(0.36,0.07,0.19,0.97) 0.4s infinite;
+            transform-origin: center bottom;
+        }
+        #overlayText.overlay-err-text {
+            color: var(--err);
+            font-size: 13px;
+            max-width: 380px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .overlay-err-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+        }
+        .overlay-err-btn {
+            padding: 8px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--ui);
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .overlay-err-btn.reload {
+            background: var(--err);
+            color: #1a0a0a;
+            border-color: var(--err);
+        }
+        .overlay-err-btn.reload:hover {
+            background: #ffb3b3;
+            border-color: #ffb3b3;
+        }
+        .overlay-err-btn.limited {
+            background: transparent;
+            color: var(--tx3);
+            border-color: var(--bd);
+        }
+        .overlay-err-btn.limited:hover {
+            background: var(--surface);
+            color: var(--tx2);
+            border-color: var(--bd2);
         }
 
         .gust-tooltip {
@@ -4940,7 +5027,7 @@
                     </div>
                 </div>
 
-                <div class="overlay" id="overlay">
+                <div class="overlay splash" id="overlay">
                     <div class="spinner"></div>
                     <div id="overlayText">Initializing...</div>
                 </div>
@@ -5056,7 +5143,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/libcurl.js@latest/libcurl_full.js" defer
         onload="window._libcurlReady=true;"
-        onerror="console.warn('libcurl.js failed to load — network requests may fall back to fetch.');"
+        onerror="(function(){ const reason='The libcurl.js script could not be fetched from cdn.jsdelivr.net. The CDN may be unreachable or blocked.'; window._libcurlLoadError=reason; console.error('[GUST] libcurl.js failed to load:', reason); })();"
     ></script>
     <script>
         (function () {
@@ -5331,7 +5418,7 @@
         
         @keyframes error-alarm-ring {
             0%   { box-shadow: 0 0 0 0px rgba(255,149,149,0.5); }
-            40%  { box-shadow: 0 0 0 14px rgba(255,149,149,0); }
+            40%  { box-shadow: 0 0 0 22px rgba(255,149,149,0); }
             100% { box-shadow: 0 0 0 0px rgba(255,149,149,0); }
         }
         @keyframes error-alarm-shake {
@@ -7713,6 +7800,37 @@
                 }, 400);
             }
 
+            function showOverlayError(reason) {
+                // Stop any dots animation
+                if (_overlayDotsInterval) { clearInterval(_overlayDotsInterval); _overlayDotsInterval = null; }
+                // Swap spinner for mini error triangle
+                const spinner = overlay.querySelector('.spinner');
+                if (spinner) {
+                    spinner.outerHTML = '<div class="overlay-error-icon"><i class="fas fa-triangle-exclamation"></i></div>';
+                }
+                // Update text
+                overlayText.classList.add('overlay-err-text');
+                overlayText.textContent = 'libcurl failed to initialize: ' + reason;
+                overlay.classList.remove("hidden");
+                // Inject action buttons and return a Promise that resolves when the user chooses
+                return new Promise(resolve => {
+                    // Remove any stale button row from a previous call
+                    overlay.querySelector('.overlay-err-btns')?.remove();
+                    const btns = document.createElement('div');
+                    btns.className = 'overlay-err-btns';
+                    btns.innerHTML =
+                        '<button class="overlay-err-btn reload"><i class="fas fa-rotate-right" style="margin-right:6px;"></i>Reload page</button>' +
+                        '<button class="overlay-err-btn limited">Continue in limited mode</button>';
+                    overlay.appendChild(btns);
+                    btns.querySelector('.reload').addEventListener('click', () => { location.reload(); });
+                    btns.querySelector('.limited').addEventListener('click', () => {
+                        btns.remove();
+                        overlayText.classList.remove('overlay-err-text');
+                        resolve();
+                    });
+                });
+            }
+
             function hideOverlay() {
                 overlay.classList.add("hidden");
                 if (_overlayDotsInterval) { clearInterval(_overlayDotsInterval); _overlayDotsInterval = null; }
@@ -8331,6 +8449,52 @@ const assetsPath = BASE.substring(0, BASE.lastIndexOf('/') + 1);
 try { window.__webpack_public_path__ = assetsPath; } catch {}
 try { if (typeof __webpack_require__ !== 'undefined') __webpack_require__.p = assetsPath; } catch {}
 try { Object.defineProperty(window, '__webpack_public_path__', { get: () => window.__wpp || assetsPath, set: v => { window.__wpp = v; }, configurable: true }); } catch {}
+
+// ── Next.js / Vite / React framework fixes ─────────────────────────────────
+// 1. import.meta.url inside ES-module scripts resolves to the blob: URL of
+//    the iframe document, making dynamic import() and asset-path calculations
+//    (e.g. new URL('./chunk.js', import.meta.url)) point at blob:null/… and
+//    fail.  We expose the real page origin so framework resolvers work.
+try {
+  Object.defineProperty(window, '__GUST_REAL_BASE__', { value: BASE, configurable: true });
+} catch {}
+
+// 2. Next.js reads __NEXT_DATA__.assetPrefix to build /_next/static/… URLs.
+//    Inside a blob iframe the prefix must be the real origin, not empty string.
+try {
+  if (window.__NEXT_DATA__ && !window.__NEXT_DATA__.assetPrefix) {
+    window.__NEXT_DATA__.assetPrefix = ORIGIN;
+  }
+  // Also patch after DOMContentLoaded in case the inline script sets it late.
+  document.addEventListener('DOMContentLoaded', function _ndPatch() {
+    document.removeEventListener('DOMContentLoaded', _ndPatch);
+    try {
+      if (window.__NEXT_DATA__ && !window.__NEXT_DATA__.assetPrefix) {
+        window.__NEXT_DATA__.assetPrefix = ORIGIN;
+      }
+    } catch {}
+  });
+} catch {}
+
+// 3. Vite / Rollup embed chunk hashes in import.meta.url paths.  We can't
+//    truly override import.meta.url (it's not writable), but we can ensure
+//    any URL constructed from it is resolved against the real BASE.  Intercept
+//    the URL constructor so new URL(relative, blobHref) → new URL(relative, BASE).
+try {
+  const _OrigURL = window.URL;
+  function _GustURL(url, base) {
+    if (base && typeof base === 'string' && /^blob:/i.test(base)) {
+      base = BASE;
+    }
+    return new _OrigURL(url, base);
+  }
+  _GustURL.createObjectURL = _OrigURL.createObjectURL.bind(_OrigURL);
+  _GustURL.revokeObjectURL = _OrigURL.revokeObjectURL.bind(_OrigURL);
+  _GustURL.canParse       = _OrigURL.canParse ? _OrigURL.canParse.bind(_OrigURL) : undefined;
+  Object.setPrototypeOf(_GustURL, _OrigURL);
+  try { window.URL = _GustURL; } catch {}
+} catch {}
+// ───────────────────────────────────────────────────────────────────────────
 
 let currentScript = null;
 const scriptUrls = new WeakMap();
@@ -10180,8 +10344,10 @@ _VIEWER_DL_JS +
                             // Plain "N" with no URL = page reload; dropping the tag suppresses it.
                         }
                     });
-                    // Strip preconnect/dns-prefetch — they fire outside the proxy tunnel in a blob iframe
-                    doc.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"], link[rel="prerender"], link[rel="prefetch"]').forEach(l => l.remove());
+                    // Strip preconnect/dns-prefetch — they fire outside the proxy tunnel in a blob iframe.
+                    // Also strip modulepreload: Next.js/React/Vite emit these for ES module chunks;
+                    // inside a blob iframe they resolve against blob: origin and fail with CORS errors.
+                    doc.querySelectorAll('link[rel="preconnect"], link[rel="dns-prefetch"], link[rel="prerender"], link[rel="prefetch"], link[rel="modulepreload"]').forEach(l => l.remove());
                     doc.querySelectorAll('base[target]').forEach(b => b.removeAttribute('target'));
 
                     // Set base href before proxy script injection
@@ -10424,9 +10590,12 @@ _VIEWER_DL_JS +
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
 
 
-                    // JS - keep as external scripts to preserve defer/module semantics
-                    // Limit to 50 scripts to prevent overwhelming the queue
-                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, 50);
+                    // JS - keep as external scripts to preserve defer/module semantics.
+                    // Next.js / React / Vite apps commonly emit 30-80+ script tags (classic chunks
+                    // + ES module chunks). We keep up to 150 total to avoid cutting off critical
+                    // framework bootstrap scripts.  Module scripts (type="module") are included in
+                    // the same pass so their relative load order is preserved.
+                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, 150);
                     allScripts.forEach(scr => {
                         const src = scr.getAttribute("src");
                         if (!src || /^(data:|blob:)/i.test(src)) return;
@@ -11722,6 +11891,12 @@ _VIEWER_DL_JS +
                     log("Cache initialized", "info");
 
                     try {
+                        // If the script tag itself failed (CDN unreachable, blocked, etc.)
+                        // the onerror handler sets window._libcurlLoadError with a reason string.
+                        if (window._libcurlLoadError) {
+                            throw new Error(window._libcurlLoadError);
+                        }
+
                         const alreadyLoaded = typeof libcurl !== 'undefined' && libcurl.load_wasm;
                         if (!alreadyLoaded) {
                             await new Promise((rs, rj) => {
@@ -11732,22 +11907,30 @@ _VIEWER_DL_JS +
                                     }
                                 }, 100);
                                 document.addEventListener("libcurl_load", () => { clearInterval(poll); rs(); }, { once: true });
-                                document.addEventListener("libcurl_abort", () => { clearInterval(poll); rj(new Error("libcurl aborted")); }, { once: true });
-                                setTimeout(() => { clearInterval(poll); rj(new Error("Timeout waiting for libcurl")); }, 15000);
+                                document.addEventListener("libcurl_abort", () => { clearInterval(poll); rj(new Error("libcurl aborted during initialization")); }, { once: true });
+                                setTimeout(() => { clearInterval(poll); rj(new Error("Timed out waiting for libcurl.js to load (15s) — the CDN may be slow or unreachable")); }, 15000);
                             });
                         }
                         await libcurl.load_wasm();
                         libcurl.set_websocket(WISP);
                         curl = new libcurl.HTTPSession();
                         curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
+                        log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i><span style="color:var(--ok)">libcurl initialized successfully</span>`, "ok");
                         log(`Ready! (${MAX_CONCURRENT} connections, 1h cache) <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${WISP.replace(/^wss?:\/\//, '').split('/')[0]}</span>`, "ok");
                     } catch (e) {
-                        log("libcurl failed to load: " + e.message, "err");
-                        log("Browser will work in limited mode", "warn");
+                        const reason = e.message || 'Unknown error';
+                        console.error('[GUST] libcurl failed to initialize:', reason, e);
+                        log("libcurl failed to initialize: " + reason, "err");
+                        log("Waiting for user to choose how to proceed...", "warn");
+                        await showOverlayError(reason);
+                        log("Continuing in limited mode (falling back to native fetch)", "warn");
+                        hideOverlay();
                     }
 
                     hideOverlay();
                     updateNav();
+            // Signal that libcurl init is complete so deferred UI (tutorial, etc.) can start
+                    if (window._onLibcurlInitDone) window._onLibcurlInitDone();
 
                     if (tabsLoaded) {
                         const activeTab = getActiveTab();
@@ -11765,6 +11948,7 @@ _VIEWER_DL_JS +
                 } catch (e) {
                     log("Init failed: " + e.message, "err");
                     showOverlay("Error: " + e.message);
+                    if (window._onLibcurlInitDone) window._onLibcurlInitDone();
                 }
             }
 
@@ -13431,7 +13615,23 @@ _VIEWER_DL_JS +
                 }
             } catch(e) {}
 
-            setTimeout(() => startTutorial(false), 800);
+            // Delay tutorial until after libcurl init completes
+            let _libcurlInitDone = false;
+            let _tutorialWaiting = false;
+            function _maybeStartTutorial() {
+                if (_libcurlInitDone && _tutorialWaiting) {
+                    _tutorialWaiting = false;
+                    setTimeout(() => startTutorial(false), 400);
+                }
+            }
+            // Will be resolved by init() after libcurl is ready
+            window._onLibcurlInitDone = function() {
+                // Drop the splash styling — subsequent overlay uses (page loading) stay as the normal small overlay
+                overlay.classList.remove('splash');
+                _libcurlInitDone = true;
+                _maybeStartTutorial();
+            };
+            _tutorialWaiting = true;
 
             // ── Fullscreen logic ──────────────────────────────────────────────
             function _doRequestFullscreen() {
