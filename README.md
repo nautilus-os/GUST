@@ -140,7 +140,7 @@ Put it inside another HTML file as an `<iframe>`. Works from a Blob URL. Works f
 |--------|----------------------|
 | **lanefiedler** | Built the original proxy framework and UI shell, which was built upon to become the proxy you see today |
 | **dinguschan** | Redesigned the browser interface, rewrote large portions of the proxy JS, added most of the current features |
-| **x8rr** | Bug reports, feedback, light assistance, and the parts of this README |
+| **x8rr** | Ported GUST to SVG, Bug reports, feedback, light assistance, and the parts of this README |
 | **Mercury Workshop** | Created the WISP protocol, the WebSocket tunneling layer that makes this all possible |
 | **ading2210** | Built libcurl.js, which is curl compiled to WebAssembly (absolute clutchup) |
 | **Mozilla Foundation** | PDF.js, honestly dude I can't write an entire PDF handler thats just too much and this already exists |

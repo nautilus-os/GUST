@@ -1,0 +1,1696 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="100%" height="100%">
+    <foreignObject width="100%" height="100%" requiredExtensions="http://www.w3.org/1999/xhtml">
+    <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GUST Browser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="./static/css.css" />
+    <script src="https://cdn.jsdelivr.net/npm/iso-639-1@2.1.11/build/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/libcurl.js@latest/libcurl_full.js"></script>
+</head>
+<body>
+    <div class="app">
+        <div class="titlebar">
+            <div class="tab-strip-wrapper">
+                <button class="tab-strip-scroll-btn" id="tabScrollLeft" title="Scroll tabs left">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="tab-strip" id="tabStrip">
+                    <button class="tab active" id="tabActive" data-tab-id="1">
+                        <span class="tab-icon"><i class="fas fa-earth-americas"></i></span>
+                        <span class="tab-title" id="tabTitle">New Tab</span>
+                    </button>
+                    <button class="tab-add" id="newTab" title="New tab (Ctrl+T)" style="flex-shrink:0;">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <button class="tab-strip-scroll-btn" id="tabScrollRight" title="Scroll tabs right">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <button class="tool-btn" id="metricsBtn" title="Browser metrics" style="border:1px solid var(--bd);">
+                <i class="fas fa-chart-simple"></i>
+            </button>
+            <span class="status-pill" id="titlebarStatus">
+                <span class="status-dot idle" id="titlebarStatusDot"></span>
+                <span id="titlebarStatusLabel">Ready</span>
+            </span>
+        </div>
+
+        <div class="navbar">
+            <button class="nav-btn" id="fullscreenBtn" title="Toggle fullscreen (F11)">
+                <i class="fas fa-expand" id="fullscreenIcon"></i>
+            </button>
+            <button class="nav-btn" id="historyBtn" title="Recent history (Alt+H)">
+                <i class="fas fa-clock-rotate-left"></i>
+            </button>
+            <div
+                style="width:1px;height:22px;background:var(--bd);opacity:0.6;flex-shrink:0;align-self:center;margin:0 2px;">
+            </div>
+            <div class="nav-pill-group" id="navPillGroup">
+                <button class="nav-btn nav-pill-btn" id="back" title="Back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <button class="nav-btn nav-pill-btn" id="fwd" title="Forward">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                <button class="nav-btn nav-pill-btn" id="reload" title="Reload (Ctrl+R)">
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+                <button class="nav-btn nav-pill-btn hidden" id="stop" title="Stop loading">
+                    <i class="fas fa-stop"></i>
+                </button>
+                <button class="nav-btn nav-pill-btn" id="home" title="Home">
+                    <i class="fas fa-house"></i>
+                </button>
+            </div>
+
+            <div class="omnibox" title="Search or enter address">
+                <div class="security-chip neutral" id="securityChip">
+                    <i class="fas fa-lock" id="securityIcon"></i>
+                    <span id="securityText"></span>
+                </div>
+                <input type="text" class="url-input" id="url" value="gust://newtab" spellcheck="false"
+                    autocomplete="off" placeholder="Search or enter address" />
+                <span class="omni-drop-hint" id="omniDropHint">
+                    <i class="fas fa-arrow-right-to-bracket"></i>drop to navigate
+                </span>
+                <div class="omnibox-actions">
+                    <button class="omni-btn" id="bookmarkBtn" title="Bookmark (Ctrl+D)">
+                        <i class="far fa-bookmark"></i>
+                    </button>
+                    <button class="omni-btn go" id="go" title="Go">
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <button class="tool-btn" id="showBookmarksBtn" style="display: none;" title="Show bookmarks bar">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+            <button class="tool-btn" id="settingsBtn" title="Settings">
+                <i class="fas fa-gear"></i>
+            </button>
+            <button class="tool-btn" id="devToggle" title="Toggle logs (Ctrl+Shift+I)">
+                <i class="fas fa-server"></i>
+            </button>
+            <button class="tool-btn" id="codeBtn" title="Toggle elements inspector">
+                <i class="fas fa-code"></i>
+            </button>
+
+            <button class="tool-toggle on" id="blockToggle" title="Toggle ad/tracker blocking">
+                <i class="fas fa-shield-halved"></i>
+                <span id="blockState">Protected</span>
+            </button>
+        </div>
+
+        <div class="bookmarks-bar-wrap" id="bookmarksWrap">
+        <div class="bookmarks-bar" id="bookmarks">
+            <button class="bookmarks-toggle" id="bookmarksToggle" title="Hide bookmarks bar">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+        </div>
+
+        <main>
+            <div class="view">
+                <div class="progress-wrap hidden" id="progressWrap">
+                    <div class="progress-bar" id="progress"></div>
+                </div>
+
+                <div class="newtab active" id="newtab">
+                    <div class="nt-bg" id="ntBg"></div>
+                    <div class="nt-overlay"></div>
+                    
+                    <button class="nt-wallpaper-btn" id="ntGithubBtn" title="View on GitHub"
+                        style="left:76px;right:auto;">
+                        <i class="fab fa-github"></i>
+                    </button>
+                    <button class="nt-wallpaper-btn" id="ntWallpaperBtn" title="Change background"
+                        style="left:20px;right:auto;">
+                        <i class="fas fa-image"></i>
+                    </button>
+
+                    
+                    <div id="gustCredit"
+                        style="position:absolute; bottom:20px; right:24px; z-index:10; color:rgba(255,255,255,1); font-size:18px; font-weight:600; font-family:var(--ui); display:flex; align-items:center; gap:5px; pointer-events:none; user-select:none; text-shadow:0 1px 4px rgba(0,0,0,0.6); letter-spacing:0.02em;">
+                        Made with <i class="fas fa-heart" style="color:#ff6b8a; font-size:15px;"></i> by Nautilus Labs
+                    </div>
+
+                    <div class="nt-content">
+                        <div class="nt-header">
+                            <div class="nt-date" id="ntDate">-</div>
+                            <div class="nt-time" id="ntTime" style="display:flex;align-items:center;gap:12px;">--:-- <i id="ntTimeIcon" class="fas fa-moon" style="font-size:0.85em;color:var(--ac);"></i></div>
+                        </div>
+                        <div class="nt-brand" style="position:relative;">
+                            <i class="fas fa-wind gust-icon-anim" style="margin-right: -4px;"></i>
+                            <span style="letter-spacing: 3px; display:inline-flex;">
+                                <span class="gust-letter-G">G</span><span class="gust-letter-U">U</span><span class="gust-letter-S">S</span><span class="gust-letter-T">T</span>
+                            </span>
+                            <span class="gust-badge-anim" style="
+                                font-size: 11px;
+                                font-weight: 700;
+                                letter-spacing: 0.05em;
+                                color: var(--ac);
+                                background: rgba(157,229,255,0.10);
+                                border: 1px solid rgba(157,229,255,0.35);
+                                border-radius: 6px;
+                                padding: 2px 7px;
+                                margin-left: 10px;
+                                vertical-align: middle;
+                                line-height: 1.4;
+                                font-family: var(--mono);
+                                position: relative;
+                                top: -16px;
+                                margin-left: -3px;
+                            ">v1.0</span>
+                        </div>
+                        <div class="nt-search">
+                            <div class="nt-search-engine" id="ntEngine">
+                                <span id="ntEngineLabel">Brave</span>
+                                <i class="fas fa-chevron-down"></i>
+                                <div class="nt-engine-dropdown" id="ntEngineDropdown">
+                                    <button data-engine="brave">Brave</button>
+                                    <button data-engine="bing">Bing</button>
+                                </div>
+                            </div>
+                            <input id="ntSearch" placeholder="Search or enter address" autocomplete="off" />
+                            <button id="ntSearchBtn"><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        <div class="nt-favorites" id="ntFavorites"></div>
+                    </div>
+                </div>
+
+                
+                
+                
+                <div class="site-info-popup" id="historyPopup">
+                    <div class="site-info-box" style="width:300px;">
+                        <div class="site-info-header">
+                            <div class="site-info-icon neutral">
+                                <i class="fas fa-clock-rotate-left"></i>
+                            </div>
+                            <div>
+                                <div class="site-info-title">Recent History</div>
+                                <div class="site-info-subtitle">Last 20 visited sites</div>
+                            </div>
+                        </div>
+                        <div id="historyList" style="padding: 8px 8px;"></div>
+                        <div class="site-info-footer">
+                            <button class="site-info-btn" id="historyClear">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                            <button class="site-info-btn" id="historyClose">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="adblock-modal" id="adblockModal">
+                    <div class="adblock-header">
+                        <div class="adblock-title">
+                            <i class="fas fa-shield-halved" style="color: var(--ac);"></i>
+                            <span>Gust Adblock</span>
+                        </div>
+                        <button id="adblockCloseBtn"
+                            style="background:none; border:none; color:var(--tx2); cursor:pointer;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="adblock-content">
+                        <div class="adblock-big-toggle" id="adblockLargeToggle">
+                            <i class="fas fa-power-off"></i>
+                        </div>
+                        <div class="adblock-stats">
+                            <strong id="adblockStatusText">Protection Active</strong>
+                            <span id="adblockStatsCount">0</span> elements blocked on this page
+                        </div>
+                    </div>
+                    <div class="adblock-footer">
+                        <button class="adblock-manage-btn" id="adblockManageBtn">
+                            Manage Filters &amp; Settings
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bookmark-modal" id="wallpaperModal" style="display: none;">
+                    <div class="bookmark-modal-content">
+                        <h3>Change background</h3>
+
+                        <div class="wallpaper-action-grid">
+                            <button class="wallpaper-action-btn" id="wallpaperRandom">
+                                <i class="fas fa-shuffle"></i>
+                                Random
+                            </button>
+                            <label class="wallpaper-action-btn" style="cursor: pointer;">
+                                <input type="file" id="wallpaperFileInput" accept="image/*" style="display:none" />
+                                <i class="fas fa-upload"></i>
+                                Upload
+                            </label>
+                        </div>
+
+                        <input type="text" class="bookmark-modal-input" id="wallpaperUrlInput"
+                            placeholder="Or paste image URL here..." />
+
+                        <div class="bookmark-modal-buttons">
+                            <button class="bookmark-modal-btn secondary" id="wallpaperDefault"><i
+                                    class="fas fa-rotate-left" style="margin-right:6px;"></i>Reset</button>
+                            <button class="bookmark-modal-btn secondary" id="wallpaperCancel">Cancel</button>
+                            <button class="bookmark-modal-btn primary" id="wallpaperApply">Apply URL</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="bookmark-modal" id="addFavoriteModal" style="display: none;">
+                    <div class="bookmark-modal-content">
+                        <h3>Add Favorite</h3>
+                        <input type="text" class="bookmark-modal-input" id="favoriteUrlInput" placeholder="URL" />
+                        <input type="text" class="bookmark-modal-input" id="favoriteNameInput"
+                            placeholder="Name (optional)" />
+                        <div class="bookmark-modal-buttons">
+                            <button class="bookmark-modal-btn secondary" id="addFavoriteCancel">Cancel</button>
+                            <button class="bookmark-modal-btn primary" id="addFavoriteSave">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="bookmark-modal" id="bookmarkModal" style="display: none;">
+                    <div class="bookmark-modal-content">
+                        <h3>Add Bookmark</h3>
+                        <input type="text" class="bookmark-modal-input" id="bookmarkUrlInput" placeholder="URL"
+                            />
+                        <input type="text" class="bookmark-modal-input" id="bookmarkNameInput"
+                            placeholder="Bookmark name" />
+                        <div class="bookmark-modal-buttons">
+                            <button class="bookmark-modal-btn secondary" id="bookmarkCancel">Cancel</button>
+                            <button class="bookmark-modal-btn primary" id="bookmarkSave">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="bookmark-modal" id="shortcutEditModal" style="display: none;">
+                    <div class="bookmark-modal-content">
+                        <h3>Edit Keyboard Shortcut</h3>
+                        <p style="font-size:13px; color:var(--tx2); margin-bottom:16px;">Press <b>Alt + Key</b> to
+                            set the new shortcut.</p>
+
+                        <div style="background:var(--bg3); padding:20px; border-radius:10px; border:1px solid var(--bd); text-align:center; font-size:20px; font-weight:600; color:var(--ac); font-family:var(--mono); min-height:80px; display:flex; align-items:center; justify-content:center; margin-bottom: 20px;"
+                            id="shortcutDisplay">
+                            <span style="opacity: 0.5; font-size: 14px; font-weight: 400; color: var(--tx3);">Waiting
+                                for input...</span>
+                        </div>
+
+                        <div class="bookmark-modal-buttons">
+                            <button class="bookmark-modal-btn secondary" id="shortcutCancel">Cancel</button>
+                            <button class="bookmark-modal-btn primary" id="shortcutSave" >Save
+                                Shortcut</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="context-menu" id="contextMenu">
+                    <button class="context-menu-item" id="ctxNewTab">
+                        <i class="fas fa-plus"></i>
+                        <span>New Tab</span>
+                    </button>
+                    <button class="context-menu-item" id="ctxReload">
+                        <i class="fas fa-rotate-right"></i>
+                        <span>Reload</span>
+                    </button>
+                    <div class="context-menu-separator"></div>
+                    <button class="context-menu-item" id="ctxBack">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                    <button class="context-menu-item" id="ctxForward">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>Forward</span>
+                    </button>
+                    <div class="context-menu-separator"></div>
+                    <button class="context-menu-item" id="ctxBookmark">
+                        <i class="far fa-bookmark"></i>
+                        <span>Bookmark Page</span>
+                    </button>
+                    <button class="context-menu-item" id="ctxCopyUrl">
+                        <i class="fas fa-link"></i>
+                        <span>Copy URL</span>
+                    </button>
+                    <div class="context-menu-separator"></div>
+                    <button class="context-menu-item" id="ctxSettings">
+                        <i class="fas fa-gear"></i>
+                        <span>Settings</span>
+                    </button>
+                    <button class="context-menu-item danger" id="ctxCloseTab">
+                        <i class="fas fa-xmark"></i>
+                        <span>Close Tab</span>
+                    </button>
+                </div>
+
+                <!-- Tab right-click context menu -->
+                <div class="tab-context-menu" id="tabContextMenu">
+                    <button class="tab-ctx-item" id="tabCtxReload">
+                        <i class="fas fa-rotate-right"></i>
+                        <span>Reload Tab</span>
+                    </button>
+                    <button class="tab-ctx-item" id="tabCtxMute">
+                        <i class="fas fa-volume-xmark"></i>
+                        <span>Mute Tab</span>
+                    </button>
+                    <div class="tab-ctx-separator"></div>
+                    <button class="tab-ctx-item danger" id="tabCtxClose">
+                        <i class="fas fa-xmark"></i>
+                        <span>Close Tab</span>
+                    </button>
+                </div>
+
+                
+                <div class="site-info-popup" id="siteInfoPopup">
+                    <div class="site-info-box">
+                        <div class="site-info-header">
+                            <div class="site-info-icon" id="siteInfoIcon">
+                                <i class="fas fa-lock" id="siteInfoIconI"></i>
+                            </div>
+                            <div>
+                                <div class="site-info-title" id="siteInfoTitle">Connection Info</div>
+                                <div class="site-info-subtitle" id="siteInfoSubtitle"></div>
+                            </div>
+                        </div>
+                        <div class="site-info-body">
+                            <div class="site-info-row">
+                                <i class="fas fa-globe"></i>
+                                <span class="site-info-row-label">Host</span>
+                                <span class="site-info-row-value" id="siteInfoHost">-</span>
+                            </div>
+                            <div class="site-info-row">
+                                <i class="fas fa-lock"></i>
+                                <span class="site-info-row-label">Protocol</span>
+                                <span class="site-info-row-value" id="siteInfoProtocol">-</span>
+                            </div>
+                            <div class="site-info-row">
+                                <i class="fas fa-shield-halved"></i>
+                                <span class="site-info-row-label">Ad Block</span>
+                                <span class="site-info-row-value" id="siteInfoBlock">-</span>
+                            </div>
+                            <div class="site-info-row">
+                                <i class="fas fa-cookie-bite"></i>
+                                <span class="site-info-row-label">Cookies</span>
+                                <span class="site-info-row-value" id="siteInfoCookies">-</span>
+                            </div>
+                            <div class="site-info-row">
+                                <i class="fas fa-database"></i>
+                                <span class="site-info-row-label">Cache</span>
+                                <span class="site-info-row-value" id="siteInfoCache">-</span>
+                            </div>
+                        </div>
+                        <div class="site-info-footer">
+                            <button class="site-info-btn" id="siteInfoCopy">
+                                <i class="fas fa-copy"></i> Copy URL
+                            </button>
+                            <button class="site-info-btn" id="siteInfoClose">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="bookmark-modal" id="metricsModal" style="display:none;">
+                    <div class="bookmark-modal-content"
+                        style="width:780px;max-width:94vw;border:1px solid rgba(100,210,255,0.25);">
+                        <h3><i class="fas fa-chart-simple"
+                                style="margin-right:8px;font-size:14px;color:var(--ac);opacity:0.8;"></i>Browser Metrics
+                        </h3>
+                        <div id="metricsBody" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+                        </div>
+                        <div class="bookmark-modal-buttons" style="padding-top:4px;">
+                            <button class="bookmark-modal-btn secondary" id="metricsRefresh"><i
+                                    class="fas fa-rotate-right" style="margin-right:6px;"></i>Refresh</button>
+                            <button class="bookmark-modal-btn primary" id="metricsClose">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                
+                <div class="newtab" id="settingsPage" style="display:none;">
+                    <div class="nt-bg"
+                        style="background: linear-gradient(135deg, #0d0f12 0%, #1a1f2e 50%, #0d0f12 100%);"></div>
+                    <div class="nt-overlay"
+                        style="background: linear-gradient(180deg, rgba(20,23,27,0.85), rgba(13,15,18,0.95));">
+                    </div>
+                    
+                    <div style="position:relative; height:100%; display:flex; flex-direction:row;">
+
+                        
+                        <div
+                            style="width:200px; min-width:200px; height:100%; background:rgba(13,15,18,0.7); border-right:1px solid var(--bd); display:flex; flex-direction:column; padding:24px 0; backdrop-filter:blur(8px);">
+
+                            
+                            <nav style="display:flex; flex-direction:column; gap:2px; padding:0 12px; flex:1;">
+                                <button class="settings-nav-item active" data-section="connection"><i
+                                        class="fas fa-network-wired"></i><span>Connection</span></button>
+                                <button class="settings-nav-item" data-section="search"><i
+                                        class="fas fa-magnifying-glass"></i><span>Search</span></button>
+                                <button class="settings-nav-item" data-section="privacy"><i
+                                        class="fas fa-shield-halved"></i><span>Privacy</span></button>
+                                <button class="settings-nav-item" data-section="cache"><i
+                                        class="fas fa-database"></i><span>Cache</span></button>
+                                <button class="settings-nav-item" data-section="filesandmedia"><i
+                                        class="fas fa-photo-film"></i><span>Files &amp; Media</span></button>
+                                <button class="settings-nav-item" data-section="appearance"><i
+                                        class="fas fa-palette"></i><span>Appearance</span></button>
+                                <button class="settings-nav-item" data-section="homescreen"><i
+                                        class="fas fa-house"></i><span>Home Screen</span></button>
+                                <button class="settings-nav-item" data-section="shortcuts"><i
+                                        class="fas fa-keyboard"></i><span>Shortcuts</span></button>
+                                <button class="settings-nav-item" data-section="language"><i
+                                        class="fas fa-language"></i><span>Language</span></button>
+                                <button class="settings-nav-item" data-section="fallback"><i
+                                        class="fas fa-rotate-left"></i><span>Fallback</span></button>
+                                <hr style="margin-top:auto; border:none; border-top:1px solid var(--bd); margin-bottom:4px; margin-left:4px; margin-right:4px;" />
+                                <button class="settings-nav-item" data-section="tutorial"><i
+                                        class="fas fa-map"></i><span>Tutorial</span></button>
+                                <button class="settings-nav-item" data-section="about"><i
+                                        class="fas fa-info-circle"></i><span>About</span></button>
+                            </nav>
+                        </div>
+
+                        
+                        <div
+                            style="flex:1; overflow-y:auto; padding:40px 48px; display:flex; flex-direction:column; gap:32px;">
+
+
+                            
+                            <div class="settings-section" data-section="connection">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-network-wired"></i> WISP Server
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <label class="settings-label">WebSocket URL</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" class="settings-input" id="settingsWispInput" value=""
+                                                placeholder="wss://..." />
+                                            <button class="settings-btn-icon" id="settingsWispSave" title="Save"><i
+                                                    class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="settingsWispReset"
+                                                title="Reset to default"><i class="fas fa-rotate-left"></i></button>
+                                        </div>
+                                        <div class="settings-hint" id="settingsWispStatus">Current server shown above
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-sliders"></i> Concurrent Requests
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row" style="align-items:center;">
+                                            <div style="flex:1;">
+                                                <div class="settings-switch-label">Idle threads</div>
+                                                <div class="settings-hint">Max simultaneous requests when page is loaded
+                                                    (default: 3). Lower = less background CPU.</div>
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:6px;">
+                                                <button class="settings-btn-icon" id="settingsIdleMinus"
+                                                    style="width:28px;height:28px;font-size:14px;">−</button>
+                                                <span id="settingsIdleVal"
+                                                    style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--tx);min-width:20px;text-align:center;">3</span>
+                                                <button class="settings-btn-icon" id="settingsIdlePlus"
+                                                    style="width:28px;height:28px;font-size:14px;">+</button>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row" style="align-items:center;">
+                                            <div style="flex:1;">
+                                                <div class="settings-switch-label">Active threads</div>
+                                                <div class="settings-hint">Max simultaneous requests during page load
+                                                    (default: 6). Higher = faster loads but more CPU.</div>
+                                            </div>
+                                            <div style="display:flex;align-items:center;gap:6px;">
+                                                <button class="settings-btn-icon" id="settingsActiveMinus"
+                                                    style="width:28px;height:28px;font-size:14px;">−</button>
+                                                <span id="settingsActiveVal"
+                                                    style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--tx);min-width:20px;text-align:center;">6</span>
+                                                <button class="settings-btn-icon" id="settingsActivePlus"
+                                                    style="width:28px;height:28px;font-size:14px;">+</button>
+                                            </div>
+                                        </div>
+                                        <hr style="border:none;border-top:1px solid var(--bd);margin:12px 0 10px;" />
+                                        <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                            <button class="settings-btn-icon" id="settingsThreadsSave" title="Save"><i
+                                                    class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="settingsThreadsReset"
+                                                title="Reset to defaults"><i class="fas fa-rotate-left"></i></button>
+                                        </div>
+                                        <div class="settings-hint" id="settingsThreadsStatus" style="margin-top:6px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-ban"></i> WebRTC Blocking</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Block WebRTC connections</div>
+                                                <div class="settings-hint">Prevents sites from establishing direct peer-to-peer connections that bypass the WISP tunnel and could expose your real IP address. Off by default — may break video calls and real-time apps.</div>
+                                            </div>
+                                            <div class="settings-switch" id="webrtcBlockSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-shield-halved"></i> Smart Request Headers</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Spoof Sec-Fetch &amp; Referer headers</div>
+                                                <div class="settings-hint">Synthesize correct <code>Sec-Fetch-Site</code>, <code>Sec-Fetch-Mode</code>, <code>Sec-Fetch-Dest</code>, and <code>Referer</code> headers based on request context. Fixes CDNs and APIs that reject requests with incorrect fetch metadata.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaHeadersSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            
+                            <div class="settings-section" data-section="search" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-magnifying-glass"></i> Default
+                                        Search Engine</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-toggle-row" id="settingsEngineRows"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Enable spellcheck</div>
+                                                <div class="settings-hint">Check spelling in text fields and textareas (e.g. search bar, forms).</div>
+                                            </div>
+                                            <div class="settings-switch" id="settingsSpellSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-image"></i> Tab Favicons</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Proxy favicons through WISP</div>
+                                                <div class="settings-hint">Fetch tab favicons through the WISP server instead of Google's favicon service. More private, but slightly slower.</div>
+                                            </div>
+                                            <div class="settings-switch" id="faviconProxySwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="privacy" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-shield-halved"></i> Privacy &amp;
+                                        Blocking</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Ad &amp; Tracker Blocking</div>
+                                                <div class="settings-hint">Blocks analytics, ads, and tracking
+                                                    scripts</div>
+                                            </div>
+                                            <div class="settings-switch" id="settingsBlockSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-user-secret"></i> User-Agent Spoofing</div>
+                                    <div class="settings-card-body">
+                                        <div style="margin-bottom: 16px;">
+                                            <div class="settings-switch-label">Request User-Agent</div>
+                                            <div class="settings-hint">Sent as the <code>User-Agent</code> HTTP header for all proxied requests.</div>
+                                            <input type="text" class="settings-input" id="settingsRequestUA"
+                                                style="width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;"
+                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" />
+                                        </div>
+                                        <div style="margin-bottom: 16px;">
+                                            <div class="settings-switch-label">Page navigator.userAgent</div>
+                                            <div class="settings-hint">Overrides <code>navigator.userAgent</code> inside loaded pages.</div>
+                                            <input type="text" class="settings-input" id="settingsPageUA"
+                                                style="width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;"
+                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" />
+                                        </div>
+                                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                            <button class="settings-btn-icon" id="settingsResetUA" title="Reset to defaults" style="opacity:0.7;"><i class="fas fa-rotate-left"></i></button>
+                                            <button class="settings-btn-icon" id="settingsSaveUA" title="Save User-Agents"><i class="fas fa-check"></i></button>
+                                        </div>
+                                        <div id="settingsUAStatus" style="text-align:right; font-size:11px; color:var(--ok); margin-top:6px; min-height:16px;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-filter"></i> Blocklist &amp;
+                                        Filters</div>
+                                    <div class="settings-card-body">
+                                        <div style="margin-bottom: 16px;">
+                                            <div class="settings-switch-label">Custom Filter Rules</div>
+                                            <div class="settings-hint">Enter CSS selectors to hide (one per line).
+                                                Example: <code>.ad-banner</code></div>
+                                        </div>
+                                        <textarea class="settings-input" id="settingsCustomFilters"
+                                            style="width: 100%; height: 300px; font-family: var(--mono); font-size: 11px; resize: vertical;"
+                                            placeholder=".ad-box&amp;#10;#sidebar-ads&amp;#10;iframe[src*='doubleclick']"></textarea>
+                                        <div
+                                            style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+                                            <button class="settings-btn-icon" id="settingsSaveFilters"
+                                                title="Save Rules"><i class="fas fa-check"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="cache" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-layer-group"></i> Tab Caching
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Keep tabs loaded in background
+                                                </div>
+                                                <div class="settings-hint">When enabled, switching between tabs
+                                                    won't reload them. Disable to save memory.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsTabCacheSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-database"></i> Resource Cache
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div
+                                            style="display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap: wrap;">
+                                            <div>
+                                                <div class="settings-switch-label">Cached Resources</div>
+                                                <div class="settings-hint" id="settingsCacheSize">Calculating...
+                                                </div>
+                                            </div>
+                                            <div style="display: flex; gap: 8px;">
+                                                <button class="settings-btn-danger" id="settingsClearCache"><i
+                                                        class="fas fa-trash"></i> Clear Cache</button>
+                                                <button class="settings-btn-danger" id="settingsResetEverything"
+                                                    style="background: rgba(255, 149, 149, 0.15); border-color: var(--err);"><i
+                                                        class="fas fa-triangle-exclamation"></i> Reset All</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="appearance" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-text-width"></i> Font Size
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div
+                                            style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                                            <div class="settings-hint">Adjust text size across the entire interface
+                                            </div>
+                                            <button class="settings-btn-icon" id="settingsFontReset"
+                                                title="Reset to default"><i class="fas fa-rotate-left"></i></button>
+                                        </div>
+                                        <input type="range" class="settings-slider" id="settingsFontSlider" min="0"
+                                            max="10" step="1" value="5" />
+                                        <div style="display:flex; justify-content:center; margin-top:8px;">
+                                            <span style="font-size:11px; color:var(--tx3);">Default</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-arrows-left-right"></i> Panel
+                                        Widths</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Remember panel widths</div>
+                                                <div class="settings-hint">When enabled, panel widths are saved.
+                                                    When , they reset to default on close.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsPanelWidthSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-table-columns"></i> Panel Position
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Panels on the left</div>
+                                                <div class="settings-hint">Move the Logs and Elements panels to the left
+                                                    side of the browser window instead of the right.</div>
+                                            </div>
+                                            <div class="settings-switch" id="settingsPanelsLeftSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-expand"></i> Fullscreen on Launch
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Start in fullscreen</div>
+                                                <div class="settings-hint">Automatically enter fullscreen on your first click or keypress after opening Gust.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsAutoFullscreenSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="shortcuts" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-keyboard"></i> Keyboard
+                                        Shortcuts</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row" style="align-items:center;">
+                                            <div style="flex:1;">
+                                                <div class="settings-switch-label">Enable keyboard shortcuts</div>
+                                                <div class="settings-hint">When off, all Alt + key shortcuts are .</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsShortcutsEnabledSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="shortcutsList" style="display:flex; flex-direction:column; gap:10px; font-size:12px; margin-top:10px;">
+                                            <div style="height:1px; background:var(--bd); margin-bottom:2px;"></div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">New Tab</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + T</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Close Tab</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + W</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Reload Page</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + R</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Bookmark Page</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + D</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Focus URL Bar</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + L</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Settings</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + ,</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Toggle Logs</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + G</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Element Inspector</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="inspector"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + I</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Recent History</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="history"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + H</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Metrics</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="metrics"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + M</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Toggle Fullscreen</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="fullscreen"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + F</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                        </div><!-- /#shortcutsList -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="homescreen" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-bookmark"></i> Bookmarks Bar
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Show Bookmarks Bar</div>
+                                                <div class="settings-hint">Always show the bookmarks bar below the
+                                                    address bar</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsBookmarksBarSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-image"></i> New Tab Wallpaper
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div
+                                            style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                                            <div>
+                                                <div class="settings-switch-label">Background image</div>
+                                                <div class="settings-hint" id="settingsWallpaperStatus">Loading...
+                                                </div>
+                                            </div>
+                                            <div style="display:flex; gap:8px;">
+                                                <button class="settings-btn-icon" id="settingsWallpaperChange"
+                                                    title="Change wallpaper"><i class="fas fa-image"></i></button>
+                                                <button class="settings-btn-icon" id="settingsWallpaperReset"
+                                                    title="Reset to default gradient"><i
+                                                        class="fas fa-rotate-left"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-clock"></i> Home Page Clock
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Show clock on new tab</div>
+                                                <div class="settings-hint">Display current time and date on the home
+                                                    screen</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsClockSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">24-hour clock</div>
+                                                <div class="settings-hint">Show time in 24-hour format (e.g. 14:30
+                                                    instead of 2:30 PM)</div>
+                                            </div>
+                                            <div class="settings-switch" id="settings24hrSwitch">
+                                                <div class="settings-switch-track">
+                                                    <div class="settings-switch-thumb"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="language" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-language"></i> Language</div>
+                                    <div class="settings-card-body">
+                                        <div style="margin-bottom: 16px;">
+                                            <div class="settings-switch-label">Preferred language</div>
+                                            <div class="settings-hint">Choose the language for the interface and spellcheck when supported.</div>
+                                        </div>
+                                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                            <div class="locale-dropdown-wrap" style="width:420px; flex-shrink:0; position:relative;">
+                                                <input type="hidden" id="settingsLanguage" value="" />
+                                                <button type="button" class="locale-dropdown-trigger settings-input" id="settingsLanguageTrigger" style="text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between;">
+                                                    <span class="locale-dropdown-label">System default</span>
+                                                    <i class="fas fa-chevron-down" style="font-size:10px; opacity:0.7;"></i>
+                                                </button>
+                                                <div class="locale-dropdown-panel" id="settingsLanguagePanel" style="display:none;">
+                                                    <input type="text" class="locale-dropdown-filter settings-input" id="settingsLanguageFilter" placeholder="Search languages..." style="margin:6px;" />
+                                                    <div class="locale-dropdown-list" id="settingsLanguageList"></div>
+                                                </div>
+                                            </div>
+                                            <button class="settings-btn-icon" id="settingsLanguageSave" title="Save"><i class="fas fa-check"></i></button>
+                                        </div>
+                                        <div class="settings-hint" id="settingsLanguageStatus" style="margin-top:8px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="settings-section" data-section="tutorial-page" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-map"></i> Interactive Tour</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-hint" style="margin-bottom:14px;">Walk through 16 steps
+                                            covering navigation, search, bookmarks, ad blocking, metrics, browser logs,
+                                            page inspector, tabs, and the new tab page. Takes under a minute.</div>
+                                        <div style="display:flex;gap:20px;margin-bottom:18px;">
+                                            <span
+                                                style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);"><i
+                                                    class="fas fa-list-check" style="color:var(--ac);"></i> 16
+                                                steps</span>
+                                            <span
+                                                style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);"><i
+                                                    class="fas fa-clock" style="color:var(--ac);"></i> Under a
+                                                minute</span>
+                                        </div>
+                                        <button id="restartTutorialBtn"
+                                            style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 16px;background:var(--ac);color:#000;font-weight:600;font-size:13px;border:none;border-radius:8px;cursor:pointer;transition:opacity .15s;"
+                                            onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+                                            <i class="fas fa-play"></i> Start Tour
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="settings-section" data-section="about" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-info-circle"></i> About Gust
+                                    </div>
+                                    <div class="settings-card-body">
+                                        <div
+                                            style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
+                                            <div
+                                                style="color:var(--ac); font-weight:700; font-size:18px; display:flex; align-items:center; gap:10px;">
+                                                <i class="fas fa-wind" style="font-size:22px;"></i>
+                                                GUST Browser
+                                            </div>
+                                            <span
+                                                style="font-size:11px; font-weight:700; letter-spacing:0.05em; color:var(--ac); background:rgba(157,229,255,0.10); border:1px solid rgba(157,229,255,0.35); border-radius:6px; padding:2px 7px; font-family:var(--mono);">v1.0</span>
+                                        </div>
+
+                                        <div
+                                            style="display:flex; flex-direction:column; gap:16px; font-size:13px; line-height:1.7; color:var(--tx2);">
+                                            <div>
+                                                <div
+                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-globe" style="color:var(--ac);"></i> How it
+                                                    works
+                                                </div>
+                                                Gust is a <strong style="color:var(--tx);">static</strong> web proxy
+                                                    browser that runs entirely inside a single HTML file.
+                                                When you navigate to a URL, Gust fetches the target site's HTML,
+                                                CSS, scripts, and assets through <em>Wisp</em>, then rewrites
+                                                all resource URLs and injects them into a sandboxed iframe. Gust can be run inside any HTML editor, <code
+                                                    style="background:var(--bg3); padding:2px 6px; border-radius:4px; font-size:12px;">iframe</code>, file, or blob. It's ultra lightweight, packed with features, and is near impossible to block for admins.
+                                                
+                                            </div>
+
+                                            <div>
+                                                <div
+                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-network-wired" style="color:var(--ac);"></i>
+                                                    WISP + libcurl.js
+                                                </div>
+                                                All network requests are tunnelled through a <strong
+                                                    style="color:var(--tx);">WISP WebSocket server</strong>. Your
+                                                browser opens a WebSocket to the WISP endpoint, which forwards
+                                                TCP/TLS connections on your behalf. The actual HTTP fetching is
+                                                handled by <strong style="color:var(--tx);">libcurl.js</strong>
+                                                &amp;mdash; a port of the curl HTTP library compiled to WebAssembly
+                                                &amp;mdash; giving full HTTPS, redirect, and cookie support inside the
+                                                browser context.
+                                            </div>
+
+                                            <div>
+                                                <div
+                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-code" style="color:var(--ac);"></i> Page
+                                                    rendering
+                                                </div>
+                                                Fetched HTML is parsed and rewritten in JavaScript. CSS stylesheets
+                                                and scripts are loaded through the proxy and injected inline or as
+                                                Blob URLs. Images, fonts, and other assets have their URLs rewritten
+                                                to route through the same proxy pipeline. The final document is
+                                                rendered inside a sandboxed <code
+                                                    style="background:var(--bg3); padding:2px 6px; border-radius:4px; font-size:12px;">iframe</code>
+                                                using a generated Blob URL.
+                                            </div>
+
+                                            <div>
+                                                <div
+                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+                                                    <i class="fas fa-shield-halved" style="color:var(--ac);"></i>
+                                                    Privacy &amp; limitations
+                                                </div>
+                                                Because requests flow through the WISP server, your real IP is not
+                                                exposed to the sites you visit. However, the WISP server operator
+                                                may be able to see your traffic.
+                                                Some complex web features (native WebSockets from within pages,
+                                                WebRTC, service workers) cannot be fully proxied and may not work.
+                                                JavaScript inside the iframe is fully sandboxed from the parent
+                                                page.
+                                            </div>
+
+                                          <div>
+                                                <div
+                                                    style="color:var(--tx); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                                                    <i class="fa-solid fa-address-card" style="color:var(--ac);"></i>
+                                                    Credits
+                                                </div>
+                                                <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--tx2);">
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">Wisp Protocol</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        Mercury Workshop
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">WebSocket proxy tunnelling</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">Original Gust Framework &amp; JS</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        lanefiedler731-gif
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">libcurl.js</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        ading2210 &amp; contributors
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">curl compiled to WebAssembly</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">PDF.js</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        Mozilla Foundation
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">v4.2.67 · PDF rendering engine</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">Font Awesome</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        Fonticons, Inc.
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">v6.5.1 · Icon library</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">iso-639-1</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        Meikidd
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">v2.1.11 · ISO language codes</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">JetBrains Mono</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        JetBrains s.r.o.
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">Monospace font (code viewer)</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">Space Grotesk</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        Florian Karsten
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">UI font via Google Fonts</span>
+                                                    </div>
+                                                    <div>
+                                                        <span style="color:var(--tx);font-weight:600;">IndexedDB &amp; Web APIs</span>
+                                                        <span style="color:var(--tx3)"> — </span>
+                                                        W3C / WHATWG
+                                                        <span style="color:var(--tx3);font-size:11px;margin-left:4px;">Proxy cache, storage, sessions</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <!-- ── Fallback settings section ── -->
+                            <div class="settings-section" data-section="fallback" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-rotate-left"></i> Fallback Behaviour</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Enable fallback on load error</div>
+                                                <div class="settings-hint">When a page fails to load (network error, bad status, timeout), automatically retry using the fallback proxy before showing an error page.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="fallbackEnabledSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Log retries</div>
+                                                <div class="settings-hint">All fallback retry attempts are always written to the request log, including which WISP server was used.</div>
+                                            </div>
+                                            <div style="display:flex;align-items:center;padding:4px 8px;background:rgba(157,229,255,0.07);border:1px solid rgba(157,229,255,0.18);border-radius:6px;font-size:11px;font-family:var(--mono);color:var(--ac);white-space:nowrap;flex-shrink:0;">always on</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-server"></i> Fallback WISP Server</div>
+                                    <div class="settings-card-body">
+                                        <label class="settings-label">Fallback WebSocket URL</label>
+                                        <div class="settings-hint" style="margin-bottom:10px;">Used only when the primary WISP server is unreachable or returns an error. Leave blank to disable.</div>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" class="settings-input" id="settingsFallbackWispInput"
+                                                placeholder="wss://fallback.example.com/wisp/" />
+                                            <button class="settings-btn-icon" id="settingsFallbackWispSave" title="Save"><i
+                                                    class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="settingsFallbackWispReset" title="Clear"><i
+                                                    class="fas fa-xmark"></i></button>
+                                        </div>
+                                        <div class="settings-hint" id="settingsFallbackWispStatus" style="margin-top:8px;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-clock-rotate-left"></i> Retry Policy</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row" style="align-items:center;">
+                                            <div>
+                                                <div class="settings-switch-label">Max retry attempts (main)</div>
+                                                <div class="settings-hint">How many times Gust retries on the primary WISP server before switching to the fallback.</div>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                <button class="settings-btn-icon" id="mainRetryMinus" title="Decrease"><i class="fas fa-minus"></i></button>
+                                                <span id="mainRetryVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
+                                                <button class="settings-btn-icon" id="mainRetryPlus" title="Increase"><i class="fas fa-plus"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row" style="align-items:center; margin-top:12px;">
+                                            <div>
+                                                <div class="settings-switch-label">Max retry attempts (fallback)</div>
+                                                <div class="settings-hint">How many times Gust will attempt the fallback WISP before giving up and showing an error.</div>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                <button class="settings-btn-icon" id="fallbackRetryMinus" title="Decrease"><i class="fas fa-minus"></i></button>
+                                                <span id="fallbackRetryVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
+                                                <button class="settings-btn-icon" id="fallbackRetryPlus" title="Increase"><i class="fas fa-plus"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row" style="align-items:center; margin-top:12px;">
+                                            <div>
+                                                <div class="settings-switch-label">Retry delay (seconds)</div>
+                                                <div class="settings-hint">Wait time between each retry attempt before switching to the fallback server.</div>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                <button class="settings-btn-icon" id="fallbackDelayMinus" title="Decrease"><i class="fas fa-minus"></i></button>
+                                                <span id="fallbackDelayVal" style="font-family:var(--mono); font-size:14px; min-width:24px; text-align:center; color:var(--tx);">3</span>
+                                                <button class="settings-btn-icon" id="fallbackDelayPlus" title="Increase"><i class="fas fa-plus"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-triangle-exclamation"></i> Error Triggers</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Fallback on HTTP 5xx errors</div>
+                                                <div class="settings-hint">Retry via fallback when the origin server returns a 500-level status code.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="fallback5xxSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Fallback on timeout</div>
+                                                <div class="settings-hint">Retry via fallback when the primary server exceeds the connection timeout.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="fallbackTimeoutSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Fallback on DNS failure</div>
+                                                <div class="settings-hint">Retry via fallback when the hostname cannot be resolved.</div>
+                                            </div>
+                                            <div class="settings-switch" id="fallbackDnsSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ── Files &amp; Media settings section ── -->
+                            <div class="settings-section" data-section="filesandmedia" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-film"></i> Media Range Requests</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Enable Range request support</div>
+                                                <div class="settings-hint">Forward <code>Range</code> headers and handle <code>206 Partial Content</code> responses. Fixes video/audio seeking and embedded media playback on most sites.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaRangeSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-download"></i> Unknown File Types</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Auto-download unknown files</div>
+                                                <div class="settings-hint">When Gust receives a file it can't display (e.g. .zip, .exe), automatically trigger a browser download instead of showing an error page.</div>
+                                            </div>
+                                            <div class="settings-switch" id="mediaDownloadSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-file-pdf"></i> PDF Viewer</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Built-in PDF viewer</div>
+                                                <div class="settings-hint">Render PDF files inline using a built-in viewer powered by PDF.js instead of downloading them.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaPdfSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-image"></i> Image Viewer</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Built-in image viewer</div>
+                                                <div class="settings-hint">Display images (PNG, JPEG, GIF, WebP, SVG…) in a clean fullscreen viewer with zoom and pan.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaImgSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-film"></i> Video Player</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Built-in video player</div>
+                                                <div class="settings-hint">Play video files (MP4, WebM, OGG…) in a built-in player with controls.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaVideoSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-music"></i> Audio Player</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Built-in audio player</div>
+                                                <div class="settings-hint">Play audio files (MP3, OGG, FLAC, WAV…) in a styled player instead of downloading.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaAudioSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-file-lines"></i> Text / Code Viewer</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Built-in text viewer</div>
+                                                <div class="settings-hint">Display plain text, JSON, XML, CSV, and source code files inline with syntax-aware formatting.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="mediaTextSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- ── end Files &amp; Media ── -->
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overlay splash" id="overlay">
+                    <div class="spinner"></div>
+                    <div id="overlayText">Initializing...</div>
+                </div>
+                <div id="elemHighlightOverlay" style="
+                    display:none;
+                    position:absolute;
+                    pointer-events:none;
+                    z-index:50;
+                    outline:2px solid var(--ac,#9de5ff);
+                    outline-offset:0px;
+                    box-shadow:0 0 0 4px rgba(157,229,255,0.18), inset 0 0 0 9999px rgba(157,229,255,0.08);
+                    border-radius:2px;
+                    transition:top .08s,left .08s,width .08s,height .08s;
+                "></div>
+                <iframe id="frame"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-pointer-lock allow-downloads"
+                    allow="clipboard-read; clipboard-write; fullscreen; autoplay; camera; microphone; gamepad"></iframe>
+            </div>
+
+            <div class="logs hidden" id="logs">
+                <div class="panel-resize-handle" id="logsResizeHandle"></div>
+                <div class="log-head">
+                    <div class="log-head-top">
+                        <span>
+                            Logs
+                            <span class="log-count-badge" id="logCountBadge">0</span>
+                            <div class="log-search-wrap">
+                                <i class="fas fa-magnifying-glass log-search-icon"></i>
+                                <input class="log-search" id="logSearch" type="text" placeholder="Filter…" autocomplete="off" spellcheck="false" />
+                            </div>
+                        </span>
+                        <div class="log-head-controls">
+                            <button class="tool-btn copy-btn" id="copyLogs" title="Copy logs">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="tool-btn" id="clear" title="Clear logs">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="log-filter-bar" id="logFilterBar">
+                        <button class="log-filter-btn f-all active" data-filter="all">All</button>
+                        <button class="log-filter-btn f-info" data-filter="info"><i class="fas fa-circle-info" style="font-size:8px;"></i> Info</button>
+                        <button class="log-filter-btn f-ok" data-filter="ok"><i class="fas fa-check" style="font-size:8px;"></i> OK</button>
+                        <button class="log-filter-btn f-warn" data-filter="warn"><i class="fas fa-triangle-exclamation" style="font-size:8px;"></i> Warn</button>
+                        <button class="log-filter-btn f-err" data-filter="err"><i class="fas fa-xmark" style="font-size:8px;"></i> Err</button>
+                        <button class="log-filter-btn f-stream" data-filter="stream"><i class="fas fa-wave-square" style="font-size:8px;"></i> Stream</button>
+                    </div>
+                </div>
+                <div class="log-body" id="logbox">
+                    <div class="log-no-results" id="logNoResults">No matching entries</div>
+                </div>
+                <div class="log-footer">
+                    <span class="status"><span class="dot idle" id="statusDot"></span><span id="statusText">Ready</span></span>
+                    <div class="log-footer-right">
+                        <span class="stats" id="stats">0 requests</span>
+                        <button class="log-autoscroll-btn pinned" id="logAutoScrollBtn" title="Toggle auto-scroll">
+                            <i class="fas fa-angles-down"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="elements hidden" id="elements">
+                <div class="panel-resize-handle" id="elementsResizeHandle"></div>
+                <div class="elements-head">
+                    <div class="elements-head-top">
+                        <span class="elements-head-label">Elements</span>
+                        <div class="elements-search-wrap">
+                            <i class="fas fa-magnifying-glass elements-search-icon"></i>
+                            <input class="elements-search" id="elementsSearch" type="text" placeholder="Filter tags, attrs…" autocomplete="off" spellcheck="false" />
+                        </div>
+                        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">
+                            <button class="tool-btn" id="refreshElements" title="Refresh elements">
+                                <i class="fas fa-rotate-right"></i>
+                            </button>
+                            <button class="elem-detail-toggle on" id="elemDetailToggle" title="Toggle details panel">
+                                <i class="fas fa-table-cells-large"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="elements-breadcrumb" id="elementsBreadcrumb"></div>
+                </div>
+                <div class="elements-body" id="elementsBody">
+                    <ul class="elements-tree" id="elementsTree"></ul>
+                </div>
+                <div id="elementsDetail"
+                    style="border-top:1px solid var(--bd);flex-shrink:0;overflow-y:auto;max-height:240px;display:none;background:var(--bg1);">
+                    <div style="display:flex;gap:0;border-bottom:1px solid var(--bd);">
+                        <button class="elem-tab active" data-tab="styles"
+                            style="flex:1;padding:6px 4px;font-size:11px;background:none;border:none;color:var(--tx2);cursor:pointer;border-bottom:2px solid var(--ac);font-family:var(--ui);">Styles</button>
+                        <button class="elem-tab" data-tab="box"
+                            style="flex:1;padding:6px 4px;font-size:11px;background:none;border:none;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--ui);">Box</button>
+                        <button class="elem-tab" data-tab="attrs"
+                            style="flex:1;padding:6px 4px;font-size:11px;background:none;border:none;color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;font-family:var(--ui);">Attrs</button>
+                    </div>
+                    <div id="elemDetailContent"
+                        style="padding:8px;font-size:11px;font-family:var(--mono);color:var(--tx2);line-height:1.7;"></div>
+                </div>
+                
+                <div id="elemCtxMenu"
+                    style="display:none;position:fixed;z-index:99999;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:4px;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.5);">
+                    <button class="ctx-item" id="ctxCopySelector"><i class="fas fa-code" style="width:14px"></i> Copy Selector</button>
+                    <button class="ctx-item" id="ctxCopyHtml"><i class="fas fa-copy" style="width:14px"></i> Copy HTML</button>
+                    <button class="ctx-item" id="ctxCopyText"><i class="fas fa-font" style="width:14px"></i> Copy Text</button>
+                    <div style="height:1px;background:var(--bd);margin:3px 0;"></div>
+                    <button class="ctx-item" id="ctxScrollTo"><i class="fas fa-eye" style="width:14px"></i> Scroll Into View</button>
+                    <button class="ctx-item" id="ctxHideElement"><i class="fas fa-eye-slash" style="width:14px"></i> Hide Element</button>
+                </div>
+            </div>
+        </main>
+        <script src="./static/js.js"></script>
+        <div id="tutorialOverlay" style="display:none; position:fixed; inset:0; z-index:99999; pointer-events:all;">
+        <div id="tutorialBackdrop"
+            style="position:absolute; inset:0; backdrop-filter:blur(10px); -webkit-backdrop-filter: blur(10px); transition:opacity .35s; opacity:0; pointer-events:all;">
+        </div>
+        <svg id="tutorialSpotSvg"
+            style="position:absolute;inset:0;width:100%;height:100%;pointer-events:all;transition:opacity .35s;opacity:0;"
+            xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <mask id="spotMask">
+                    <rect width="100%" height="100%" fill="white" />
+                    <rect id="spotRect" x="0" y="0" width="0" height="0" rx="12" fill="black" />
+                </mask>
+            </defs>
+            <rect width="100%" height="100%" fill="rgba(0,0,0,0.48)" mask="url(#spotMask)" id="spotOverlay" />
+            <rect id="spotRing" x="0" y="0" width="0" height="0" rx="12" fill="none" stroke="var(--ac, #9de5ff)"
+                stroke-width="1" />
+        </svg>
+        <div id="tutorialCloneWrap" style="position:absolute;inset:0;pointer-events:none;z-index:2;">
+            <!-- pointer-events:none so the clone is visual-only; the SVG backdrop above intercepts all background clicks -->
+        </div>
+        <div id="tutorialRing"
+            style="position:absolute;pointer-events:none;border:1.5px solid #9de5ff;border-radius:8px;display:none;transition:none;z-index:3;">
+        </div>
+        <div id="tutorialCard" style="
+                        position:absolute;
+                        width:380px;
+                        background:var(--bg2);
+                        border:1px solid var(--ac);
+                        border-radius:16px;
+                        padding:24px 26px 20px;
+                        box-shadow:0 12px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(100,210,255,0.08);
+                        pointer-events:all;
+                        transition: opacity .25s, transform .25s;
+                        opacity:0;
+                        transform:translateY(8px);
+                        z-index:10;
+                    ">
+            <div id="tutorialDots" style="display:flex;gap:5px;margin-bottom:16px;"></div>
+            <div id="tutorialArrow"
+                style="position:absolute;width:12px;height:12px;background:var(--bg2);border:1px solid var(--ac);display:none;transform:rotate(45deg);z-index:-1;">
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:14px;">
+                <div id="tutorialIcon" style="
+                                width:42px;height:42px;border-radius:11px;
+                                background:rgba(100,210,255,0.12);
+                                display:flex;align-items:center;justify-content:center;
+                                flex-shrink:0;color:var(--ac);font-size:18px;
+                            "></div>
+                <div style="flex:1;">
+                    <div id="tutorialTitle"
+                        style="font-size:15px;font-weight:700;color:var(--tx);margin-bottom:5px;line-height:1.2;"></div>
+                    <div id="tutorialBody" style="font-size:13.5px;color:var(--tx2);line-height:1.6;"></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;">
+                <button id="tutorialSkip" style="
+                                background:none;border:none;color:var(--tx3);
+                                font-size:12px;cursor:pointer;padding:0;
+                            ">Skip tour</button>
+                <div style="display:flex;gap:8px;">
+                    <button id="tutorialBack" style="
+                                    background:var(--bg3);border:1px solid var(--bd);
+                                    color:var(--tx2);border-radius:8px;padding:7px 18px;
+                                    font-size:13px;cursor:pointer;display:none;
+                                "><i class="fas fa-arrow-left" style="margin-right:5px;"></i>Back</button>
+                    <button id="tutorialNext" style="
+                                    background:var(--ac);border:none;
+                                    color:#000;border-radius:8px;padding:7px 20px;
+                                    font-size:13px;font-weight:700;cursor:pointer;
+                                ">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</body>
+</html>
+  </foreignObject>
+</svg>
