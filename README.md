@@ -11,6 +11,12 @@
 
 ---
 
+## Links
+
+- https://cdn.jsdelivr.net/gh/nautilus-os/GUST@latest/svg/site.svg
+- https://gust-browser.vercel.app
+
+---
 ## What is this?
 
 GUST is a full-featured web proxy that lives entirely inside a single HTML file, allowing you to use it without any setup, hosting, or terminal access. It was built by the Nautilus Labs team to be a replacement for every single other proxy out there, and to put an end to school blocked proxies once and for all. 
