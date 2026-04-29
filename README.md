@@ -30,6 +30,7 @@ Instead, it uses **libcurl.js**, a full HTTP library compiled to WebAssembly, to
 
 - ✅ **It can run as a local file** (`file://`), with no server and no domain to block
 - ✅ **It can be hosted anywhere static files work**: GitHub Pages, Vercel, Netlify, a USB drive, a Google Doc, a Google Site, etc.
+- ✅ **It can be hosted on JSDelivr or CDN sites**, because the site can be loaded through one SVG file
 - ✅ **It has no Service Worker to kill**, because it never registered one
 - ✅ **It survives tab crashes and memory pressure**, cause it has no background worker to lose
 - ✅ **It can be renamed, embedded in an iframe, or wrapped in another HTML file**, giving the filter nothing to latch onto
@@ -59,6 +60,12 @@ When you type a URL, GUST fetches the entire page through a WebAssembly HTTP cli
 
 
 Every page GUST loads gets a small script injected before anything else runs. This script intercepts virtually every way a page can try to escape the proxy: `location.href`, `window.open`, form submissions, `XMLHttpRequest`, `fetch`, `WebSocket`, `Worker`, `EventSource`, history API pushes, anchor clicks, and even the Navigation API used by modern SPAs. It also spoofs `document.cookie`, `localStorage`, `sessionStorage`, and IndexedDB so pages behave as if they're on their real origin. All network traffic also flows through a WISP WebSocket server, so your real IP is never exposed to the sites you visit. The WISP server acts as a TCP/TLS relay, and the destination server only ever sees the relay's address, not yours. You can self-host a WISP server or use a public one, and GUST supports server switching in settings.
+
+---
+
+## How the SVG works
+
+As you know, GUST was built to run in a single HTML file. With this logic, we can split the assets to fit in their own files, being CSS and JS respectively. Then, we use foreign objects in a .svg file to load the HTML inside the SVG, also utilizing the HTML schema used for SVGs. Finally, we make sure that all content is XML safe before being loaded, which prevents errors during JavaScript execution.
 
 ---
 
