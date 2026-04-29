@@ -6663,6 +6663,16 @@
                         req.onsuccess = () => {
                             const r = req.result;
                             if (r && Date.now() - r.time < CACHE_TTL) {
+                                // Respect Cache-Control: private / no-store / no-cache
+                                // even on entries cached by older builds, so stale
+                                // empty/error responses for endpoints like GitHub's
+                                // tree-commit-info don't keep getting served.
+                                const _cc = (r.headers?.['cache-control'] || '').toLowerCase();
+                                if (_cc.includes('no-store') || _cc.includes('private') || _cc.includes('no-cache')) {
+                                    deleteCache(url);
+                                    resolve(null);
+                                    return;
+                                }
                                 resolve(r);
                             } else {
                                 if (r) deleteCache(url); 
@@ -8016,13 +8026,17 @@
                         const r = await doFetch(job.url, job.opts);
 
                         if (job.opts.method !== "POST" && r.status >= 200 && r.status < 400) {
-                            memCache.set(job.url, {
-                                status: r.status,
-                                mime: r.mime,
-                                buf: r.buf,
-                                headers: r.headers
-                            });
-                            setCache(job.url, r.buf, r.mime, r.headers);
+                            const _cc = (r.headers?.['cache-control'] || '').toLowerCase();
+                            const _noStore = _cc.includes('no-store') || _cc.includes('private');
+                            if (!_noStore) {
+                                memCache.set(job.url, {
+                                    status: r.status,
+                                    mime: r.mime,
+                                    buf: r.buf,
+                                    headers: r.headers
+                                });
+                                setCache(job.url, r.buf, r.mime, r.headers);
+                            }
 
                             if (memCache.size > 600) {
                                 const first = memCache.keys().next().value;
@@ -8151,6 +8165,9 @@
                 }
                 let redirectCount = 0;
                 while (resp.status >= 300 && resp.status < 400 && resp.headers?.get?.("location") && redirectCount < 12) {
+                    // Capture Set-Cookie from each redirect response before following
+                    const _rdSC = resp.headers?.get?.("set-cookie");
+                    if (_rdSC) { updateCookiesFromSetCookie(origin, _rdSC); }
                     const loc = resp.headers.get("location");
                     const nextUrl = new URL(loc, url).href;
                     log(`<i class="fas fa-arrow-right-arrow-left" style="color:var(--warn)"></i><span style="color:var(--tx3)">${resp.status}</span> → ${nextUrl.slice(0, 60)}`, "warn");
@@ -9114,7 +9131,7 @@ document.addEventListener('click', e => {
   parent.postMessage({ t: 'n', u: resolve(href) }, '*');
 }, true);
 document.addEventListener('auxclick', e => { if (e.button !== 1) return; const a = e.target?.closest?.('a, area'); if (!a) return; const href = a._gustHref || a.getAttribute('data-gust-href') || a.getAttribute('href'); if (!href || /^(javascript:|#)/i.test(href)) return; e.preventDefault(); e.stopPropagation(); parent.postMessage({ t: 'n', u: resolve(href) }, '*'); }, true);
-document.addEventListener('submit', e => { const form = e.target; if (!form || form.tagName !== 'FORM') return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const action = resolve(form.action || BASE); const method = (form.method || 'GET').toUpperCase(); const fd = new FormData(form); if (method === 'GET') { parent.postMessage({ t: 'n', u: action.split('?')[0] + '?' + new URLSearchParams(fd).toString() }, '*'); } else { parent.postMessage({ t: 'n', u: action, m: 'POST', b: new URLSearchParams(fd).toString() }, '*'); } }, true);
+document.addEventListener('submit', e => { const form = e.target; if (!form || form.tagName !== 'FORM') return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const action = resolve(form.action || BASE); const method = (form.method || 'GET').toUpperCase(); const fd = new FormData(form); if (method === 'GET') { parent.postMessage({ t: 'n', u: action.split('?')[0] + '?' + new URLSearchParams(fd).toString(), form: 1 }, '*'); } else { parent.postMessage({ t: 'n', u: action, m: 'POST', b: new URLSearchParams(fd).toString(), form: 1 }, '*'); } }, true);
 
 const _open = window.open;
 window.open = function(url, target, features) { if (!url || url === 'about:blank') return null; const resolved = resolve(url); parent.postMessage({ t: 'n', u: resolved }, '*'); return { closed: false, close: () => {}, focus: () => {}, blur: () => {}, postMessage: () => {}, location: { href: resolved }, document: { write: () => {}, close: () => {} } }; };
@@ -9132,15 +9149,19 @@ try {
       // them causes pages like YouTube to reload mid-initialization.
       const navType = e.navigationType;
       if (navType === 'replace' || navType === 'reload' || navType === 'traverse') return;
-      // Don't intercept navigations to the same origin+path (e.g. YouTube adding
-      // query params via pushState after our check fires).
+      // Don't intercept navigations to the exact same URL (minus hash) — these
+      // are SPA hash/state updates, not real navigations. We still intercept if
+      // origin+path are the same but the search string changed (e.g. new search query).
       try {
         const du = new URL(dest); const bu = new URL(BASE);
-        if (du.origin === bu.origin && du.pathname === bu.pathname) return;
+        if (du.origin === bu.origin && du.pathname === bu.pathname && du.search === bu.search) return;
       } catch { if (dest === BASE) return; }
       // Send the navigation message FIRST so the parent can route it even
       // if the interception attempt below throws or fails.
-      parent.postMessage({ t: 'n', u: resolve(dest) }, '*');
+      // nav:1 = real forward navigation (push), bypasses parent's same-page
+      // guard. Without this flag, a preceding pushState 'uc' message would
+      // have already updated pageUrl, making the guard treat this as no-op.
+      parent.postMessage({ t: 'n', u: resolve(dest), nav: 1 }, '*');
       // Then try to prevent the native navigation.
       try {
         if (e.canIntercept) {
@@ -9366,7 +9387,7 @@ parent.postMessage({ t: 'ready' }, '*');
                         url,
                         opts
                     } = d;
-                    const priority = (opts?.method === 'POST') ? PRIORITY.html : getPriority(url, opts?.headers?.['Accept']);
+                    const priority = (opts?.method === 'POST') ? PRIORITY.html : getPriority(url, opts?.headers?.['Accept'] || opts?.headers?.['accept']);
                     const msgTabId = activeTabId;
                     if (closedTabIds.has(msgTabId)) return;
                     const msgSignal = tabAbortControllers.get(msgTabId)?.signal || abortCtrl?.signal;
@@ -9439,12 +9460,14 @@ parent.postMessage({ t: 'ready' }, '*');
                     // Guard: don't full-reload for same-origin/same-path navigations
                     // (YouTube SPA calls location.assign/replace with its own URL or adds
                     // query params via pushState — these must not trigger a new go()).
-                    if (!d.m && !d.b && d.u) {
+                    // Skip this guard for form submissions (d.form=1) since changing the
+                    // query string IS the user's intent (e.g. editing a search query).
+                    if (!d.m && !d.b && !d.form && !d.nav && d.u) {
                         try {
                             const _du = new URL(normUrl(d.u)); const _pu = new URL(pageUrl || '');
-                            // Compare origin + pathname only — ignore search/hash differences
-                            // which SPAs update without intending a real navigation.
-                            if (_du.origin === _pu.origin && _du.pathname === _pu.pathname) {
+                            // Compare origin + pathname + search — SPAs that change ?q= ARE
+                            // real navigations (Brave Search, GitHub search, etc.).
+                            if (_du.origin === _pu.origin && _du.pathname === _pu.pathname && _du.search === _pu.search) {
                                 log('[nav] same-page nav ignored: ' + d.u.slice(0, 60), 'info');
                                 return;
                             }
@@ -10059,6 +10082,7 @@ _VIEWER_DL_JS +
                 }, 50);
                 if (prevBlobUrl && prevBlobUrl.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(prevBlobUrl), 2000);
                 hideOverlay();
+                if (document.activeElement === urlInput) urlInput.blur();
                 setTabTitle(title);
                 log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i>Loaded: ` + url + ` <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${WISP.replace(/^wss?:\/\//, '').split('/')[0]}</span>`, 'ok');
                 addRecentSite(url);
@@ -10435,10 +10459,10 @@ _VIEWER_DL_JS +
     var method = (form.getAttribute('method') || 'GET').toUpperCase();
     var fd = new FormData(form);
     if (method === 'POST') {
-      try { parent.postMessage({t:'n',u:dest,m:'POST',b:new URLSearchParams(fd).toString()},'*'); } catch(err) {}
+      try { parent.postMessage({t:'n',u:dest,m:'POST',b:new URLSearchParams(fd).toString(),form:1},'*'); } catch(err) {}
     } else {
       var qs = new URLSearchParams(fd).toString();
-      try { parent.postMessage({t:'n',u:dest.split('?')[0]+(qs?'?'+qs:'')},'*'); } catch(err) {}
+      try { parent.postMessage({t:'n',u:dest.split('?')[0]+(qs?'?'+qs:''),form:1},'*'); } catch(err) {}
     }
   }, true);
 })();`;
@@ -10707,6 +10731,7 @@ _VIEWER_DL_JS +
                         setTimeout(() => URL.revokeObjectURL(prevBlobUrl), 2000);
                     }
                     hideOverlay();
+                    if (document.activeElement === urlInput) urlInput.blur();
                     if (!_isRetry) {
                         log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i>Loaded: ` + url + ` <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${WISP.replace(/^wss?:\/\//, '').split('/')[0]}</span>`, "ok");
                     }
@@ -13268,7 +13293,7 @@ _VIEWER_DL_JS +
             function startTutorial(force = false) {
                 if (!force) {
                     try {
-                        if (ls.getItem(TUTORIAL_KEY) === 'done') return;
+                        if (localStorage.getItem(TUTORIAL_KEY) === 'done') return;
                     } catch (e) { }
                 }
                 tutIdx = 0;
@@ -13300,7 +13325,7 @@ _VIEWER_DL_JS +
                 const svg = document.getElementById('tutorialSpotSvg');
                 if (svg) svg.style.opacity = '0';
                 setTimeout(() => { ov.style.display = 'none'; }, 350);
-                try { ls.setItem(TUTORIAL_KEY, 'done'); } catch (e) { }
+                try { localStorage.setItem(TUTORIAL_KEY, 'done'); } catch (e) { }
                
                 _gustAnimLocked = false;
                 playGustAnimation(400);
@@ -13610,7 +13635,7 @@ _VIEWER_DL_JS +
 
            
             try {
-                if (ls.getItem(TUTORIAL_KEY) !== 'done') {
+                if (localStorage.getItem(TUTORIAL_KEY) !== 'done') {
                     _gustAnimLocked = true;
                 }
             } catch(e) {}
