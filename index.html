@@ -13293,7 +13293,7 @@ _VIEWER_DL_JS +
             function startTutorial(force = false) {
                 if (!force) {
                     try {
-                        if (localStorage.getItem(TUTORIAL_KEY) === 'done') return;
+                        if (ls.getItem(TUTORIAL_KEY) === 'done') return;
                     } catch (e) { }
                 }
                 tutIdx = 0;
@@ -13325,7 +13325,7 @@ _VIEWER_DL_JS +
                 const svg = document.getElementById('tutorialSpotSvg');
                 if (svg) svg.style.opacity = '0';
                 setTimeout(() => { ov.style.display = 'none'; }, 350);
-                try { localStorage.setItem(TUTORIAL_KEY, 'done'); } catch (e) { }
+                try { ls.setItem(TUTORIAL_KEY, 'done'); } catch (e) { }
                
                 _gustAnimLocked = false;
                 playGustAnimation(400);
@@ -13633,9 +13633,8 @@ _VIEWER_DL_JS +
                 }
             }, 300);
 
-           
             try {
-                if (localStorage.getItem(TUTORIAL_KEY) !== 'done') {
+                if (ls.getItem(TUTORIAL_KEY) !== 'done') {
                     _gustAnimLocked = true;
                 }
             } catch(e) {}
