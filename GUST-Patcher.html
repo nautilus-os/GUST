@@ -1265,8 +1265,16 @@ function buildPatchScript(removedPatches) {
   if (rm.has('nt-clock24'))      { ls('gust:24hrclock:v1','false'); }
   if (rm.has('shortcuts-panel')) { ls('gust:shortcutsEnabled','0'); }
   if (rm.has('tutorial-auto') || rm.has('tutorial-include')) {
-    // All known tutorial-done key variants (gust:tutorial:v1 is the current key)
+    // Legacy bare-key variants (pre-v94 GUST read these directly from localStorage)
     ls('gust:tutorial','done'); ls('gust:tutorial:done','1'); ls('gust:tutorial:v1','done');
+    // v94+ uses a per-instance namespaced key: <instId>:gust:tutorial:v1
+    // The instance ID lives in sessionStorage at runtime, so we seed it via JS.
+    js('(function(){');
+    js('  try {');
+    js('    var instId = sessionStorage.getItem("__gust_inst__");');
+    js('    if (instId) localStorage.setItem(instId + ":gust:tutorial:v1", "done");');
+    js('  } catch(e) {}');
+    js('})();');
   }
   if (rm.has('fallback-enabled'))  { ls('gust:fallback:enabled','0'); }
   if (rm.has('fallback-5xx'))      { ls('gust:fallback:5xx','0'); }
