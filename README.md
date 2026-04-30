@@ -41,7 +41,7 @@ Instead, it uses **libcurl.js**, a full HTTP library compiled to WebAssembly, to
 - ✅ **It can be renamed, embedded in an iframe, or wrapped in another HTML file**, giving the filter nothing to latch onto
 - ✅ **It can be copy-pasted into any WYSIWYG HTML editor on the web**, because again, it's just HTML with CSS and JS inlined
 - ✅ **It can be compiled into a blob: or data: url and opened that way**, again, HTML
-- ✅ **It can be written to an about:blank page and used from there, need I repeat why?
+- ✅ **It can be written to an about:blank page and used from there**, need I repeat why?
 
 The short version: most blockers can only block URLs. GUST is a file. You can't block a file without obliterating a cruical part of the student user experience, and even if they take that drastic step, well, HTML can be hosted or opened in litrally anything. It's the frame of the world wide web. no more whack-a-mole, cat-and-mouse game of finding unblocked links and your school blocking them!
 
