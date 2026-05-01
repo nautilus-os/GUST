@@ -11371,7 +11371,7 @@ _VIEWER_DL_JS +
                         if (display.length > 30) display = display.slice(0, 27) + '…';
                         const row = document.createElement('button');
                         row.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;padding:7px 8px;background:transparent;border:none;border-radius:8px;cursor:pointer;color:var(--tx2);font-size:12px;text-align:left;transition:background .1s, transform .15s, opacity .15s;opacity:0;transform:translateY(6px);';
-                        row.innerHTML = `<i class="fas fa-globe" style="color:var(--tx3);width:14px;text-align:center;flex-shrink:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1);"></i><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${display}</span><span style="font-size:10px;color:var(--tx3);flex-shrink:0;white-space:nowrap;">${formatHistoryTime(ts)}</span>`;
+                        row.innerHTML = `<i class="fas fa-globe" style="color:var(--tx3);width:14px;text-align:center;flex-shrink:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1);"></i><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(display)}</span><span style="font-size:10px;color:var(--tx3);flex-shrink:0;white-space:nowrap;">${formatHistoryTime(ts)}</span>`;
                         row.onmouseenter = () => { row.style.background = 'var(--surface2)'; };
                         row.onmouseleave = () => { row.style.background = 'transparent'; };
                         row.onclick = () => { hideHistoryPopup(); go(url); };
