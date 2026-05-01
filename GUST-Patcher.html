@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GUST Patcher</title>
+<title>GUST Patcher (v107 compatible)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -489,7 +489,7 @@ button,input,select,textarea{font:inherit}
   <div class="settings-card">
     <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck <span class="broken-tag">[BROKEN]</span></div>
     <div class="settings-card-body">
-      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Enable spellcheck <span class="broken-tag">broken</span></div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the spellcheck toggle from Settings. It is non-functional in base GUST — unchecking has no behavioural effect.</div></div><div class="patch-check checked" data-patch="spellcheck" data-section="search" onclick="togglePatch(this)"></div></div>
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Enable spellcheck <span class="broken-tag">broken</span></div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the spellcheck toggle from Settings. Only affects GUST's own UI inputs — spellcheck inside proxied pages cannot be controlled and remains non-functional.</div></div><div class="patch-check checked" data-patch="spellcheck" data-section="search" onclick="togglePatch(this)"></div></div>
     </div>
   </div>
   <div class="settings-card">
@@ -1203,29 +1203,41 @@ function buildPatchScript(removedPatches) {
     js('  if(typeof window[fn]==="function") window[fn]=function(){};');
     js('});');
   }
-  // badge(sel): hides sel with CSS and inserts a "removed by patcher" pill in the right-hand slot of the nearest flex row
+  // badge(sel): hides all matched elements and inserts ONE "removed by patcher" pill
+  // per unique .settings-switch-row/.settings-toggle-row ancestor found.
+  // Selectors each in their own row each get their own badge.
+  // Selectors sharing a row get a single shared badge.
+  // Elements with no row ancestor: badge inserted after the element only if no row was found at all.
   function badge(sel) {
     css(sel);
     js('(function(){');
     js('  var _sels=' + JSON.stringify(sel.split(',').map(function(s){return s.trim();})) + ';');
+    js('  function _mkBadge(){');
+    js('    var b=document.createElement("div");');
+    js('    b.style.cssText="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(255,180,80,0.10);border:1px solid rgba(255,180,80,0.28);border-radius:6px;font-size:11px;font-family:var(--mono,monospace);color:rgba(255,180,80,0.85);white-space:nowrap;flex-shrink:0;margin-left:auto;";');
+    js('    b.innerHTML=\'<i class="fas fa-lock" style="font-size:9px;"></i> removed by patcher\';');
+    js('    return b;');
+    js('  }');
     js('  function _inject(){');
-    js('    _sels.forEach(function(s){');
-    js('      var el=document.querySelector(s);');
-    js('      if(!el||el._gp_badged) return;');
-    js('      el._gp_badged=true;');
-    js('      var b=document.createElement("div");');
-    js('      b.style.cssText="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(255,180,80,0.10);border:1px solid rgba(255,180,80,0.28);border-radius:6px;font-size:11px;font-family:var(--mono,monospace);color:rgba(255,180,80,0.85);white-space:nowrap;flex-shrink:0;margin-left:auto;";');
-    js('      b.innerHTML=\'<i class="fas fa-lock" style="font-size:9px;"></i> removed by patcher\';');
-    js('      // Find the nearest flex row ancestor to append into the right slot');
+    js('    var usedRows=[];');
+    js('    var fallbackEl=null;');
+    js('    for(var i=0;i<_sels.length;i++){');
+    js('      var el=document.querySelector(_sels[i]);');
+    js('      if(!el) continue;');
     js('      var row=el.closest(".settings-switch-row,.settings-toggle-row");');
     js('      if(row){');
-    js('        // Insert badge as last child of the row so it sits in the right-hand slot');
-    js('        row.appendChild(b);');
-    js('      } else {');
-    js('        // Fallback: insert after the hidden element');
-    js('        el.parentNode.insertBefore(b,el.nextSibling);');
+    js('        if(usedRows.indexOf(row)===-1){');
+    js('          usedRows.push(row);');
+    js('          if(!row._gp_badged){row._gp_badged=true;row.appendChild(_mkBadge());}');
+    js('        }');
+    js('      } else if(!fallbackEl){');
+    js('        fallbackEl=el;');
     js('      }');
-    js('    });');
+    js('    }');
+    js('    if(usedRows.length===0&&fallbackEl&&!fallbackEl._gp_badged){');
+    js('      fallbackEl._gp_badged=true;');
+    js('      fallbackEl.parentNode.insertBefore(_mkBadge(),fallbackEl.nextSibling);');
+    js('    }');
     js('  }');
     js('  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_inject);}else{_inject();}');
     js('})();');
@@ -1321,8 +1333,25 @@ function buildPatchScript(removedPatches) {
   // Search
   if (rm.has('search-engine'))
     css('#settingsEngineRows');
-  if (rm.has('spellcheck'))
-    badge('#settingsSpellSwitch');
+  if (rm.has('spellcheck')) {
+    // Seed the key to disabled
+    // Badge the switch in GUST Settings with a "broken" warning instead of hiding it,
+    // matching the patcher UI label so users know it doesn't actually work.
+    js('(function(){');
+    js('  function _spellBroken(){');
+    js('    var sw=document.getElementById("settingsSpellSwitch");');
+    js('    if(!sw||sw._gp_broken) return;');
+    js('    sw._gp_broken=true;');
+    js('    var row=sw.closest(".settings-switch-row,.settings-toggle-row");');
+    js('    var b=document.createElement("div");');
+    js('    b.style.cssText="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(255,68,68,0.10);border:1px solid rgba(255,68,68,0.28);border-radius:6px;font-size:11px;font-family:var(--mono,monospace);color:rgba(255,100,100,0.9);white-space:nowrap;flex-shrink:0;margin-left:6px;";');
+    js('    b.innerHTML=\'<i class="fas fa-triangle-exclamation" style="font-size:9px;"></i> broken\';');
+    js('    if(row&&!row._gp_badged){row._gp_badged=true;row.appendChild(b);}');
+    js('    else if(!row){sw.parentNode.insertBefore(b,sw.nextSibling);}');
+    js('  }');
+    js('  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_spellBroken);}else{_spellBroken();}');
+    js('})();');
+  }
   if (rm.has('language'))
     css('#settingsLanguage,#settingsLanguageTrigger,#settingsLanguagePanel,#settingsLanguageSave,#settingsLanguageStatus');
 
