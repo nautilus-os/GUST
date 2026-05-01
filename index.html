@@ -7020,7 +7020,7 @@
                 overlay.classList.add("hidden");
                 if (progressWrap) progressWrap.classList.add("hidden");
                 urlInput.value = HOME_INTERNAL;
-                pageUrl = "";
+                pageUrl = HOME_INTERNAL;
                 currentDoc = null;
                 try { const _ov=$('elemHighlightOverlay'); if(_ov) _ov.style.display='none'; } catch(e) {}
                 setTabTitle("New Tab");
@@ -7037,6 +7037,7 @@
                     histIdx = hist.length - 1;
                     updateNav();
                 }
+                updateTabUrl(HOME_INTERNAL);
                 setStatus("idle", "Ready");
 
                 if (elementsEl && !elementsEl.classList.contains("hidden")) {
