@@ -6326,6 +6326,7 @@
                             cur = "";
                             continue;
                         }
+                        // Inside an Expires= value the comma is part of the date — keep it.
                     }
                     cur += ch;
                     if (cur.toLowerCase().endsWith("expires=")) inExpires = true;
@@ -8709,9 +8710,9 @@ window.fetch = async function(input, init = {}) {
   if (init.headers) { if (init.headers instanceof Headers) init.headers.forEach((v,k) => headers[k] = v); else if (typeof init.headers === 'object') Object.assign(headers, init.headers); }
   if (body instanceof FormData) body = new URLSearchParams(body).toString();
   else if (body instanceof URLSearchParams) body = body.toString();
-  else if (body instanceof ReadableStream) { const reader = body.getReader(); const chunks = []; while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); } const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0); const result = new Uint8Array(totalLength); let offset = 0; for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; } body = btoa(String.fromCharCode(...result)); headers['__body_b64__'] = '1'; }
+  else if (body instanceof ReadableStream) { const reader = body.getReader(); const chunks = []; while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); } const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0); const result = new Uint8Array(totalLength); let offset = 0; for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; } let _bin = ''; const _chunk = 32768; for (let _i = 0; _i < result.length; _i += _chunk) _bin += String.fromCharCode.apply(null, result.subarray(_i, _i + _chunk)); body = btoa(_bin); headers['__body_b64__'] = '1'; }
   const wantsStream = headers['accept']?.includes('text/event-stream') || headers['Accept']?.includes('text/event-stream');
-  if (wantsStream && method === 'POST') {
+  if (wantsStream) {
     return new Promise((resolve, reject) => {
       const i = ++rid; let responseHeaders = {}; let status = 200; let controller;
       const stream = new ReadableStream({ start(c) { controller = c; }, cancel() { streamHandlers.delete(i); } });
