@@ -5869,6 +5869,29 @@
                 const tab = tabs.find(t => t.id === tabId);
                 if (!tab) return;
 
+                // Abort any in-flight load on the tab we're leaving so it doesn't
+                // keep fetching resources in the background after we've moved away.
+                if (activeTabId !== null && activeTabId !== tabId) {
+                    const leavingCtrl = tabAbortControllers.get(activeTabId);
+                    if (leavingCtrl) {
+                        leavingCtrl.abort();
+                        tabAbortControllers.delete(activeTabId);
+                        // Evict that tab's in-flight dedup entries.
+                        for (const [_url, _promise] of inFlight) {
+                            if (_promise._tabId === activeTabId) inFlight.delete(_url);
+                        }
+                        // Drain queued jobs belonging to the departing tab.
+                        for (let i = fetchQueue.length - 1; i >= 0; i--) {
+                            if (fetchQueue[i].tabId === activeTabId) {
+                                fetchQueue[i].rej(new DOMException('Aborted', 'AbortError'));
+                                fetchQueue.splice(i, 1);
+                                pendingRequests = Math.max(0, pendingRequests - 1);
+                            }
+                        }
+                        updateStats();
+                    }
+                }
+
                 // Silence the current tab's media before switching away
                 if (activeTabId !== null && activeTabId !== tabId) {
                     const currentTab = tabs.find(t => t.id === activeTabId);
@@ -6421,10 +6444,69 @@
             };
 
             const SKIP_DOMAINS = [
+                // Google
                 'google-analytics.com', 'googletagmanager.com', 'doubleclick.net',
-                'facebook.net', 'fbcdn.net', 'analytics.', 'tracking.', 'ads.',
-                'adservice.', 'pagead', 'adsystem', 'hotjar.com', 'clarity.ms',
-                'sentry.io', 'bugsnag.com', 'newrelic.com', 'segment.com'
+                'googlesyndication.com', 'googleadservices.com', 'adservice.google.',
+                'pagead2.googlesyndication.com', 'adwords.google.com', 'afs.google.com',
+                'afs.googlesyndication.com',
+                // Facebook / Meta
+                'facebook.net', 'fbcdn.net', 'an.facebook.com', 'pixel.facebook.com',
+                'connect.facebook.net',
+                // Analytics / tracking generic
+                'analytics.', 'tracking.', 'tracker.', 'telemetry.',
+                // Ad networks
+                'adcolony.com', 'adnxs.com', 'adroll.com', 'media.net', 'adservetx.media.net',
+                'static.media.net', 'criteo.com', 'criteo.net', 'rubiconproject.com',
+                'openx.net', 'pubmatic.com', 'casalemedia.com', 'indexww.com',
+                'lijit.com', 'sovrn.com', 'sharethrough.com', 'triplelift.com',
+                'appnexus.com', 'taboola.com', 'outbrain.com', 'revcontent.com',
+                'mgid.com', 'bidswitch.net', 'smartadserver.com', 'advertising.com',
+                'ads.yahoo.com', 'geo.yahoo.com', 'udcm.yahoo.com', 'log.fc.yahoo.com',
+                'gemini.yahoo.com', 'adtech.yahooinc.com',
+                // TikTok / ByteDance ads
+                'ads-api.tiktok.com', 'analytics-sg.tiktok.com', 'ads-sg.tiktok.com',
+                'business-api.tiktok.com', 'log.byteoversea.com',
+                // Twitter/X ads
+                'static.ads-twitter.com', 'ads-api.twitter.com',
+                // Pinterest / Reddit ads
+                'log.pinterest.com', 'trk.pinterest.com',
+                'events.reddit.com', 'events.redditmedia.com',
+                // Mouseflow / session recording
+                'mouseflow.com', 'cdn.mouseflow.com', 'gtm.mouseflow.com',
+                'api.mouseflow.com', 'tools.mouseflow.com', 'cdn-test.mouseflow.com',
+                // Freshmarketer / Freshworks
+                'freshmarketer.com', 'fwtracks.freshmarketer.com', 'claritybt.freshmarketer.com',
+                // Lucky Orange
+                'luckyorange.com', 'luckyorange.net',
+                // Hotjar
+                'hotjar.com', 'hotjar.io', 'events.hotjar.io',
+                // Sentry / error tracking
+                'sentry.io', 'sentry-cdn.com', 'browser.sentry-cdn.com', 'app.getsentry.com',
+                // Yandex ads / metrics
+                'adfstat.yandex.ru', 'appmetrica.yandex.ru', 'metrika.yandex.ru',
+                'adfox.yandex.ru', 'mc.yandex.ru',
+                // Xiaomi / OPPO / Realme telemetry
+                'api.ad.xiaomi.com', 'data.mistat.xiaomi.com', 'data.mistat.india.xiaomi.com',
+                'data.mistat.rus.xiaomi.com', 'sdkconfig.ad.xiaomi.com',
+                'sdkconfig.ad.intl.xiaomi.com', 'iot-eu-logser.realme.com',
+                'iot-logser.realme.com', 'adsfs.oppomobile.com',
+                // Amazon ads
+                'adsystem.amazon.', 'aax.amazon.', 'analyticsengine.s3.amazonaws.com',
+                'adtago.s3.amazonaws.com',
+                // Misc tracking / analytics
+                'bugsnag.com', 'newrelic.com', 'segment.com', 'mixpanel.com',
+                'amplitude.com', 'heap.io', 'intercom.io', 'intercomcdn.com',
+                'fullstory.com', 'logrocket.com', 'inspectlet.com', 'mouseflow.com',
+                'optimizely.com', 'vwo.com', 'crazyegg.com', 'clicktale.net',
+                'quantserve.com', 'scorecardresearch.com', 'comscore.com',
+                'chartbeat.com', 'chartbeat.net', 'parsely.com',
+                'clarity.ms', 'bing.com/bat.js', 'bat.bing.com',
+                'snap.licdn.com', 'px.ads.linkedin.com', 'linkedin.com/px',
+                'stats.wp.com', 'pixel.wp.com',
+                // Umami / self-hosted analytics (seen in test logs)
+                'umami.priorato.org',
+                // Generic subpath patterns
+                'pagead', 'adsystem', 'ads.', 'adservice.',
             ];
 
             const DEFAULT_BLOCKED_SELECTORS = [
@@ -6751,12 +6833,31 @@
             }
 
             async function clearCache() {
-                if (!cacheDB) return;
+                // 1. Abort all controllers FIRST (before clearing the map) so that
+                //    already-running doFetch calls see their signal fire and throw.
+                try { tabAbortControllers.forEach(ctrl => ctrl.abort()); } catch(e) {}
+                try { tabAbortControllers.clear(); } catch(e) {}
+                // 2. Drain the queue and reset ALL counters, including `fetching`,
+                //    so runQueue() doesn't dispatch new jobs when active fetches settle.
+                try { abortAllRequests(); } catch(e) {}
+                fetching = 0;
+                try { closeAllSockets(); } catch(e) {}
+                // 3. Wipe both cache layers.
+                memCache.clear();
+                inFlight.clear();
+                // 4. Wipe IndexedDB and await the commit before returning.
+                cacheSize = 0;
+                const cs = $("settingsCacheSize");
+                if (cs) cs.textContent = "Cache: 0.0 MB";
+                if (!cacheDB) { log("Cache cleared", "info"); return; }
                 try {
-                    const tx = cacheDB.transaction('resources', 'readwrite');
-                    tx.objectStore('resources').clear();
-                    cacheSize = 0;
-                    updateCacheSize();
+                    await new Promise((resolve, reject) => {
+                        const tx = cacheDB.transaction('resources', 'readwrite');
+                        tx.objectStore('resources').clear();
+                        tx.oncomplete = resolve;
+                        tx.onerror = () => reject(tx.error);
+                        tx.onabort = () => reject(tx.error);
+                    });
                     log("Cache cleared", "info");
                 } catch { }
             }
@@ -10106,6 +10207,19 @@ _VIEWER_DL_JS +
                     log("Invalid URL", "err");
                     return;
                 }
+                // Abort the tab's in-flight load before showing any gust:// page,
+                // same as we do when navigating to a real URL. Without this the old
+                // page keeps loading in the background after the early return.
+                if ((url === HOME_INTERNAL || url === SETTINGS_INTERNAL || url.startsWith("gust://settings/")) && activeTabId === initiatorTabId) {
+                    const prevCtrl = tabAbortControllers.get(initiatorTabId);
+                    if (prevCtrl) prevCtrl.abort();
+                    tabAbortControllers.delete(initiatorTabId);
+                    abortAllRequests();
+                    closeAllSockets();
+                    fetching = 0;
+                    updateStats();
+                }
+
                 if (url === HOME_INTERNAL) {
                     if (activeTabId === initiatorTabId) showNewTab(push);
                     return;
@@ -12227,18 +12341,25 @@ _VIEWER_DL_JS +
 
                 const clearCacheSettings = $("settingsClearCache");
                 if (clearCacheSettings) {
-                    clearCacheSettings.onclick = () => {
-                        clearCache();
+                    clearCacheSettings.onclick = async () => {
+                        await clearCache();
                         clearTabCache();
-                        const cs = $("settingsCacheSize");
-                        if (cs) cs.textContent = "Cache: 0 MB";
+                        updateStats();
                     };
                 }
 
                 const resetBtn = $("settingsResetEverything");
                 if (resetBtn) {
-                    resetBtn.onclick = () => {
+                    resetBtn.onclick = async () => {
                         if (confirm("Are you sure you want to RESET EVERYTHING? This will clear all settings, bookmarks, history, and cache. This action cannot be undone.")) {
+                            // Kill the iframe immediately so the page stops posting messages
+                            // that could re-trigger fetches while we're tearing down.
+                            try { frame.onload = null; frame.src = 'about:blank'; } catch(e) {}
+                            // clearCache() aborts all controllers+queue, resets fetching,
+                            // wipes memCache/inFlight/IndexedDB, and updates the display.
+                            await clearCache();
+                            clearTabCache();
+                            updateStats();
                             ls.clear();
                             log("Browser reset initiated...", "warn");
                             setTimeout(() => window.location.reload(), 500);
