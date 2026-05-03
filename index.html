@@ -2853,7 +2853,7 @@
         }
 
         .settings-card-body {
-            padding: 18px;
+            padding: 18px 18px 14px;
         }
 
         .settings-label {
@@ -4077,8 +4077,7 @@
                                             <button class="settings-btn-icon" id="settingsThreadsReset"
                                                 title="Reset to defaults"><i class="fas fa-rotate-left"></i></button>
                                         </div>
-                                        <div class="settings-hint" id="settingsThreadsStatus" style="margin-top:6px;">
-                                        </div>
+                                        <div class="settings-hint" id="settingsThreadsStatus" style="margin-top:4px; min-height:0;"></div>
                                     </div>
                                 </div>
                             
@@ -4194,11 +4193,12 @@
                                                 style="width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;"
                                                 placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36">
                                         </div>
+                                        <hr style="border:none;border-top:1px solid var(--bd);margin:16px 0 10px;">
                                         <div style="display:flex; justify-content:flex-end; gap:8px;">
                                             <button class="settings-btn-icon" id="settingsResetUA" title="Reset to defaults" style="opacity:0.7;"><i class="fas fa-rotate-left"></i></button>
                                             <button class="settings-btn-icon" id="settingsSaveUA" title="Save User-Agents"><i class="fas fa-check"></i></button>
                                         </div>
-                                        <div id="settingsUAStatus" style="text-align:right; font-size:11px; color:var(--ok); margin-top:6px; min-height:16px;"></div>
+                                        <div id="settingsUAStatus" style="text-align:right; font-size:11px; color:var(--ok); margin-top:4px; min-height:0; line-height:1.4; overflow:hidden;"></div>
                                     </div>
                                 </div>
 
@@ -4214,8 +4214,8 @@
                                         <textarea class="settings-input" id="settingsCustomFilters"
                                             style="width: 100%; height: 300px; font-family: var(--mono); font-size: 11px; resize: vertical;"
                                             placeholder=".ad-box&#10;#sidebar-ads&#10;iframe[src*='doubleclick']"></textarea>
-                                        <div
-                                            style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+                                        <hr style="border:none;border-top:1px solid var(--bd);margin:12px 0 10px;">
+                                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
                                             <button class="settings-btn-icon" id="settingsSaveFilters"
                                                 title="Save Rules"><i class="fas fa-check"></i></button>
                                         </div>
@@ -4917,6 +4917,39 @@
 
                             <!-- ── Files & Media settings section ── -->
                             <div class="settings-section" data-section="filesandmedia" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-code"></i> Advanced Rendering</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row" style="align-items:center;">
+                                            <div>
+                                                <div class="settings-switch-label">Script tags loaded per page</div>
+                                                <div class="settings-hint">Maximum number of <code>&lt;script src&gt;</code> tags loaded when rendering a page. Higher values help complex React / Next.js / Vite apps but use more memory. Default: 250.</div>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                <button class="settings-btn-icon" id="scriptLimitMinus" title="Decrease"><i class="fas fa-minus"></i></button>
+                                                <span id="scriptLimitVal" style="font-family:var(--mono); font-size:14px; min-width:36px; text-align:center; color:var(--tx);">250</span>
+                                                <button class="settings-btn-icon" id="scriptLimitPlus" title="Increase"><i class="fas fa-plus"></i></button>
+                                            </div>
+                                        </div>
+                                        <div class="settings-switch-row" style="align-items:center; margin-top:12px;">
+                                            <div>
+                                                <div class="settings-switch-label">Images prefetched per page</div>
+                                                <div class="settings-hint">Maximum number of images fetched and inlined before the page is displayed. Lower values speed up initial load on image-heavy sites; higher values improve visual completeness. Default: 300.</div>
+                                            </div>
+                                            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                                                <button class="settings-btn-icon" id="imgLimitMinus" title="Decrease"><i class="fas fa-minus"></i></button>
+                                                <span id="imgLimitVal" style="font-family:var(--mono); font-size:14px; min-width:36px; text-align:center; color:var(--tx);">300</span>
+                                                <button class="settings-btn-icon" id="imgLimitPlus" title="Increase"><i class="fas fa-plus"></i></button>
+                                            </div>
+                                        </div>
+                                        <hr style="border:none;border-top:1px solid var(--bd);margin:16px 0 10px;">
+                                        <div style="display:flex; justify-content:flex-end; gap:8px;">
+                                            <button class="settings-btn-icon" id="renderLimitsReset" title="Reset to defaults" style="opacity:0.7;"><i class="fas fa-rotate-left"></i></button>
+                                            <button class="settings-btn-icon" id="renderLimitsSave" title="Save"><i class="fas fa-check"></i></button>
+                                        </div>
+                                        <div id="renderLimitsStatus" style="text-align:right; font-size:11px; color:var(--ok); margin-top:4px; min-height:0; line-height:1.4; overflow:hidden;"></div>
+                                    </div>
+                                </div>
                                 <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-film"></i> Media Range Requests</div>
                                     <div class="settings-card-body">
@@ -10812,7 +10845,8 @@ _VIEWER_DL_JS +
                     // + ES module chunks). We keep up to 150 total to avoid cutting off critical
                     // framework bootstrap scripts.  Module scripts (type="module") are included in
                     // the same pass so their relative load order is preserved.
-                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, 250);
+                    const _scriptLimit = Math.max(1, parseInt((() => { try { return ls.getItem('gust:render:scriptlimit'); } catch(e) { return null; } })() || '250', 10));
+                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, _scriptLimit);
                     allScripts.forEach(scr => {
                         const src = scr.getAttribute("src");
                         if (!src || /^(data:|blob:)/i.test(src)) return;
@@ -10875,7 +10909,8 @@ _VIEWER_DL_JS +
                         });
                     }
 
-                    const images = [...doc.querySelectorAll("img[src]")].slice(0, 300);
+                    const _imgLimit = Math.max(0, parseInt((() => { try { return ls.getItem('gust:render:imglimit'); } catch(e) { return null; } })() || '300', 10));
+                    const images = _imgLimit > 0 ? [...doc.querySelectorAll("img[src]")].slice(0, _imgLimit) : [];
                     const loadedImageUrls = new Set(); 
                     const imagePromises = images.map(async img => {
                         const src = img.getAttribute("src");
@@ -14014,7 +14049,7 @@ _VIEWER_DL_JS +
                 }
 
                 // Retry counter helpers
-                const makeCounter = (minusId, plusId, valId, key, min, max, def) => {
+                const makeCounter = (minusId, plusId, valId, key, min, max, def, step = 1) => {
                     const minusBtn = document.getElementById(minusId);
                     const plusBtn  = document.getElementById(plusId);
                     const valEl    = document.getElementById(valId);
@@ -14023,15 +14058,46 @@ _VIEWER_DL_JS +
                     if (isNaN(current)) current = parseInt(def, 10);
                     valEl.textContent = current;
                     minusBtn.addEventListener('click', () => {
-                        if (current > min) { current--; valEl.textContent = current; try { ls.setItem(key, String(current)); } catch(e) {} }
+                        if (current > min) { current = Math.max(min, current - step); valEl.textContent = current; try { ls.setItem(key, String(current)); } catch(e) {} }
                     });
                     plusBtn.addEventListener('click', () => {
-                        if (current < max) { current++; valEl.textContent = current; try { ls.setItem(key, String(current)); } catch(e) {} }
+                        if (current < max) { current = Math.min(max, current + step); valEl.textContent = current; try { ls.setItem(key, String(current)); } catch(e) {} }
                     });
                 };
                 makeCounter('mainRetryMinus',     'mainRetryPlus',     'mainRetryVal',     'gust:main:retries',     1, 10, '3');
                 makeCounter('fallbackRetryMinus', 'fallbackRetryPlus', 'fallbackRetryVal', 'gust:fallback:retries', 1, 10, '3');
                 makeCounter('fallbackDelayMinus', 'fallbackDelayPlus', 'fallbackDelayVal', 'gust:fallback:delay',   0,  30, '3');
+                makeCounter('scriptLimitMinus',   'scriptLimitPlus',   'scriptLimitVal',   'gust:render:scriptlimit', 50, 500, '250', 25);
+                makeCounter('imgLimitMinus',      'imgLimitPlus',      'imgLimitVal',      'gust:render:imglimit',    0, 1000, '300', 25);
+
+                // Advanced Rendering — Save / Reset
+                (() => {
+                    const saveBtn   = document.getElementById('renderLimitsSave');
+                    const resetBtn  = document.getElementById('renderLimitsReset');
+                    const statusEl  = document.getElementById('renderLimitsStatus');
+                    const scriptEl  = document.getElementById('scriptLimitVal');
+                    const imgEl     = document.getElementById('imgLimitVal');
+                    if (saveBtn) {
+                        saveBtn.addEventListener('click', () => {
+                            try {
+                                if (scriptEl) ls.setItem('gust:render:scriptlimit', scriptEl.textContent.trim());
+                                if (imgEl)    ls.setItem('gust:render:imglimit',    imgEl.textContent.trim());
+                                if (statusEl) showStatusMsg(statusEl, 'Saved — applies on next page load.', 'ok');
+                            } catch(e) {}
+                        });
+                    }
+                    if (resetBtn) {
+                        resetBtn.addEventListener('click', () => {
+                            try {
+                                ls.removeItem('gust:render:scriptlimit');
+                                ls.removeItem('gust:render:imglimit');
+                                if (scriptEl) scriptEl.textContent = '250';
+                                if (imgEl)    imgEl.textContent    = '300';
+                                if (statusEl) showStatusMsg(statusEl, 'Reset to defaults.', 'ok');
+                            } catch(e) {}
+                        });
+                    }
+                })();
             }, 400);
             // ─────────────────────────────────────────────────────────────────
 
