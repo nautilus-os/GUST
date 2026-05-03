@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>GUST Patcher (v107 compatible)</title>
+<title>GUST Patcher</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
@@ -566,7 +566,13 @@ button,input,select,textarea{font:inherit}
       <div class="sidebar-master-bar-label">Show Files &amp; Media in Settings Sidebar</div>
       <div class="sidebar-master-bar-desc">Uncheck to remove the <strong>Files &amp; Media</strong> entry from GUST's Settings sidebar. Range requests, auto-download, and all inline viewer toggles (PDF, image, video, audio, text) will be hidden from Settings.</div>
     </div>
-    <div class="sidebar-master-check checked" data-patch="sidebar-nav-filesandmedia" data-section="filesandmedia" data-master-for="media-range media-download media-pdf media-img media-video media-audio media-text" onclick="toggleSidebarMaster(this)"></div>
+    <div class="sidebar-master-check checked" data-patch="sidebar-nav-filesandmedia" data-section="filesandmedia" data-master-for="render-limits media-range media-download media-pdf media-img media-video media-audio media-text" onclick="toggleSidebarMaster(this)"></div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-card-head"><i class="fas fa-code"></i> Advanced Rendering</div>
+    <div class="settings-card-body">
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Script &amp; image render limits</div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the script tag limit and image prefetch limit steppers from Settings. Defaults (250 scripts, 300 images) will be locked in permanently.</div></div><div class="patch-check checked" data-patch="render-limits" data-section="filesandmedia" onclick="togglePatch(this)"></div></div>
+    </div>
   </div>
   <div class="settings-card">
     <div class="settings-card-head"><i class="fas fa-film"></i> Media Range Requests</div>
@@ -1195,7 +1201,20 @@ function buildPatchScript(removedPatches) {
   var jsLines = [];
 
   // ---- helpers ----
-  function ls(key, val) { lsLines.push('localStorage.setItem(' + JSON.stringify(key) + ',' + JSON.stringify(val) + ');'); }
+  // ls() writes both the bare key (pre-v113) and the instance-prefixed key (v113+).
+  // v113 GUST wraps localStorage so all its reads go through `_INST_ID + ':' + key`.
+  // The instance ID is stored in sessionStorage under '__gust_inst__'.
+  function ls(key, val) {
+    lsLines.push('(function(){');
+    lsLines.push('  var _k=' + JSON.stringify(key) + ';');
+    lsLines.push('  var _v=' + JSON.stringify(val) + ';');
+    lsLines.push('  try{localStorage.setItem(_k,_v);}catch(e){}'); // bare key (pre-v113)
+    lsLines.push('  try{');
+    lsLines.push('    var _id=sessionStorage.getItem("__gust_inst__")||window._sessionInstId;');
+    lsLines.push('    if(_id){localStorage.setItem(_id+":"+_k,_v);}');
+    lsLines.push('  }catch(e){}');
+    lsLines.push('})();');
+  }
   function css(sel) { cssRules.push(sel + ' { display:none !important; }'); }
   function js(line) { jsLines.push(line); }
   function stubFns(arr) {
@@ -1277,16 +1296,8 @@ function buildPatchScript(removedPatches) {
   if (rm.has('nt-clock24'))      { ls('gust:24hrclock:v1','false'); }
   if (rm.has('shortcuts-panel')) { ls('gust:shortcutsEnabled','0'); }
   if (rm.has('tutorial-auto') || rm.has('tutorial-include')) {
-    // Legacy bare-key variants (pre-v94 GUST read these directly from localStorage)
+    // Seed all known tutorial key variants (bare + instance-prefixed via ls() helper)
     ls('gust:tutorial','done'); ls('gust:tutorial:done','1'); ls('gust:tutorial:v1','done');
-    // v94+ uses a per-instance namespaced key: <instId>:gust:tutorial:v1
-    // The instance ID lives in sessionStorage at runtime, so we seed it via JS.
-    js('(function(){');
-    js('  try {');
-    js('    var instId = sessionStorage.getItem("__gust_inst__");');
-    js('    if (instId) localStorage.setItem(instId + ":gust:tutorial:v1", "done");');
-    js('  } catch(e) {}');
-    js('})();');
   }
   if (rm.has('fallback-enabled'))  { ls('gust:fallback:enabled','0'); }
   if (rm.has('fallback-5xx'))      { ls('gust:fallback:5xx','0'); }
@@ -1299,44 +1310,51 @@ function buildPatchScript(removedPatches) {
   // disabled via the localStorage pre-seeds above.
 
   // Connection
+  // wisp-url, threads, webrtc-block, media-headers are children of sidebar-nav-connection
   if (rm.has('wisp-url')) {
-    badge('#settingsWispInput,#settingsWispSave,#settingsWispReset');
+    (rm.has('sidebar-nav-connection') ? badge : css)('#settingsWispInput,#settingsWispSave,#settingsWispReset');
     css('#settingsWispStatus');
   }
   if (rm.has('search-favicon'))
-    badge('#faviconProxySwitch');
+    (rm.has('sidebar-nav-connection') ? badge : css)('#faviconProxySwitch');
   if (rm.has('threads')) {
-    badge('#settingsIdleMinus,#settingsIdleVal,#settingsIdlePlus');
-    badge('#settingsActiveMinus,#settingsActiveVal,#settingsActivePlus');
-    badge('#settingsThreadsSave,#settingsThreadsReset,#settingsThreadsStatus');
+    var _thr = rm.has('sidebar-nav-connection');
+    (_thr ? badge : css)('#settingsIdleMinus,#settingsIdleVal,#settingsIdlePlus');
+    (_thr ? badge : css)('#settingsActiveMinus,#settingsActiveVal,#settingsActivePlus');
+    (_thr ? badge : css)('#settingsThreadsSave,#settingsThreadsReset,#settingsThreadsStatus');
   }
   if (rm.has('webrtc-block'))
-    badge('#webrtcBlockSwitch');
+    (rm.has('sidebar-nav-connection') ? badge : css)('#webrtcBlockSwitch');
   if (rm.has('media-headers'))
-    badge('#mediaHeadersSwitch');
+    (rm.has('sidebar-nav-connection') ? badge : css)('#mediaHeadersSwitch');
 
   // Fallback WISP
+  // fallback-enabled is child of sidebar-nav-fallback
+  // fallback-wisp/retries/triggers are children of both sidebar-nav-fallback AND fallback-enabled
   if (rm.has('fallback-enabled'))
-    badge('#fallbackEnabledSwitch');
+    (rm.has('sidebar-nav-fallback') ? badge : css)('#fallbackEnabledSwitch');
   if (rm.has('fallback-wisp')) {
-    badge('#settingsFallbackWispInput,#settingsFallbackWispSave,#settingsFallbackWispReset');
+    var _fbParent = rm.has('sidebar-nav-fallback') || rm.has('fallback-enabled');
+    (_fbParent ? badge : css)('#settingsFallbackWispInput,#settingsFallbackWispSave,#settingsFallbackWispReset');
     css('#settingsFallbackWispStatus');
   }
   if (rm.has('fallback-retries')) {
-    badge('#mainRetryMinus,#mainRetryVal,#mainRetryPlus');
-    badge('#fallbackRetryMinus,#fallbackRetryVal,#fallbackRetryPlus');
-    badge('#fallbackDelayMinus,#fallbackDelayVal,#fallbackDelayPlus');
+    var _fbrParent = rm.has('sidebar-nav-fallback') || rm.has('fallback-enabled');
+    (_fbrParent ? badge : css)('#mainRetryMinus,#mainRetryVal,#mainRetryPlus');
+    (_fbrParent ? badge : css)('#fallbackRetryMinus,#fallbackRetryVal,#fallbackRetryPlus');
+    (_fbrParent ? badge : css)('#fallbackDelayMinus,#fallbackDelayVal,#fallbackDelayPlus');
   }
-  if (rm.has('fallback-triggers'))
-    badge('#fallback5xxSwitch,#fallbackTimeoutSwitch,#fallbackDnsSwitch');
+  if (rm.has('fallback-triggers')) {
+    var _fbtParent = rm.has('sidebar-nav-fallback') || rm.has('fallback-enabled');
+    (_fbtParent ? badge : css)('#fallback5xxSwitch,#fallbackTimeoutSwitch,#fallbackDnsSwitch');
+  }
 
   // Search
+  // search-engine, spellcheck, search-favicon are children of sidebar-nav-search
   if (rm.has('search-engine'))
     css('#settingsEngineRows');
   if (rm.has('spellcheck')) {
-    // Seed the key to disabled
-    // Badge the switch in GUST Settings with a "broken" warning instead of hiding it,
-    // matching the patcher UI label so users know it doesn't actually work.
+    // Show a "broken" warning badge (special case — spellcheck doesn't actually work)
     js('(function(){');
     js('  function _spellBroken(){');
     js('    var sw=document.getElementById("settingsSpellSwitch");');
@@ -1356,8 +1374,9 @@ function buildPatchScript(removedPatches) {
     css('#settingsLanguage,#settingsLanguageTrigger,#settingsLanguagePanel,#settingsLanguageSave,#settingsLanguageStatus');
 
   // Privacy
+  // adblock-toggle, ua-request, ua-page, custom-filters are children of sidebar-nav-privacy
   if (rm.has('adblock-toggle')) {
-    badge('#settingsBlockSwitch');
+    (rm.has('sidebar-nav-privacy') ? badge : css)('#settingsBlockSwitch');
     css('#blockToggle');
   }
   if (rm.has('ua-request')) {
@@ -1387,51 +1406,70 @@ function buildPatchScript(removedPatches) {
     css('#settingsCustomFilters,#settingsSaveFilters');
 
   // Cache
+  // tab-cache, clear-cache are children of sidebar-nav-cache
   if (rm.has('tab-cache'))
-    badge('#settingsTabCacheSwitch');
+    (rm.has('sidebar-nav-cache') ? badge : css)('#settingsTabCacheSwitch');
   if (rm.has('clear-cache'))
     css('#settingsClearCache,#settingsResetEverything');
 
   // Files & Media
-  if (rm.has('media-range'))     badge('#mediaRangeSwitch');
-  if (rm.has('media-download'))  badge('#mediaDownloadSwitch');
-  if (rm.has('media-pdf'))       badge('#mediaPdfSwitch');
-  if (rm.has('media-img'))       badge('#mediaImgSwitch');
-  if (rm.has('media-video'))     badge('#mediaVideoSwitch');
-  if (rm.has('media-audio'))     badge('#mediaAudioSwitch');
-  if (rm.has('media-text'))      badge('#mediaTextSwitch');
+  // render-limits, media-* are children of sidebar-nav-filesandmedia
+  var _fmParent = rm.has('sidebar-nav-filesandmedia');
+  if (rm.has('media-range'))     (_fmParent ? badge : css)('#mediaRangeSwitch');
+  if (rm.has('media-download'))  (_fmParent ? badge : css)('#mediaDownloadSwitch');
+  if (rm.has('media-pdf'))       (_fmParent ? badge : css)('#mediaPdfSwitch');
+  if (rm.has('media-img'))       (_fmParent ? badge : css)('#mediaImgSwitch');
+  if (rm.has('media-video'))     (_fmParent ? badge : css)('#mediaVideoSwitch');
+  if (rm.has('media-audio'))     (_fmParent ? badge : css)('#mediaAudioSwitch');
+  if (rm.has('media-text'))      (_fmParent ? badge : css)('#mediaTextSwitch');
+
+  // Advanced Rendering (v113+)
+  if (rm.has('render-limits')) {
+    (_fmParent ? badge : css)('#scriptLimitMinus,#scriptLimitVal,#scriptLimitPlus');
+    (_fmParent ? badge : css)('#imgLimitMinus,#imgLimitVal,#imgLimitPlus');
+    css('#renderLimitsSave,#renderLimitsReset,#renderLimitsStatus');
+  }
 
   // Appearance
+  // font-size, panel-widths, panels-left, auto-fullscreen are children of sidebar-nav-appearance
+  var _apParent = rm.has('sidebar-nav-appearance');
   if (rm.has('font-size'))
     css('#settingsFontSlider,#settingsFontReset');
   if (rm.has('panel-widths'))
-    badge('#settingsPanelWidthSwitch');
+    (_apParent ? badge : css)('#settingsPanelWidthSwitch');
   if (rm.has('panels-left'))
-    badge('#settingsPanelsLeftSwitch');
+    (_apParent ? badge : css)('#settingsPanelsLeftSwitch');
   if (rm.has('auto-fullscreen'))
-    badge('#settingsAutoFullscreenSwitch');
+    (_apParent ? badge : css)('#settingsAutoFullscreenSwitch');
 
   // Home Screen
+  // bookmarks-bar, nt-wallpaper, nt-clock, nt-clock24 are children of sidebar-nav-homescreen
+  var _hsParent = rm.has('sidebar-nav-homescreen');
   if (rm.has('bookmarks-bar'))
-    badge('#settingsBookmarksBarSwitch');
+    (_hsParent ? badge : css)('#settingsBookmarksBarSwitch');
   if (rm.has('nt-wallpaper'))
     css('#settingsWallpaperChange,#settingsWallpaperReset,#settingsWallpaperStatus,#wallpaperModal,#ntWallpaperBtn');
   if (rm.has('nt-clock'))
-    badge('#settingsClockSwitch');
+    (_hsParent ? badge : css)('#settingsClockSwitch');
   if (rm.has('nt-clock24'))
-    badge('#settings24hrSwitch');
+    (_hsParent ? badge : css)('#settings24hrSwitch');
 
   // Shortcuts
+  // shortcuts-panel is child of sidebar-nav-shortcuts
   if (rm.has('shortcuts-panel')) {
-    badge('#settingsShortcutsEnabledSwitch');
+    (rm.has('sidebar-nav-shortcuts') ? badge : css)('#settingsShortcutsEnabledSwitch');
     css('#shortcutsList');
   }
 
   // Tutorial
+  // tutorial-include/auto/settings are children of sidebar-nav-tutorial
+  // tutorial-auto/settings are also children of tutorial-include
   if (rm.has('tutorial-include'))
     css('#tutorialOverlay');
-  if (rm.has('tutorial-include') || rm.has('tutorial-settings'))
-    badge('#restartTutorialBtn');
+  if (rm.has('tutorial-include') || rm.has('tutorial-settings')) {
+    var _tutParent = rm.has('sidebar-nav-tutorial') || rm.has('tutorial-include');
+    (_tutParent ? badge : css)('#restartTutorialBtn');
+  }
 
   // Core — Ad Blocker panel (toolbar button + modal)
   if (rm.has('adblock-panel'))
