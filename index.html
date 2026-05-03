@@ -9063,8 +9063,11 @@ function processEl(el) {
       el.removeAttribute('data-original');
       el.removeAttribute('data-lazy-src');
     }
-    const srcset = el.getAttribute('srcset');
-    if (srcset && !/blob:/.test(srcset)) el.srcset = srcset;
+    const srcset = el.getAttribute('srcset') || el.getAttribute('data-srcset');
+    if (srcset && !/blob:/.test(srcset)) {
+      el.srcset = srcset;
+      if (el.getAttribute('data-srcset')) el.removeAttribute('data-srcset');
+    }
     if (tag === 'VIDEO') {
       const poster = el.getAttribute('poster');
       if (poster && !/^(data:|blob:)/i.test(poster) && !el.getAttribute('data-real-poster')) el.poster = poster;
@@ -10500,6 +10503,68 @@ _VIEWER_DL_JS +
                     // Remove any other base tags to prevent conflicts
                     doc.querySelectorAll('base').forEach(b => { if (b !== base) b.remove(); });
 
+                    // ── Strip <noscript> — page thinks JS is disabled inside blob iframe ──
+                    doc.querySelectorAll('noscript').forEach(n => n.remove());
+
+                    // ── Ensure viewport meta exists for correct scaling ────────────────
+                    if (!doc.querySelector('meta[name="viewport"]')) {
+                        const vp = doc.createElement('meta');
+                        vp.setAttribute('name', 'viewport');
+                        vp.setAttribute('content', 'width=device-width, initial-scale=1');
+                        doc.head.prepend(vp);
+                    }
+
+                    // ── Rewrite srcset on <img> and <source> to absolute URLs ──────────
+                    doc.querySelectorAll('img[srcset], source[srcset]').forEach(el => {
+                        const srcset = el.getAttribute('srcset');
+                        if (!srcset || /^blob:/i.test(srcset)) return;
+                        try {
+                            const rewritten = srcset.split(',').map(part => {
+                                const trimmed = part.trim();
+                                const spaceIdx = trimmed.search(/\s/);
+                                const rawUrl = spaceIdx > -1 ? trimmed.slice(0, spaceIdx) : trimmed;
+                                const descriptor = spaceIdx > -1 ? trimmed.slice(spaceIdx) : '';
+                                if (!rawUrl || /^(data:|blob:)/i.test(rawUrl)) return part;
+                                const absUrl = new URL(rawUrl, url).href;
+                                return absUrl + descriptor;
+                            }).join(', ');
+                            el.setAttribute('srcset', rewritten);
+                        } catch {}
+                    });
+
+                    // ── Rewrite <source src> inside <picture> and <video> ─────────────
+                    doc.querySelectorAll('picture source[src], video source[src]').forEach(src => {
+                        const s = src.getAttribute('src');
+                        if (s && !/^(data:|blob:)/i.test(s)) {
+                            try { src.setAttribute('src', new URL(s, url).href); } catch {}
+                        }
+                        // Also promote lazy data-src
+                        const lazySrc = src.getAttribute('data-src');
+                        if (lazySrc && !/^(data:|blob:)/i.test(lazySrc)) {
+                            try { src.setAttribute('src', new URL(lazySrc, url).href); src.removeAttribute('data-src'); } catch {}
+                        }
+                    });
+
+                    // ── Rewrite <video poster> to absolute URL ─────────────────────────
+                    doc.querySelectorAll('video[poster]').forEach(v => {
+                        const p = v.getAttribute('poster');
+                        if (p && !/^(data:|blob:)/i.test(p)) {
+                            try { v.setAttribute('poster', new URL(p, url).href); } catch {}
+                        }
+                    });
+
+                    // ── Rewrite <form action> to absolute URL ──────────────────────────
+                    doc.querySelectorAll('form[action]').forEach(form => {
+                        const action = form.getAttribute('action');
+                        if (action && !/^(javascript:|#|data:|blob:)/i.test(action)) {
+                            try {
+                                const absAction = new URL(action, url).href;
+                                form.setAttribute('data-gust-action', absAction);
+                                form.setAttribute('action', absAction);
+                            } catch {}
+                        }
+                    });
+
                     // ── Anchor sanitisation (parse-time, before any page JS runs) ──────
                     // Strip every event handler and javascript: href from <a> tags, and
                     // rewrite hrefs to absolute URLs. This runs on the parsed DOM before
@@ -10563,6 +10628,18 @@ _VIEWER_DL_JS +
     e.stopPropagation();
     e.stopImmediatePropagation();
     try { parent.postMessage({t:'n',u:dest},'*'); } catch(err) {}
+  }, true);
+  // Drag fix: restore real URL so dragging a link into the omnibox
+  // delivers the actual destination, not javascript:void(0)
+  document.addEventListener('dragstart', function(e) {
+    var a = e.target && e.target.closest ? e.target.closest('a,area') : null;
+    if (!a) return;
+    var dest = a.getAttribute('data-gust-href');
+    if (!dest) return;
+    try {
+      e.dataTransfer.setData('text/uri-list', dest);
+      e.dataTransfer.setData('text/plain', dest);
+    } catch(err) {}
   }, true);
   document.addEventListener('submit', function(e) {
     var form = e.target;
@@ -10735,7 +10812,7 @@ _VIEWER_DL_JS +
                     // + ES module chunks). We keep up to 150 total to avoid cutting off critical
                     // framework bootstrap scripts.  Module scripts (type="module") are included in
                     // the same pass so their relative load order is preserved.
-                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, 150);
+                    const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, 250);
                     allScripts.forEach(scr => {
                         const src = scr.getAttribute("src");
                         if (!src || /^(data:|blob:)/i.test(src)) return;
@@ -10751,7 +10828,7 @@ _VIEWER_DL_JS +
 
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
 
-                    doc.querySelectorAll('img[loading="lazy"], iframe[loading="lazy"]').forEach(el => {
+                    doc.querySelectorAll('img[loading="lazy"], iframe[loading="lazy"], source[loading="lazy"]').forEach(el => {
                         el.setAttribute('loading', 'eager');
                     });
                     doc.querySelectorAll('img[data-src], img[data-lazy], img[data-original], img[data-lazy-src]').forEach(img => {
@@ -10762,6 +10839,25 @@ _VIEWER_DL_JS +
                             img.removeAttribute('data-lazy');
                             img.removeAttribute('data-original');
                             img.removeAttribute('data-lazy-src');
+                        }
+                    });
+
+                    // ── Absolutify iframe src and relax sandbox for embedded content ───
+                    doc.querySelectorAll('iframe[src]').forEach(ifr => {
+                        const s = ifr.getAttribute('src');
+                        if (s && !/^(data:|blob:|javascript:|about:)/i.test(s)) {
+                            try { ifr.setAttribute('src', new URL(s, url).href); } catch {}
+                        }
+                        // Remove overly-restrictive sandbox attributes that block media embeds
+                        const sandbox = ifr.getAttribute('sandbox');
+                        if (sandbox !== null) {
+                            // Keep allow-scripts and allow-same-origin; add them if missing
+                            const parts = new Set(sandbox.split(/\s+/).filter(Boolean));
+                            parts.add('allow-scripts');
+                            parts.add('allow-same-origin');
+                            parts.add('allow-forms');
+                            parts.add('allow-popups');
+                            ifr.setAttribute('sandbox', [...parts].join(' '));
                         }
                     });
 
@@ -10779,7 +10875,7 @@ _VIEWER_DL_JS +
                         });
                     }
 
-                    const images = [...doc.querySelectorAll("img[src]")].slice(0, 200);
+                    const images = [...doc.querySelectorAll("img[src]")].slice(0, 300);
                     const loadedImageUrls = new Set(); 
                     const imagePromises = images.map(async img => {
                         const src = img.getAttribute("src");
