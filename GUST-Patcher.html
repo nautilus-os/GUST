@@ -1201,14 +1201,14 @@ function buildPatchScript(removedPatches) {
   var jsLines = [];
 
   // ---- helpers ----
-  // ls() writes both the bare key (pre-v113) and the instance-prefixed key (v113+).
-  // v113 GUST wraps localStorage so all its reads go through `_INST_ID + ':' + key`.
+  // ls() writes both the bare key and the instance-prefixed key.
+  // GUST wraps localStorage so all its reads go through `_INST_ID + ':' + key`.
   // The instance ID is stored in sessionStorage under '__gust_inst__'.
   function ls(key, val) {
     lsLines.push('(function(){');
     lsLines.push('  var _k=' + JSON.stringify(key) + ';');
     lsLines.push('  var _v=' + JSON.stringify(val) + ';');
-    lsLines.push('  try{localStorage.setItem(_k,_v);}catch(e){}'); // bare key (pre-v113)
+    lsLines.push('  try{localStorage.setItem(_k,_v);}catch(e){}'); // bare key
     lsLines.push('  try{');
     lsLines.push('    var _id=sessionStorage.getItem("__gust_inst__")||window._sessionInstId;');
     lsLines.push('    if(_id){localStorage.setItem(_id+":"+_k,_v);}');
@@ -1423,7 +1423,7 @@ function buildPatchScript(removedPatches) {
   if (rm.has('media-audio'))     (_fmParent ? badge : css)('#mediaAudioSwitch');
   if (rm.has('media-text'))      (_fmParent ? badge : css)('#mediaTextSwitch');
 
-  // Advanced Rendering (v113+)
+  // Advanced Rendering
   if (rm.has('render-limits')) {
     (_fmParent ? badge : css)('#scriptLimitMinus,#scriptLimitVal,#scriptLimitPlus');
     (_fmParent ? badge : css)('#imgLimitMinus,#imgLimitVal,#imgLimitPlus');
