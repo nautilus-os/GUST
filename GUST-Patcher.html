@@ -286,7 +286,7 @@ button,input,select,textarea{font:inherit}
     <button class="btn-secondary" id="reloadSourceBtn"><i class="fas fa-rotate-right"></i> Refresh Source</button>
     <button class="btn-secondary" id="pasteSourceBtn" title="Paste GUST source manually"><i class="fas fa-paste"></i> Paste Source</button>
     <button class="btn-secondary" id="githubBtn" onclick="window.open('https://github.com/nautilus-os/GUST','_blank')" title="View GUST on GitHub" style="padding:0;width:36px;justify-content:center;"><i class="fab fa-github" style="font-size:17px;line-height:1"></i></button>
-    <button class="btn-primary" id="downloadBtn" disabled><i class="fas fa-download"></i> Download Patched GUST</button>
+    <button class="btn-primary" id="downloadBtn" disabled title="Please apply a patch"><i class="fas fa-download"></i> Download Patched GUST</button>
   </div>
 </div>
 
@@ -907,8 +907,9 @@ function updateCounts() {
   const rc = document.getElementById('removedCount');
   if (rc) { rc.textContent = removed; rc.style.color = removed > 0 ? 'var(--warn)' : 'var(--tx3)'; }
   const dlBtn = document.getElementById('downloadBtn');
-  if (dlBtn && !dlBtn.disabled && sourceLoaded) {
-    dlBtn.disabled = totalOn === 0;
+  if (dlBtn && sourceLoaded) {
+    dlBtn.disabled = removed === 0;
+    dlBtn.title = removed === 0 ? 'Please apply a patch' : '';
   }
 }
 
@@ -1676,7 +1677,7 @@ const patcherTutSteps = [
     target: '#downloadBtn',
     icon: '<i class="fas fa-download"></i>',
     title: 'Download GUST',
-    body: 'Once the source is loaded, click here to build and download your custom patched GUST with only your selected features.',
+    body: 'Once the source is loaded, click here to build and download your custom patched GUST. You must uncheck at least one patch to enable this button — if you want the unmodified build, use the <strong>Base GUST</strong> card on the home screen instead.',
     pos: 'below'
   },
   {
