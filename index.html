@@ -9718,6 +9718,19 @@ parent.postMessage({ t: 'ready' }, '*');
             }
 
             // ── Detect file type from MIME + URL extension ─────────────────
+            // Hostnames that intentionally serve raw source text — never render as HTML.
+            // Covers: GitHub raw files & gists, GitLab raw, Bitbucket raw, Pastebin raw,
+            //         Hastebin, sourcehut plain, paste.mozilla.org, dpaste, etc.
+            const RAW_SOURCE_HOSTS = /^(raw\.githubusercontent\.com|gist\.githubusercontent\.com|gitlab\.com|raw\.gitlab\.com|bitbucket\.org|pastebin\.com|hastebin\.com|haste\.znc\.in|paste\.mozilla\.org|dpaste\.com|dpaste\.org|sourcehut\.org|git\.sr\.ht|paste\.ee|termbin\.com|ghostbin\.co|controlc\.com|privatebin\.net)$/i;
+
+            function isRawSourceUrl(url) {
+                try {
+                    const host = new URL(url).hostname.replace(/^www\./, '');
+                    return RAW_SOURCE_HOSTS.test(host);
+                } catch(e) {}
+                return false;
+            }
+
             function classifyResponse(mime, url, buf) {
                 const m = (mime || '').toLowerCase().split(';')[0].trim();
                 const ext = (url || '').split('?')[0].split('.').pop().toLowerCase();
@@ -9725,6 +9738,11 @@ parent.postMessage({ t: 'ready' }, '*');
                 if (m.startsWith('image/') || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?)$/.test(ext)) return 'image';
                 if (m.startsWith('video/') || /^(mp4|webm|ogv|mov|avi|mkv|m4v)$/.test(ext)) return 'video';
                 if (m.startsWith('audio/') || /^(mp3|ogg|flac|wav|aac|m4a|opus|weba)$/.test(ext)) return 'audio';
+
+                // Raw source hosts: always show as plain text, never render as HTML,
+                // regardless of file extension or content sniffing.
+                if (isRawSourceUrl(url)) return 'text';
+
                 // .html/.htm URLs always render as HTML regardless of reported content-type
                 if (/^htm(l)?$/.test(ext)) return 'html';
                 // text/plain may actually be HTML — sniff the first 1KB before treating as plain text
