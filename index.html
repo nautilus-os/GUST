@@ -611,7 +611,7 @@
         }
 
         .omnibox:focus-within {
-            border-color: rgba(141, 217, 255, .35);
+            border-color: var(--ac);
         }
 
         /* ── Drag-over omnibox state ── */
@@ -619,10 +619,6 @@
             0%   { text-decoration-color: transparent; opacity: 1; }
             40%  { text-decoration-color: var(--ac); opacity: 1; }
             100% { text-decoration-color: var(--ac); opacity: 0.38; }
-        }
-        @keyframes omni-drag-pulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(157, 229, 255, 0); }
-            50%       { box-shadow: 0 0 0 3px rgba(157, 229, 255, 0.18); }
         }
         @keyframes drop-ghost-slide {
             from { opacity: 0; transform: translateX(-6px); }
@@ -632,7 +628,6 @@
             border-color: var(--ac) !important;
             background: rgba(157, 229, 255, 0.07) !important;
             cursor: copy !important;
-            animation: omni-drag-pulse 1.1s ease-in-out infinite;
         }
         .omnibox.drag-over .url-input {
             animation: url-strike 0.22s ease forwards;
