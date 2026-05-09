@@ -12169,31 +12169,7 @@ _VIEWER_DL_JS +
             $("bookmarkModal").onclick = (e) => {
                 if (e.target === $("bookmarkModal")) hideBookmarkModal();
             };
-            window.addEventListener("keydown", (e) => {
-                if (e.altKey && (e.key === "l" || e.key === "L")) {
-                    e.preventDefault();
-                    urlInput.focus();
-                    urlInput.select();
-                }
-                if (e.altKey && (e.key === "d" || e.key === "D")) {
-                    e.preventDefault();
-                    if (!isSettingsPage(pageUrl)) {
-                        bookmarkBtn.click();
-                    }
-                }
-                if (e.altKey && (e.key === "r" || e.key === "R")) {
-                    e.preventDefault();
-                    if (pageUrl && pageUrl !== HOME_INTERNAL && !isSettingsPage(pageUrl)) {
-                        go(pageUrl, false);
-                    }
-                }
-                if (e.altKey && (e.key === "w" || e.key === "W")) {
-                    e.preventDefault();
-                    if (tabs.length > 1) {
-                        closeTabAnimated(activeTabId);
-                    }
-                }
-            });
+
 
             window.addEventListener("resize", () => {
                 if (newtab?.classList.contains("active")) loadSavedWallpaper();
@@ -13482,7 +13458,7 @@ _VIEWER_DL_JS +
                 closetab: () => { if (tabs.length > 1) closeTabAnimated(activeTabId); },
                 reload: () => { if (pageUrl && pageUrl !== HOME_INTERNAL) go(pageUrl, false); },
                 bookmark: () => { if (pageUrl && pageUrl !== HOME_INTERNAL) showBookmarkModal(); },
-                focusurl: () => urlInput.focus(),
+                focusurl: () => { urlInput.focus(); urlInput.select(); },
                 settings: () => showSettingsPage(true),
                 logs: () => { if (logsEl) logsEl.classList.toggle('hidden'); },
                 inspector: () => { toggleElements(); },
