@@ -8032,6 +8032,11 @@
 
             async function queueFetch(url, opts = {}, priority = PRIORITY.other) {
                 if (window._netStall) { return Promise.reject(new TypeError('Failed to fetch')); }
+                // Guard: if libcurl hasn't initialized yet (or failed), fail cleanly
+                // instead of throwing a cryptic TypeError that leaves the iframe white.
+                if (typeof curl === 'undefined' || curl === null) {
+                    return Promise.reject(new Error('libcurl not ready — WISP connection may still be initializing or failed to load'));
+                }
                 if (shouldSkip(url)) {
                     try {
                         const _bh = new URL(url).hostname.toLowerCase();
@@ -8266,12 +8271,28 @@
                 } catch (curlErr) {
                     const msg = (curlErr.message || '').toLowerCase();
                     const isAborted = curlErr.name === 'AbortError' || (opts.signal?.aborted);
-                    if (!isAborted && (msg.includes('aborted') || msg.includes('operation') || msg.includes('network') || msg.includes('wisp') || msg.includes('socket'))) {
+                    // Expanded kill-pattern list — catches Lightspeed mid-stream resets,
+                    // RST packets, TLS termination, and generic WebSocket drops
+                    const isWispDrop = !isAborted && (
+                        msg.includes('aborted') || msg.includes('operation') ||
+                        msg.includes('network') || msg.includes('wisp') ||
+                        msg.includes('socket') || msg.includes('closed') ||
+                        msg.includes('reset') || msg.includes('interrupted') ||
+                        msg.includes('connection') || msg.includes('failed') ||
+                        msg.includes('error') || msg.includes('tls') ||
+                        msg.includes('ssl') || msg.includes('eof')
+                    );
+                    if (isWispDrop) {
                         log('WISP connection lost, reconnecting...', 'warn');
                         let reconnected = false;
-                        for (let _attempt = 0; _attempt < 2; _attempt++) {
+                        for (let _attempt = 0; _attempt < 3; _attempt++) {
                             try {
-                                if (_attempt > 0) await new Promise(r => setTimeout(r, 600));
+                                // Staggered backoff: 300ms, 800ms, 2000ms
+                                // The 300ms initial delay lets the dying connection fully close
+                                // before we try to reinitialize, avoiding overlap/state conflicts.
+                                const _delay = _attempt === 0 ? 300 : _attempt === 1 ? 800 : 2000;
+                                await new Promise(r => setTimeout(r, _delay));
+                                if (opts.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
                                 await libcurl.load_wasm();
                                 libcurl.set_websocket(WISP);
                                 curl = new libcurl.HTTPSession();
@@ -8280,15 +8301,20 @@
                                 log('Reconnected to WISP (attempt ' + (_attempt + 1) + ')', 'ok');
                                 break;
                             } catch (reinitErr) {
-                                if (_attempt === 1) {
-                                    log('WISP reconnect failed after 2 attempts: ' + reinitErr.message, 'err');
+                                if (reinitErr.name === 'AbortError') throw reinitErr;
+                                if (_attempt === 2) {
+                                    log('WISP reconnect failed after 3 attempts: ' + reinitErr.message, 'err');
                                     throw reinitErr;
                                 }
-                                log('WISP reconnect attempt 1 failed, retrying...', 'warn');
+                                log('WISP reconnect attempt ' + (_attempt + 1) + ' failed, retrying...', 'warn');
                             }
                         }
+                        if (opts.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
                         const retryFetch = curl.fetch(url, { method, headers, body, signal: opts.signal });
-                        const retryAbort = new Promise((_, rj) => opts.signal?.addEventListener("abort", () => rj(new DOMException("Aborted", "AbortError"))));
+                        const retryAbort = new Promise((_, rj) => {
+                            if (opts.signal?.aborted) rj(new DOMException("Aborted", "AbortError"));
+                            opts.signal?.addEventListener("abort", () => rj(new DOMException("Aborted", "AbortError")));
+                        });
                         resp = await Promise.race([retryFetch, retryAbort]);
                     } else {
                         throw curlErr;
@@ -10227,9 +10253,11 @@ _VIEWER_DL_JS +
                     if (loadedTab) loadedTab.blobSrc = blobUrl;
                     frame.onload = null;
                 };
+                const _vpOpacitySafe = setTimeout(() => { frame.style.opacity = '1'; frame.style.transition = ''; }, 1500);
                 setTimeout(() => {
                     frame.style.transition = 'opacity 0.2s ease-out';
                     frame.style.opacity = '1';
+                    clearTimeout(_vpOpacitySafe);
                     setTimeout(() => { frame.style.transition = ''; }, 220);
                 }, 50);
                 if (prevBlobUrl && prevBlobUrl.startsWith('blob:')) setTimeout(() => URL.revokeObjectURL(prevBlobUrl), 2000);
@@ -10946,9 +10974,12 @@ _VIEWER_DL_JS +
                         }
                     });
 
+                    // 12s timeout — Lightspeed/filtering proxies slow individual fetches significantly.
+                    // Individual image errors are already swallowed inside imagePromises; the race
+                    // just ensures a totally stalled fetch doesn't block page render forever.
                     await Promise.race([
                         Promise.all(imagePromises),
-                        new Promise(resolve => setTimeout(resolve, 5000)) 
+                        new Promise(resolve => setTimeout(resolve, 12000))
                     ]);
 
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
@@ -10982,9 +11013,12 @@ _VIEWER_DL_JS +
                         }
                         frame.onload = null;
                     };
+                    // Safety: always restore opacity even if the scheduled fade somehow misfires
+                    const _opacitySafe = setTimeout(() => { frame.style.opacity = '1'; frame.style.transition = ''; }, 1500);
                     setTimeout(() => {
                         frame.style.transition = 'opacity 0.2s ease-out';
                         frame.style.opacity = '1';
+                        clearTimeout(_opacitySafe);
                         setTimeout(() => { frame.style.transition = ''; }, 220);
                     }, 50);
                     if (prevBlobUrl && prevBlobUrl.startsWith('blob:')) {
@@ -12193,7 +12227,14 @@ _VIEWER_DL_JS +
                                 }, 100);
                                 document.addEventListener("libcurl_load", () => { clearInterval(poll); rs(); }, { once: true });
                                 document.addEventListener("libcurl_abort", () => { clearInterval(poll); rj(new Error("libcurl aborted during initialization")); }, { once: true });
-                                setTimeout(() => { clearInterval(poll); rj(new Error("Timed out waiting for libcurl.js to load (15s) — the CDN may be slow or unreachable")); }, 15000);
+                                // 30s timeout — filtering proxies (Lightspeed etc.) can significantly
+                                // slow CDN fetches. 15s was too short for throttled school networks.
+                                let _warnFired = false;
+                                const _warnTimer = setTimeout(() => {
+                                    _warnFired = true;
+                                    log('libcurl.js is taking longer than usual to load — CDN may be slow or throttled...', 'warn');
+                                }, 10000);
+                                setTimeout(() => { clearInterval(poll); clearTimeout(_warnTimer); rj(new Error("Timed out waiting for libcurl.js to load (30s) — the CDN may be slow or unreachable")); }, 30000);
                             });
                         }
                         await libcurl.load_wasm();
@@ -12374,8 +12415,8 @@ _VIEWER_DL_JS +
                 if (wispSave && wispInput) {
                     wispSave.onclick = async () => {
                         const val = (wispInput.value || "").trim();
-                        if (!val || !val.startsWith("wss")) {
-                            showStatusMsg(wispStatus, "Must start with wss://", "err");
+                        if (!val || (!val.startsWith("wss://") && !val.startsWith("ws://"))) {
+                            showStatusMsg(wispStatus, "Must start with wss:// or ws://", "err");
                             return;
                         }
                         try {
