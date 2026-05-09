@@ -5370,7 +5370,9 @@
             }
 
             function renderErrorPage(url, errorType, errorCode, errorDescription, errorSuggestions) {
-                const suggestionsHTML = (errorSuggestions || []).map(s => `<li>${s}</li>`).join("");
+                // Escape anything that could contain URL-sourced or page-sourced content
+                const _esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+                const suggestionsHTML = (errorSuggestions || []).map(s => `<li>${_esc(s)}</li>`).join("");
                 frame.srcdoc = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5874,6 +5876,7 @@
             }
 
             // Poll the active tab's iframe every 1.5s for playing audio/video
+            let _audioFalseCount = 0; // debounce: require 2 consecutive "not playing" before clearing icon
             setInterval(() => {
                 const tab = getActiveTab();
                 if (!tab || tab.url === HOME_INTERNAL || isSettingsPage(tab.url)) return;
@@ -5887,9 +5890,28 @@
                         playing = [...els].some(el => !el.paused && el.readyState > 0);
                     }
                 } catch (e) {}
+
+                // Debounce the "stopped" transition: require 2 consecutive not-playing polls
+                // before clearing the icon. This prevents a 1-frame pause during buffering
+                // or page hydration from flickering the icon off then back on.
+                if (!playing) {
+                    _audioFalseCount++;
+                    if (_audioFalseCount < 2) return; // not sure yet, wait one more tick
+                } else {
+                    _audioFalseCount = 0;
+                }
+
                 if (!!tab.hasAudio !== playing) {
                     tab.hasAudio = playing;
-                    renderTabs();
+                    // Surgical update: toggle the CSS class on just this tab element
+                    // instead of calling renderTabs() which rebuilds all tab DOM and causes flicker.
+                    const tabEl = document.querySelector(`.tab[data-tab-id="${tab.id}"]`);
+                    if (tabEl) {
+                        tabEl.classList.toggle('audio-playing', playing && !tab.muted);
+                    } else {
+                        // Fallback if element not found (e.g. tab bar scrolled out of view)
+                        renderTabs();
+                    }
                 }
             }, 1500);
 
@@ -5924,6 +5946,9 @@
                 if (activeTabId !== null && activeTabId !== tabId) {
                     const currentTab = tabs.find(t => t.id === activeTabId);
                     if (currentTab) {
+                        // Clear audio state immediately — the poller only runs on the active
+                        // tab, so without this the icon stays lit on the tab we're leaving.
+                        currentTab.hasAudio = false;
                         // Pause all media so audio doesn't bleed into the next tab
                         try {
                             const doc = frame.contentDocument || frame.contentWindow?.document;
@@ -5939,6 +5964,7 @@
                 }
 
                 activeTabId = tabId;
+                _audioFalseCount = 0; // reset debounce so new tab's audio state is detected fresh
                 // Clear any lingering inspect-element highlight from the previous tab
                 const _prevHighlight = $('elemHighlightOverlay');
                 if (_prevHighlight) _prevHighlight.style.display = 'none';
@@ -6019,9 +6045,12 @@
                                 ? '<i class="fas fa-circle-xmark" style="color: var(--err);"></i>'
                                 : `<img src="" data-favicon-url="${faviconFor(tab.url)}" style="width: 16px; height: 16px; border-radius: 3px; margin: 0 1px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" /><i class="fas fa-globe" style="display: none;"></i>`;
 
+                    // Escape tab.title — it comes from doc.title which is page-controlled
+                    // and injecting it raw into innerHTML is an XSS vector.
+                    const _safeTitle = escapeHtml(tab.title || 'New Tab');
                     tabEl.innerHTML = `
       <span class="tab-icon">${iconHtml}</span>
-      <span class="tab-title">${tab.title}</span>
+      <span class="tab-title">${_safeTitle}</span>
       <span class="tab-mute-icon" title="${tab.muted ? 'Unmute tab' : 'Mute tab'}">
         <i class="fas ${tab.muted ? 'fa-volume-xmark' : 'fa-volume-high'}" style="color:var(--ac);font-size:11px;"></i>
       </span>
@@ -7998,7 +8027,9 @@
                 if (!u) return "";
                 if (/^gust:\/\/settings(\/.*)?$/i.test(u)) return u.toLowerCase().startsWith("gust://settings/") ? u : SETTINGS_INTERNAL;
                 if (/^gust:\/\/newtab$/i.test(u) || /^about:newtab$/i.test(u)) return HOME_INTERNAL;
-                if (u.startsWith("gust://")) return u; 
+                // Reject any other gust:// scheme — don't let proxied page content
+                // craft gust:// URLs that navigate to internal pages.
+                if (u.startsWith("gust://")) return "";
                 try {
                     return new URL(u).href;
                 } catch { }
@@ -8116,6 +8147,15 @@
                         tabId: activeTabId
                     };
                     let inserted = false;
+                    // Hard cap: if queue is already very large the network is effectively stalled.
+                    // Reject low-priority jobs immediately rather than letting the queue grow
+                    // unboundedly and eventually OOM on a low-RAM Chromebook.
+                    if (fetchQueue.length > 150 && priority >= PRIORITY.image) {
+                        rej(new DOMException('Queue full', 'AbortError'));
+                        pendingRequests = Math.max(0, pendingRequests - 1);
+                        updateStats();
+                        return;
+                    }
                     for (let i = 0; i < fetchQueue.length; i++) {
                         if (priority < fetchQueue[i].priority) {
                             fetchQueue.splice(i, 0, job);
@@ -8801,7 +8841,9 @@ function req(url, opts = {}) {
   if (shouldSkip(url)) return Promise.resolve({ d: '', s: 200, h: {}, m: 'text/plain' });
   return new Promise((rs, rj) => {
     const i = ++rid;
-    const tm = setTimeout(() => { pending.delete(i); rj(new Error('Timeout')); }, 120000);
+    // 45s timeout — 120s was too long on filtered networks (Lightspeed etc.), causing
+    // the pending map to accumulate zombie entries that never resolve or reject.
+    const tm = setTimeout(() => { pending.delete(i); rj(new Error('Timeout')); }, 45000);
     pending.set(i, { rs, rj, tm });
     parent.postMessage({ t: 'q', i, url, opts }, '*');
   });
@@ -9528,6 +9570,10 @@ parent.postMessage({ t: 'ready' }, '*');
             window.addEventListener("message", async ev => {
                 const d = ev.data;
                 if (!d?.t) return;
+                // Only accept messages from our own iframe or self — reject anything else.
+                // This prevents third-party iframes embedded inside proxied pages from
+                // sending navigation or fetch commands directly to the parent.
+                if (ev.source !== frame.contentWindow && ev.source !== window) return;
 
                 if (d.t === 'hint') {
                     if (d.u && typeof d.u === 'string') _pendingNavHint = d.u;
@@ -9701,7 +9747,10 @@ parent.postMessage({ t: 'ready' }, '*');
                         error: "err",
                         info: "info"
                     }[d.m] || "";
-                    log("[Page] " + (d.a || []).join(" ").slice(0, 300), cls);
+                    // Escape page-controlled console output before it hits innerHTML in log()
+                    const _safeConsole = String((d.a || []).join(" ")).slice(0, 300)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    log("[Page] " + _safeConsole, cls);
                 }
                 // ── Viewer download: triggered via postMessage from viewer pages ──
                 if (d.t === "gust:download") {
@@ -11344,6 +11393,8 @@ _VIEWER_DL_JS +
             })();
 
             window.addEventListener('message', function (e) {
+                // Only accept from our own frame (error pages post these)
+                if (e.source !== frame.contentWindow && e.source !== window) return;
                 if (e.data && e.data.type === 'goBack') {
                     if (histIdx > 0) {
                         histIdx--;
