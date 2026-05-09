@@ -6094,6 +6094,7 @@
 
                     tabEl.addEventListener('click', (e) => {
                         if (!e.target.classList.contains('tab-close')) {
+                            if (tab.id === activeTabId) return; // already active, do nothing
                             switchToTab(tab.id);
                             setTimeout(() => {
                                 const strip = tabStripEl;
