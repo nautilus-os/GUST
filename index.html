@@ -11520,9 +11520,11 @@ _VIEWER_DL_JS +
 
             adblockLargeToggle.onclick = (e) => {
                 e.stopPropagation();
-                blockEnabled = !blockEnabled;
-                try { ls.setItem('gust:block:v1', blockEnabled ? 'true' : 'false'); } catch { }
+                setBlockEnabled(!blockEnabled);
                 updateAdblockUI();
+                // Keep the Settings › Privacy switch in sync
+                const blockSwitch = $("settingsBlockSwitch");
+                if (blockSwitch) blockSwitch.classList.toggle("on", blockEnabled);
                 if (pageUrl && pageUrl !== HOME_INTERNAL && !isSettingsPage(pageUrl)) {
                     go(pageUrl, false);
                 }
@@ -12173,10 +12175,6 @@ _VIEWER_DL_JS +
                     urlInput.focus();
                     urlInput.select();
                 }
-                if (e.altKey && (e.key === "t" || e.key === "T")) {
-                    e.preventDefault();
-                    createTab();
-                }
                 if (e.altKey && (e.key === "d" || e.key === "D")) {
                     e.preventDefault();
                     if (!isSettingsPage(pageUrl)) {
@@ -12551,6 +12549,7 @@ _VIEWER_DL_JS +
                     blockSwitch.onclick = () => {
                         setBlockEnabled(!blockEnabled);
                         blockSwitch.classList.toggle("on", blockEnabled);
+                        updateAdblockUI();
                     };
                 }
 
