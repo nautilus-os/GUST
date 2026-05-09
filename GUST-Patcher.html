@@ -509,12 +509,14 @@ button,input,select,textarea{font:inherit}
       <div class="sidebar-master-bar-label">Show Privacy in Settings Sidebar</div>
       <div class="sidebar-master-bar-desc">Uncheck to remove the <strong>Privacy</strong> entry from GUST's Settings sidebar. Ad blocking, user-agent spoofing, and custom filter rules will all be hidden from Settings.</div>
     </div>
-    <div class="sidebar-master-check checked" data-patch="sidebar-nav-privacy" data-section="privacy" data-master-for="adblock-toggle ua-request ua-page custom-filters" onclick="toggleSidebarMaster(this)"></div>
+    <div class="sidebar-master-check checked" data-patch="sidebar-nav-privacy" data-section="privacy" data-master-for="adblock-toggle pause-site-btn ua-request ua-page custom-filters adblock-allowlist" onclick="toggleSidebarMaster(this)"></div>
   </div>
   <div class="settings-card">
     <div class="settings-card-head"><i class="fas fa-shield-halved"></i> Privacy &amp; Blocking</div>
     <div class="settings-card-body">
       <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Ad &amp; Tracker Blocking toggle</div><div class="patch-row-desc"><strong>Uncheck to permanently disable</strong> ad/tracker blocking and remove its toggle from Settings and the toolbar. Cannot be re-enabled at runtime.</div></div><div class="patch-check checked" data-patch="adblock-toggle" data-section="privacy" onclick="togglePatch(this)"></div></div>
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">"Pause for this site" button</div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the per-site pause button from the adblock toolbar popup. Users will only be able to globally disable ad blocking, not pause it per-site.</div></div><div class="patch-check checked" data-patch="pause-site-btn" data-section="privacy" onclick="togglePatch(this)"></div></div>
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Paused sites allowlist</div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the paused-sites textarea from Settings › Privacy. Sites cannot be individually allowlisted from the Settings page — only via the toolbar popup button (if kept above).</div></div><div class="patch-check checked" data-patch="adblock-allowlist" data-section="privacy" onclick="togglePatch(this)"></div></div>
     </div>
   </div>
   <div class="settings-card">
@@ -1375,10 +1377,24 @@ function buildPatchScript(removedPatches) {
     css('#settingsLanguage,#settingsLanguageTrigger,#settingsLanguagePanel,#settingsLanguageSave,#settingsLanguageStatus');
 
   // Privacy
-  // adblock-toggle, ua-request, ua-page, custom-filters are children of sidebar-nav-privacy
+  // adblock-toggle, pause-site-btn, ua-request, ua-page, custom-filters, adblock-allowlist are children of sidebar-nav-privacy
   if (rm.has('adblock-toggle')) {
     (rm.has('sidebar-nav-privacy') ? badge : css)('#settingsBlockSwitch');
     css('#blockToggle');
+  }
+  if (rm.has('pause-site-btn'))
+    css('#adblockPauseSiteBtn');
+  if (rm.has('adblock-allowlist')) {
+    css('#settingsAllowlistTextarea,#settingsSaveAllowlist,#settingsAllowlistStatus');
+    js('(function(){');
+    js('  function _hideAllowlist(){');
+    js('    var ta=document.getElementById("settingsAllowlistTextarea");');
+    js('    if(!ta) return;');
+    js('    var wrap=ta.closest("div");');
+    js('    if(wrap&&!wrap._gp_hidden){wrap._gp_hidden=true;wrap.style.display="none";}');
+    js('  }');
+    js('  if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_hideAllowlist);}else{_hideAllowlist();}');
+    js('})();');
   }
   if (rm.has('ua-request')) {
     css('#settingsRequestUA');
