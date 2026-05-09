@@ -839,6 +839,16 @@
             color: var(--ok)
         }
 
+        .tool-toggle.site-paused {
+            border-color: rgba(248, 220, 117, .5);
+            background: rgba(248, 220, 117, .1);
+            color: var(--warn)
+        }
+
+        .tool-toggle.site-paused i {
+            color: var(--warn)
+        }
+
         .tool-toggle:hover {
             background: var(--bg3)
         }
@@ -3432,6 +3442,61 @@
             border-color: var(--bd);
         }
 
+        .adblock-pause-site-btn {
+            width: 100%;
+            padding: 7px 10px;
+            background: transparent;
+            border: 1px solid var(--bd);
+            border-radius: 7px;
+            color: var(--tx2);
+            font-size: 12px;
+            cursor: pointer;
+            transition: background .12s, color .12s, border-color .12s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+
+        .adblock-pause-site-btn:hover {
+            background: var(--surface2);
+            color: var(--tx);
+            border-color: var(--bd);
+        }
+
+        .adblock-pause-site-btn:disabled,
+        .adblock-pause-site-btn[disabled] {
+            cursor: not-allowed;
+            pointer-events: all;
+        }
+
+        .adblock-pause-site-btn:disabled:hover,
+        .adblock-pause-site-btn[disabled]:hover {
+            background: transparent;
+            color: var(--tx2);
+            border-color: var(--bd);
+        }
+
+        .adblock-pause-site-btn.site-paused {
+            background: rgba(248, 220, 117, 0.1);
+            border-color: var(--warn);
+            color: var(--warn);
+        }
+
+        .adblock-pause-site-btn.site-paused:hover {
+            background: rgba(248, 220, 117, 0.18);
+        }
+
+        .adblock-big-toggle.site-paused {
+            background: rgba(248, 220, 117, 0.12);
+            border-color: var(--warn);
+            color: var(--warn);
+        }
+
+        /* Allowlist in settings — uses textarea like the filter list */
+
         
         .nt-search-engine {
             width: fit-content;
@@ -3755,6 +3820,10 @@
                         </div>
                     </div>
                     <div class="adblock-footer">
+                        <button class="adblock-pause-site-btn" id="adblockPauseSiteBtn">
+                            <i class="fas fa-pause"></i>
+                            <span id="adblockPauseSiteBtnText">Pause for this site</span>
+                        </button>
                         <button class="adblock-manage-btn" id="adblockManageBtn">
                             Manage Filters &amp; Settings
                         </button>
@@ -4167,6 +4236,19 @@
                                                     <div class="settings-switch-thumb"></div>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <hr style="border:none;border-top:1px solid var(--bd);margin:14px 0 14px;">
+                                        <div>
+                                            <div class="settings-switch-label" style="margin-bottom:4px;">Paused Sites (Allowlist)</div>
+                                            <div class="settings-hint" style="margin-bottom:10px;">Adblock is paused on these sites. One hostname per line. Use "Pause for this site" in the shield popup to add sites.</div>
+                                            <textarea class="settings-input" id="settingsAllowlistTextarea"
+                                                style="width:100%;height:120px;font-family:var(--mono);font-size:11px;resize:vertical;"
+                                                placeholder="example.com&#10;news.ycombinator.com"></textarea>
+                                            <hr style="border:none;border-top:1px solid var(--bd);margin:12px 0 10px;">
+                                            <div style="display:flex;justify-content:flex-end;gap:8px;">
+                                                <button class="settings-btn-icon" id="settingsSaveAllowlist" title="Save allowlist"><i class="fas fa-check"></i></button>
+                                            </div>
+                                            <div id="settingsAllowlistStatus" style="text-align:right;font-size:11px;color:var(--ok);margin-top:4px;min-height:0;line-height:1.4;overflow:hidden;"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -5977,6 +6059,7 @@
                 updateNav();
                 renderTabs();
                 saveTabs();
+                if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
 
                 applyMuteToFrame(!!tab.muted);
 
@@ -5986,7 +6069,7 @@
 
                 if (tab.url === HOME_INTERNAL) {
                     showNewTab(false);
-                } else if (isSettingsPage(tab.url)) {
+                } else if (isSettingsPage(tab.url) && !tab.hasError) {
                     const section = tab.url.replace("gust://settings/", "") || "connection";
                     showSettingsPage(false, section === "gust://settings" ? "connection" : section);
                 } else if (tab.blobSrc) {
@@ -8028,9 +8111,8 @@
                 if (!u) return "";
                 if (/^gust:\/\/settings(\/.*)?$/i.test(u)) return u.toLowerCase().startsWith("gust://settings/") ? u : SETTINGS_INTERNAL;
                 if (/^gust:\/\/newtab$/i.test(u) || /^about:newtab$/i.test(u)) return HOME_INTERNAL;
-                // Reject any other gust:// scheme — don't let proxied page content
-                // craft gust:// URLs that navigate to internal pages.
-                if (u.startsWith("gust://")) return "";
+                // Unknown gust:// URLs pass through — go() will show an error page
+                if (u.startsWith("gust://")) return u;
                 try {
                     return new URL(u).href;
                 } catch { }
@@ -9729,6 +9811,7 @@ parent.postMessage({ t: 'ready' }, '*');
                         setTabTitle(host || "Loading...");
                     } catch { }
                     updateBookmarkButton();
+                    if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
                     return;
                 }
                 if (d.t === "ready") {
@@ -10390,6 +10473,39 @@ _VIEWER_DL_JS +
                     return;
                 }
 
+                // Unknown gust:// URL — show error page (don't proxy it)
+                if (url.startsWith("gust://")) {
+                    if (activeTabId === initiatorTabId) {
+                        hideNewTab();
+                        hideSettingsPage();
+                        renderErrorPage(
+                            url,
+                            "Unknown Gust Page",
+                            "ERR_INVALID_GUST_URL",
+                            `<code>${url}</code> is not a valid Gust internal page.`,
+                            ["Check for typos in the address", "Valid pages: gust://newtab, gust://settings"]
+                        );
+                        setTabTitle("Not Found");
+                        isErrorPage = true;
+                        const errTab = tabs.find(t => t.id === initiatorTabId);
+                        if (errTab) errTab.hasError = true;
+                        updateSecurityChip(url, 'error');
+                        urlInput.value = url;
+                        pageUrl = url;
+                        updateTabUrl(url);
+                        setStatus("error", "Error");
+                        if (push) {
+                            hist = hist.slice(0, histIdx + 1);
+                            if (hist.length === 0) hist.push(HOME_INTERNAL);
+                            hist.push(url);
+                            histIdx = hist.length - 1;
+                            updateNav();
+                        }
+                        renderTabs();
+                    }
+                    return;
+                }
+
                 isErrorPage = false;
 
                 const prevCtrl = tabAbortControllers.get(initiatorTabId);
@@ -10468,6 +10584,7 @@ _VIEWER_DL_JS +
                     } catch {
                         setTabTitle("Loading...");
                     }
+                    if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
                     showOverlay("Loading...");
                     totalRequests = 0;
                     pendingRequests = 0;
@@ -10729,7 +10846,7 @@ _VIEWER_DL_JS +
                     // Insert proxy script as very first child so it runs before any page scripts
                     const proxyScript = doc.createElement("script");
                     proxyScript.setAttribute('data-gust-injected', '1');
-                    proxyScript.textContent = makeProxyScript(url, blockEnabled, mediaPref('gust:webrtc:block:v1'), (() => { try { return ls.getItem('gust:ua:page:v1') || null; } catch { return null; } })(), (() => { try { return ls.getItem('gust:spellcheck:v1') === 'true'; } catch { return false; } })());
+                    proxyScript.textContent = makeProxyScript(url, blockEnabled && !((() => { try { const al = JSON.parse(ls.getItem('gust:adblock:allowlist:v1') || '[]'); const h = new URL(url).hostname; return al.includes(h); } catch(e) { return false; } })()), mediaPref('gust:webrtc:block:v1'), (() => { try { return ls.getItem('gust:ua:page:v1') || null; } catch { return null; } })(), (() => { try { return ls.getItem('gust:spellcheck:v1') === 'true'; } catch { return false; } })());
                     doc.head.insertBefore(proxyScript, doc.head.firstChild);
 
                     // Ensure base tag stays right after the proxy script
@@ -11461,6 +11578,7 @@ _VIEWER_DL_JS +
             function showAdblockPopup() {
                 hideSiteInfo(); hideHistoryPopup();
                 updateAdblockUI();
+                if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
                 const btnRect = blockToggle.getBoundingClientRect();
                 adblockModal.style.top = (btnRect.bottom + 13) + "px";
                 adblockModal.style.right = "auto";
@@ -11480,23 +11598,27 @@ _VIEWER_DL_JS +
 
             function updateAdblockUI() {
                 if (blockEnabled) {
+                    blockToggle.classList.remove("site-paused");
                     blockToggle.classList.add("on");
                     blockToggle.querySelector("span").textContent = "Protected";
                     blockToggle.querySelector("i").className = "fas fa-shield-halved";
+                    adblockLargeToggle.classList.remove("site-paused");
                     adblockLargeToggle.classList.add("on");
                     adblockLargeToggle.innerHTML = '<i class="fas fa-shield-halved"></i>';
                     adblockStatusText.textContent = "Protection Active";
                     adblockStatusText.style.color = "var(--ok)";
                     adblockStatsCount.textContent = (adblockStatsCount.dataset.count || "0");
                 } else {
-                    blockToggle.classList.remove("on");
+                    blockToggle.classList.remove("on", "site-paused");
                     blockToggle.querySelector("span").textContent = "Paused";
                     blockToggle.querySelector("i").className = "fas fa-xmark";
-                    adblockLargeToggle.classList.remove("on");
+                    adblockLargeToggle.classList.remove("on", "site-paused");
                     adblockLargeToggle.innerHTML = '<i class="fas fa-xmark"></i>';
                     adblockStatusText.textContent = "Protection Paused";
                     adblockStatusText.style.color = "var(--tx2)";
                 }
+                // Let site-paused state override the green if needed
+                if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
             }
 
             blockToggle.onclick = (e) => {
@@ -11520,11 +11642,30 @@ _VIEWER_DL_JS +
 
             adblockLargeToggle.onclick = (e) => {
                 e.stopPropagation();
+                // If site is paused, big button re-enables for this site and ensures global block is on
+                if (typeof isSitePaused === 'function' && isSitePaused()) {
+                    const host = typeof getCurrentHost === 'function' ? getCurrentHost() : null;
+                    if (host) {
+                        const list = (typeof getAllowlist === 'function' ? getAllowlist() : []).filter(h => h !== host);
+                        if (typeof saveAllowlist === 'function') saveAllowlist(list);
+                        if (typeof updateSettingsAllowlistUI === 'function') updateSettingsAllowlistUI();
+                    }
+                    if (!blockEnabled) setBlockEnabled(true);
+                    updateAdblockUI();
+                    const blockSwitch = $("settingsBlockSwitch");
+                    if (blockSwitch) blockSwitch.classList.toggle("on", blockEnabled);
+                    if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
+                    if (pageUrl && pageUrl !== HOME_INTERNAL && !isSettingsPage(pageUrl)) {
+                        setTimeout(() => { hideAdblockPopup(); go(pageUrl, false); }, 150);
+                    }
+                    return;
+                }
                 setBlockEnabled(!blockEnabled);
                 updateAdblockUI();
                 // Keep the Settings › Privacy switch in sync
                 const blockSwitch = $("settingsBlockSwitch");
                 if (blockSwitch) blockSwitch.classList.toggle("on", blockEnabled);
+                if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
                 if (pageUrl && pageUrl !== HOME_INTERNAL && !isSettingsPage(pageUrl)) {
                     go(pageUrl, false);
                 }
@@ -11535,6 +11676,128 @@ _VIEWER_DL_JS +
                     hideAdblockPopup();
                 }
             });
+
+            // ── Pause for this site ──────────────────────────────────────────
+            function getAllowlist() {
+                try { return JSON.parse(ls.getItem('gust:adblock:allowlist:v1') || '[]'); } catch(e) { return []; }
+            }
+            function saveAllowlist(list) {
+                try { ls.setItem('gust:adblock:allowlist:v1', JSON.stringify(list)); } catch(e) {}
+            }
+            function getCurrentHost() {
+                try {
+                    if (!pageUrl || pageUrl === HOME_INTERNAL) return null;
+                    return new URL(pageUrl).hostname;
+                } catch(e) { return null; }
+            }
+            function isSitePaused() {
+                const host = getCurrentHost();
+                if (!host) return false;
+                return getAllowlist().includes(host);
+            }
+            function updatePauseSiteBtn() {
+                const pauseSiteBtn = $("adblockPauseSiteBtn");
+                const pauseSiteBtnText = $("adblockPauseSiteBtnText");
+                if (!pauseSiteBtn) return;
+                const host = getCurrentHost();
+                const noSite = !host;
+                // Disable button when on new tab, settings, or other internal pages
+                pauseSiteBtn.disabled = noSite;
+                pauseSiteBtn.style.opacity = noSite ? '0.4' : '';
+                const paused = isSitePaused();
+                if (paused) {
+                    pauseSiteBtn.classList.add('site-paused');
+                    pauseSiteBtnText.textContent = 'Re-enable for this site';
+                    pauseSiteBtn.querySelector('i').className = 'fas fa-play';
+                } else {
+                    pauseSiteBtn.classList.remove('site-paused');
+                    pauseSiteBtnText.textContent = 'Pause for this site';
+                    pauseSiteBtn.querySelector('i').className = 'fas fa-pause';
+                }
+                // Update big toggle appearance if site is paused (but global block is on)
+                if (blockEnabled && paused) {
+                    adblockLargeToggle.classList.remove('on');
+                    adblockLargeToggle.classList.add('site-paused');
+                    adblockLargeToggle.innerHTML = '<i class="fas fa-pause"></i>';
+                    adblockStatusText.textContent = 'Paused for this site';
+                    adblockStatusText.style.color = 'var(--warn)';
+                } else if (blockEnabled && !paused) {
+                    adblockLargeToggle.classList.remove('site-paused');
+                    adblockLargeToggle.classList.add('on');
+                    adblockLargeToggle.innerHTML = '<i class="fas fa-shield-halved"></i>';
+                    adblockStatusText.textContent = 'Protection Active';
+                    adblockStatusText.style.color = 'var(--ok)';
+                }
+                // Update navbar blockToggle badge
+                if (blockEnabled && paused) {
+                    blockToggle.classList.remove('on');
+                    blockToggle.classList.add('site-paused');
+                    blockToggle.querySelector('i').className = 'fas fa-pause';
+                    if (blockState) blockState.textContent = 'Paused';
+                } else if (blockEnabled && !paused) {
+                    blockToggle.classList.remove('site-paused');
+                    blockToggle.classList.add('on');
+                    blockToggle.querySelector('i').className = 'fas fa-shield-halved';
+                    if (blockState) blockState.textContent = 'Protected';
+                }
+                pauseSiteBtn.style.display = '';
+            }
+
+            function updateSettingsAllowlistUI() {
+                const ta = $('settingsAllowlistTextarea');
+                if (!ta) return;
+                const list = getAllowlist();
+                ta.value = list.join('\n');
+            }
+
+            const _pauseSiteBtn = $("adblockPauseSiteBtn");
+            if (_pauseSiteBtn) {
+                _pauseSiteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const host = getCurrentHost();
+                    if (!host) return;
+                    let list = getAllowlist();
+                    if (list.includes(host)) {
+                        list = list.filter(h => h !== host);
+                    } else {
+                        list.push(host);
+                    }
+                    saveAllowlist(list);
+                    updatePauseSiteBtn();
+                    updateSettingsAllowlistUI();
+                    // Reload the page so the proxy script is re-injected with updated allowlist
+                    if (pageUrl && pageUrl !== HOME_INTERNAL && !isSettingsPage(pageUrl)) {
+                        setTimeout(() => { hideAdblockPopup(); go(pageUrl, false); }, 150);
+                    }
+                });
+            }
+
+            // Save button in settings allowlist
+            setTimeout(() => {
+                const saveAllowlistBtn = $('settingsSaveAllowlist');
+                const statusEl = $('settingsAllowlistStatus');
+                const ta = $('settingsAllowlistTextarea');
+                if (saveAllowlistBtn && ta) {
+                    saveAllowlistBtn.addEventListener('click', () => {
+                        const list = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+                        saveAllowlist(list);
+                        updatePauseSiteBtn();
+                        if (statusEl) showStatusMsg(statusEl, 'Allowlist saved.', 'ok');
+                    });
+                }
+                updateSettingsAllowlistUI();
+            }, 450);
+
+            // Patch updateAdblockUI to also handle site-paused state
+            const _origUpdateAdblockUI = updateAdblockUI;
+            // Override is done inline — redefine fully:
+            function updateAdblockUIFull() {
+                _origUpdateAdblockUI();
+                updatePauseSiteBtn();
+            }
+            // Re-run with site-paused awareness now
+            updatePauseSiteBtn();
+            // ── end Pause for this site ──────────────────────────────────────
             const siteInfoPopup = $("siteInfoPopup");
 
             function showSiteInfo() {
