@@ -9877,10 +9877,14 @@ parent.postMessage({ t: 'ready' }, '*');
             //         Hastebin, sourcehut plain, paste.mozilla.org, dpaste, etc.
             const RAW_SOURCE_HOSTS = /^(raw\.githubusercontent\.com|gist\.githubusercontent\.com|gitlab\.com|raw\.gitlab\.com|bitbucket\.org|pastebin\.com|hastebin\.com|haste\.znc\.in|paste\.mozilla\.org|dpaste\.com|dpaste\.org|sourcehut\.org|git\.sr\.ht|paste\.ee|termbin\.com|ghostbin\.co|controlc\.com|privatebin\.net)$/i;
 
-            function isRawSourceUrl(url) {
+            function isRawSource(url) {
                 try {
-                    const host = new URL(url).hostname.replace(/^www\./, '');
-                    return RAW_SOURCE_HOSTS.test(host);
+                    const u = new URL(url);
+                    const host = u.hostname.replace(/^www\./, '');
+                    const path = u.pathname;
+                    if (RAW_SOURCE_HOSTS.test(host)) return true;
+                    if (/\/(raw|raw-file|blob\/raw)\//i.test(path)) return true;
+                    if (host === 'github.com' && /\/raw\//.test(path)) return true;
                 } catch(e) {}
                 return false;
             }
@@ -9888,28 +9892,29 @@ parent.postMessage({ t: 'ready' }, '*');
             function classifyResponse(mime, url, buf) {
                 const m = (mime || '').toLowerCase().split(';')[0].trim();
                 const ext = (url || '').split('?')[0].split('.').pop().toLowerCase();
+                
                 if (m === 'application/pdf' || ext === 'pdf') return 'pdf';
                 if (m.startsWith('image/') || /^(png|jpe?g|gif|webp|svg|bmp|ico|avif|tiff?)$/.test(ext)) return 'image';
                 if (m.startsWith('video/') || /^(mp4|webm|ogv|mov|avi|mkv|m4v)$/.test(ext)) return 'video';
                 if (m.startsWith('audio/') || /^(mp3|ogg|flac|wav|aac|m4a|opus|weba)$/.test(ext)) return 'audio';
 
-                // Raw source hosts: always show as plain text, never render as HTML,
-                // regardless of file extension or content sniffing.
-                if (isRawSourceUrl(url)) return 'text';
+                if (isRawSource(url)) return 'text';
 
-                // .html/.htm URLs always render as HTML regardless of reported content-type
-                if (/^htm(l)?$/.test(ext)) return 'html';
-                // text/plain may actually be HTML — sniff the first 1KB before treating as plain text
-                if (m === 'text/plain' && buf) {
+                if (m === 'text/html' || m === 'application/xhtml+xml') return 'html';
+                if (/^(htm|html|php[345]?|phtml|asp[x]?|jsp|cfm|cgi|pl)$/.test(ext)) return 'html';
+
+                if (buf && (m === 'text/plain' || !m)) {
                     const sniff = new TextDecoder('utf-8', { fatal: false }).decode(
                         buf.byteLength > 1024 ? buf.slice(0, 1024) : buf
                     ).trimStart();
                     if (/^(<\s*!doctype\s+html|<\s*html[\s>])/i.test(sniff)) return 'html';
                 }
+
                 if (m === 'text/plain' || m === 'application/json' || m === 'application/xml'
                     || m === 'text/xml' || m === 'text/csv'
-                    || /^(txt|json|xml|csv|log|md|yaml|yml|ini|toml|sh|py|js|ts|css|c|cpp|h|java|rs|go|rb|php|swift|kt|dart)$/.test(ext)) return 'text';
-                if (!m || m === 'text/html' || m === 'application/xhtml+xml') return 'html';
+                    || /^(txt|json|xml|csv|log|md|yaml|yml|ini|toml|sh|py|js|ts|css|c|cpp|h|java|rs|go|rb|swift|kt|dart)$/.test(ext)) return 'text';
+
+                if (!m) return 'html';
                 return 'binary';
             }
 
