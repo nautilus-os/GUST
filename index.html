@@ -6842,7 +6842,7 @@
 
             async function initCache() {
                 return new Promise((resolve, reject) => {
-                    const req = indexedDB.open(_IDB_PFX + 'ProxyCache', 1);
+                    const req = indexedDB.open(_IDB_PFX + 'ProxyCache', 2);
                     req.onerror = () => reject(req.error);
                     req.onsuccess = () => {
                         cacheDB = req.result;
@@ -6852,9 +6852,13 @@
                     req.onupgradeneeded = (e) => {
                         const db = e.target.result;
                         if (!db.objectStoreNames.contains('resources')) {
-                            db.createObjectStore('resources', {
-                                keyPath: 'url'
-                            });
+                            const store = db.createObjectStore('resources', { keyPath: 'url' });
+                            store.createIndex('byLastAccessed', 'lastAccessed');
+                        } else {
+                            const store = e.target.transaction.objectStore('resources');
+                            if (!store.indexNames.contains('byLastAccessed')) {
+                                store.createIndex('byLastAccessed', 'lastAccessed');
+                            }
                         }
                     };
                 });
@@ -6879,7 +6883,7 @@
 
             async function getCached(url) {
                 if (!cacheDB) return null;
-                return new Promise(resolve => {
+                return new Promise((resolve) => {
                     try {
                         const tx = cacheDB.transaction('resources', 'readonly');
                         const store = tx.objectStore('resources');
@@ -6887,19 +6891,13 @@
                         req.onsuccess = () => {
                             const r = req.result;
                             if (r && Date.now() - r.time < CACHE_TTL) {
-                                // Respect Cache-Control: private / no-store / no-cache
-                                // even on entries cached by older builds, so stale
-                                // empty/error responses for endpoints like GitHub's
-                                // tree-commit-info don't keep getting served.
-                                const _cc = (r.headers?.['cache-control'] || '').toLowerCase();
-                                if (_cc.includes('no-store') || _cc.includes('private') || _cc.includes('no-cache')) {
-                                    deleteCache(url);
-                                    resolve(null);
-                                    return;
-                                }
+                                try {
+                                    const wtx = cacheDB.transaction('resources', 'readwrite');
+                                    wtx.objectStore('resources').put({ ...r, lastAccessed: Date.now() });
+                                } catch {}
                                 resolve(r);
                             } else {
-                                if (r) deleteCache(url); 
+                                if (r) deleteCache(url);
                                 resolve(null);
                             }
                         };
@@ -6913,7 +6911,7 @@
             async function setCache(url, data, mime, headers) {
                 if (!cacheDB) return;
                 const size = data.byteLength || 0;
-                if (size > MAX_CACHE_SIZE * 0.25) return; 
+                if (size > MAX_CACHE_SIZE * 0.25) return;
                 while (cacheSize + size > MAX_CACHE_SIZE) {
                     await evictOldest();
                 }
@@ -6927,11 +6925,12 @@
                         mime,
                         headers,
                         time: Date.now(),
-                        size
+                        lastAccessed: Date.now(),
+                        size,
                     });
                     cacheSize += size;
                     // counter kept in sync; no full IDB scan needed here
-                } catch { }
+                } catch {}
             }
 
             async function deleteCache(url) {
