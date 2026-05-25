@@ -5312,6 +5312,12 @@
             const _IDB_PFX = _INST_ID + '_';
             // ─────────────────────────────────────────────────────────────────
 
+            let lastWorkingWisp = (function () { try { return ls.getItem('gust:wisp:last-working:v1'); } catch { return null; } })();
+            function persistWorkingWisp(url) {
+                if (!url) return;
+                try { ls.setItem('gust:wisp:last-working:v1', url); } catch {}
+                lastWorkingWisp = url;
+            }
             let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.mercurywork.shop/"; } catch { return "wss://wisp.mercurywork.shop/"; } })();
             const $ = s => document.getElementById(s);
             const frame = $('frame');
@@ -5888,9 +5894,6 @@
                 }
                 // Only evict in-flight entries that belong to this tab's abort signal,
                 // leaving other tabs' in-flight requests intact for deduplication.
-                for (const [_url, _promise] of inFlight) {
-                    if (_promise._tabId === tabId) inFlight.delete(_url);
-                }
                 updateStats();
 
                 const closingTab = tabs[index];
@@ -6009,9 +6012,6 @@
                         leavingCtrl.abort();
                         tabAbortControllers.delete(activeTabId);
                         // Evict that tab's in-flight dedup entries.
-                        for (const [_url, _promise] of inFlight) {
-                            if (_promise._tabId === activeTabId) inFlight.delete(_url);
-                        }
                         // Drain queued jobs belonging to the departing tab.
                         for (let i = fetchQueue.length - 1; i >= 0; i--) {
                             if (fetchQueue[i].tabId === activeTabId) {
@@ -7859,6 +7859,19 @@
                 }
             }
 
+            function updateOnlineStatus() {
+                if (typeof navigator === 'object' && !navigator.onLine) {
+                    log('Network offline detected', 'warn');
+                    abortAllRequests();
+                    setStatus('error', 'Offline');
+                } else {
+                    log('Network online', 'info');
+                    if (pendingRequests === 0) setStatus('idle', 'Ready');
+                }
+            }
+            window.addEventListener('offline', updateOnlineStatus);
+            window.addEventListener('online', updateOnlineStatus);
+
             const recentLogs = new Map();
 
             // ── Log filter & search state ─────────────────────────────────────
@@ -8138,6 +8151,9 @@
                     const job = fetchQueue.pop();
                     job.rej(new DOMException('Aborted', 'AbortError'));
                 }
+                for (const entry of inFlight.values()) {
+                    try { entry.controller?.abort(); } catch {} 
+                }
                 inFlight.clear();
                 pendingRequests = 0;
                 updateStats();
@@ -8206,18 +8222,56 @@
                     };
                 }
 
+                if (typeof navigator === 'object' && !navigator.onLine) {
+                    return Promise.reject(new Error('Offline'));
+                }
+
                 if (inFlight.has(url) && opts.method !== "POST") {
-                    return inFlight.get(url);
+                    const entry = inFlight.get(url);
+                    if (entry) {
+                        entry.watchers++;
+                        let aborted = false;
+                        const cleanup = () => {
+                            if (aborted) return;
+                            aborted = true;
+                            entry.watchers = Math.max(0, entry.watchers - 1);
+                            if (entry.watchers === 0) {
+                                entry.controller.abort();
+                            }
+                        };
+                        if (opts.signal) {
+                            if (opts.signal.aborted) cleanup();
+                            else opts.signal.addEventListener('abort', cleanup, { once: true });
+                        }
+                        return new Promise((res, rej) => {
+                            entry.promise.then(res, rej).finally(cleanup);
+                            if (opts.signal) {
+                                opts.signal.addEventListener('abort', () => {
+                                    if (aborted) return;
+                                    cleanup();
+                                    rej(new DOMException('Aborted', 'AbortError'));
+                                }, { once: true });
+                            }
+                        });
+                    }
                 }
 
                 const myNavId = currentNavId;
+                const sharedController = new AbortController();
+                if (opts.signal) {
+                    if (opts.signal.aborted) sharedController.abort();
+                    else opts.signal.addEventListener('abort', () => {
+                        if (sharedController.signal.aborted) return;
+                        sharedController.abort();
+                    }, { once: true });
+                }
 
                 const promise = new Promise((res, rej) => {
                     totalRequests++;
                     pendingRequests++;
                     updateStats();
 
-                    const _mergedOpts = { ...opts };
+                    const _mergedOpts = { ...opts, signal: sharedController.signal };
 
                     const job = {
                         url,
@@ -8252,7 +8306,12 @@
 
                 if (opts.method !== "POST") {
                     promise._tabId = activeTabId;
-                    inFlight.set(url, promise);
+                    inFlight.set(url, {
+                        promise,
+                        controller: sharedController,
+                        watchers: 1,
+                        _tabId: activeTabId
+                    });
                     promise.finally(() => inFlight.delete(url));
                 }
 
@@ -8328,7 +8387,15 @@
                     usedJarCookie = true;
                 }
                 if (pageUrl && !headers.Origin && !headers.origin) headers.Origin = new URL(pageUrl).origin;
-                if (pageUrl && !headers.Referer && !headers.referer) headers.Referer = pageUrl;
+                if (pageUrl && !headers.Referer && !headers.referer) {
+                    const pageOrigin = new URL(pageUrl).origin;
+                    let ref = pageOrigin;
+                    try {
+                        const reqOrigin = new URL(url).origin;
+                        if (reqOrigin === pageOrigin) ref = pageUrl;
+                    } catch {}
+                    headers.Referer = ref;
+                }
                 if (!headers['User-Agent'] && !headers['user-agent']) {
                     const _savedReqUA = (() => { try { return ls.getItem('gust:ua:request:v1'); } catch { return null; } })();
                     headers['User-Agent'] = _savedReqUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
@@ -11292,6 +11359,7 @@ _VIEWER_DL_JS +
                                     if (tabAbortControllers.get(initiatorTabId)?.signal?.aborted) break;
                                     await go(url, false, method, body, true);
                                     _fbSuccess = true;
+                                    persistWorkingWisp(_fbWisp);
                                     log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i>Loaded: ${url} <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${_fbHost} (fallback retry ${_ri + 1}/${_fbRetries})</span>`, 'ok');
                                     // Restore primary WISP for subsequent requests
                                     try { await libcurl.load_wasm(); libcurl.set_websocket(WISP); curl = new libcurl.HTTPSession(); curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT); } catch(_re) {}
@@ -11336,6 +11404,26 @@ _VIEWER_DL_JS +
                             "Try accessing the site later",
                             "Check your DNS settings",
                             "Try using a different DNS server (e.g., 8.8.8.8)"
+                        ];
+                    } else if (typeof e.status === 'number' && e.status >= 500) {
+                        errorType = "Internal Server Error";
+                        errorCode = `HTTP ${e.status}`;
+                        errorDescription = "The server encountered an error and could not complete your request.";
+                        errorSuggestions = [
+                            "Try reloading the page",
+                            "The server might be temporarily down",
+                            "Try again in a few minutes",
+                            "Contact the website administrator if the problem persists"
+                        ];
+                    } else if (typeof e.status === 'number' && e.status >= 400) {
+                        errorType = "HTTP Error";
+                        errorCode = `HTTP ${e.status}`;
+                        errorDescription = "The server returned an error response for this request.";
+                        errorSuggestions = [
+                            "Check if the URL is correct",
+                            "Try reloading the page",
+                            "The page may have moved or no longer exist",
+                            "Try searching for a different page"
                         ];
                     } else if (errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
                         errorType = "Connection Timeout";
@@ -12534,6 +12622,7 @@ _VIEWER_DL_JS +
                         libcurl.set_websocket(WISP);
                         curl = new libcurl.HTTPSession();
                         curl.set_connections(MAX_CONCURRENT, MAX_CONCURRENT, MAX_CONCURRENT);
+                        persistWorkingWisp(WISP);
                         log(`<i class="fas fa-circle-check" style="color:var(--ok)"></i><span style="color:var(--ok)">libcurl initialized successfully</span>`, "ok");
                         log(`Ready! (${MAX_CONCURRENT} connections, 1h cache) <span style="color:var(--tx3);font-size:11px;font-family:var(--mono)">via ${WISP.replace(/^wss?:\/\//, '').split('/')[0]}</span>`, "ok");
                     } catch (e) {
