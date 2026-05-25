@@ -3469,7 +3469,7 @@
         .adblock-pause-site-btn:disabled,
         .adblock-pause-site-btn[disabled] {
             cursor: not-allowed;
-            pointer-events: all;
+            pointer-events: none;
         }
 
         .adblock-pause-site-btn:disabled:hover,
@@ -11704,7 +11704,7 @@ _VIEWER_DL_JS +
                 const pauseSiteBtnText = $("adblockPauseSiteBtnText");
                 if (!pauseSiteBtn) return;
                 const host = getCurrentHost();
-                const noSite = !host;
+                const noSite = !host || isSettingsPage(pageUrl);
                 // Disable button when on new tab, settings, or other internal pages
                 pauseSiteBtn.disabled = noSite;
                 pauseSiteBtn.style.opacity = noSite ? '0.4' : '';
