@@ -344,9 +344,7 @@
             pointer-events: none;
             flex-shrink: 0;
         }
-        .tab-drag-slot.slot-open {
-            /* already full width — no animation needed since tabs are frozen */
-        }
+        /* .tab-drag-slot.slot-open { already full width — no animation needed since tabs are frozen } */
 
         /* Floating ghost that follows the cursor */
         .tab-drag-ghost {
@@ -657,6 +655,132 @@
             font-size: 11px;
         }
 
+        .find-bar {
+            position: fixed;
+            top: calc(127px + var(--bookmarks-height, 0px));
+            right: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            width: min(368px, calc(100vw - 24px));
+            padding: 12px 12px 11px;
+            background: var(--bg2);
+            border: 1px solid var(--bd);
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+            /* Transitions for opening, closing, and moving */
+            transition: top 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        opacity 0.22s ease,
+                        visibility 0.22s ease;
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            visibility: visible;
+        }
+
+        .find-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .find-actions-outer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            flex-shrink: 0;
+            margin-top: 0;
+        }
+
+        .find-bar.hidden {
+            display: flex !important;
+            opacity: 0;
+            transform: scale(0.9) translateY(-15px);
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .find-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+            background: var(--bg3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 0 10px;
+            height: 36px;
+        }
+
+        .find-input-wrap i {
+            color: var(--tx3);
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .find-input-wrap input {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: var(--tx);
+            outline: none;
+            font-size: 12px;
+            font-family: var(--ui);
+        }
+
+        .find-input-wrap input::placeholder {
+            color: var(--tx3);
+        }
+
+        .find-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .find-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 7px;
+            border: 1px solid var(--bd);
+            background: transparent;
+            color: var(--tx2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .12s, color .12s;
+            font-size: 13px;
+        }
+
+        .find-btn:hover:not(:disabled) {
+            background: var(--surface2);
+            color: var(--tx);
+        }
+
+        .find-btn:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .find-status {
+            font-size: 11px;
+            color: var(--tx3);
+            padding: 0 2px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .security-chip {
             display: flex;
             align-items: center;
@@ -719,8 +843,24 @@
 
         .omnibox-actions {
             display: flex;
-            gap: 6px;
-            align-items: center
+            gap: 4px;
+            align-items: center;
+            padding-left: 0;
+            margin-left: 0;
+        }
+
+        #findOmniBtn,
+        #bookmarkBtn {
+            position: relative;
+            left: -6px;
+        }
+
+        #findOmniBtn i {
+            transform: translateX(4px);
+        }
+
+        #findOmniBtn:hover:not(:disabled) i {
+            transform: translateX(4px) translateY(-3px);
         }
 
         .engine-select {
@@ -742,32 +882,54 @@
         .omni-btn {
             width: 30px;
             height: 30px;
-            border-radius: 8px;
-            border: none;
+            border-radius: 7px;
+            border: 1px solid transparent;
             background: transparent;
             color: var(--tx2);
-            display: grid;
-            place-items: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            transition: background .12s, color .12s;
+            transition: background .12s, color .12s, border-color .12s;
             font-size: 14px;
-            
         }
 
         .omni-btn i {
             display: inline-block;
             transition: transform .22s cubic-bezier(.34,1.56,.64,1);
             will-change: transform;
+            margin: 0;
+            position: relative;
+            left: 0;
+        }
+
+        #findOmniBtn i {
+            position: relative;
+            left: -4px;
         }
 
         /* bookmark — pop upward like saving */
-        #bookmarkBtn:hover:not(.bookmark-btn-disabled) i   { transform: translateY(-3px) scale(1.15); }
+        #bookmarkBtn:hover:not(.bookmark-btn-disabled) i   { transform: translateY(-3px); }
         /* go arrow — shoot right */
         .omni-btn.go:hover i   { transform: translateX(3px); transition: transform .18s ease; }
 
         .omni-btn:hover {
             background: var(--surface2);
-            color: var(--tx)
+            color: var(--tx);
+            box-shadow: 0 0 0 2px var(--surface2);
+            outline: none;
+        }
+
+        .omni-btn:disabled,
+        .tool-btn:disabled {
+            opacity: .35;
+            cursor: not-allowed;
+        }
+
+        .omni-btn:disabled:hover,
+        .tool-btn:disabled:hover {
+            background: transparent;
+            color: var(--tx2);
         }
 
         .bookmark-btn-disabled {
@@ -893,6 +1055,8 @@
         #devToggle:hover i        { transform: rotate(-12deg) scale(1.12); }
         /* elements/codeBtn inspector — pulse */
         #codeBtn:hover i          { transform: scale(1.2); }
+        /* find — magnify pop */
+        #findBtn:hover i          { transform: scale(1.15); }
 
         .tool-btn:hover {
             background: var(--bg3);
@@ -1654,9 +1818,10 @@
 
         
         .gust-highlight {
-            outline: 2px solid var(--ac, #9de5ff) !important;
-            outline-offset: 1px !important;
-            box-shadow: 0 0 0 4px rgba(157, 229, 255, 0.2), inset 0 0 0 9999px rgba(157, 229, 255, 0.08) !important;
+            outline: 2.5px solid rgba(100, 210, 255, 0.92) !important;
+            outline-offset: 0px !important;
+            box-shadow: 0 0 0 5px rgba(100, 210, 255, 0.22), inset 0 0 0 9999px rgba(100, 210, 255, 0.18) !important;
+            background: rgba(100, 210, 255, 0.18) !important;
         }
 
         .log-head {
@@ -3629,7 +3794,7 @@
         </div>
 
         <div class="navbar">
-            <button class="nav-btn" id="fullscreenBtn" title="Toggle fullscreen (F11)">
+            <button class="nav-btn" id="fullscreenBtn" title="Toggle fullscreen (Alt+K / F11)">
                 <i class="fas fa-expand" id="fullscreenIcon"></i>
             </button>
             <button class="nav-btn" id="historyBtn" title="Recent history (Alt+H)">
@@ -3667,6 +3832,9 @@
                     <i class="fas fa-arrow-right-to-bracket"></i>drop to navigate
                 </span>
                 <div class="omnibox-actions">
+                    <button class="omni-btn" id="findOmniBtn" title="Find in page (Alt+F)">
+                        <i class="fa-solid fa-magnifying-glass-arrow-right"></i>
+                    </button>
                     <button class="omni-btn" id="bookmarkBtn" title="Bookmark (Ctrl+D)">
                         <i class="far fa-bookmark"></i>
                     </button>
@@ -3688,6 +3856,7 @@
             <button class="tool-btn" id="codeBtn" title="Toggle elements inspector">
                 <i class="fas fa-code"></i>
             </button>
+            <!-- Removed duplicate findBtn from toolbar -->
 
             <button class="tool-toggle on" id="blockToggle" title="Toggle ad/tracker blocking">
                 <i class="fas fa-shield-halved"></i>
@@ -3707,6 +3876,27 @@
             <div class="view">
                 <div class="progress-wrap hidden" id="progressWrap">
                     <div class="progress-bar" id="progress"></div>
+                </div>
+
+                <div class="find-bar hidden" id="findBar">
+                    <div class="find-row">
+                        <div class="find-input-wrap">
+                            <i class="fa-solid fa-magnifying-glass-arrow-right"></i>
+                            <input type="text" id="findInput" placeholder="Find in page" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="find-actions-outer">
+                            <button class="find-btn" id="findPrev" title="Previous match">
+                                <i class="fas fa-chevron-up"></i>
+                            </button>
+                            <button class="find-btn" id="findNext" title="Next match">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <button class="find-btn" id="findClose" title="Close find bar">
+                                <i class="fas fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="find-status" id="findStatus"></div>
                 </div>
 
                 <div class="newtab active" id="newtab">
@@ -4587,6 +4777,20 @@
                                                 <span style="color:var(--tx2);">Toggle Fullscreen</span>
                                                 <div style="display:flex; gap:8px; align-items:center;">
                                                     <code class="shortcut-display" data-shortcut="fullscreen"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + K</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">Find in Page</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="find"
                                                         style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + F</code>
                                                     <button class="settings-btn-icon" style="width:28px; height:28px;"
                                                         title="Edit shortcut"><i class="fas fa-pen"
@@ -5311,6 +5515,22 @@
             // Per-instance IndexedDB name prefix (used for ProxyCache)
             const _IDB_PFX = _INST_ID + '_';
             // ─────────────────────────────────────────────────────────────────
+            // Element viewer highlight fix
+            function highlightElementInPage(selector) {
+                try {
+                    if (!frame || !frame.contentWindow) return;
+                    const doc = frame.contentWindow.document;
+                    if (!doc) return;
+                    // Remove previous highlights
+                    doc.querySelectorAll('.gust-highlight').forEach(el => el.classList.remove('gust-highlight'));
+                    // Highlight the new element
+                    const el = doc.querySelector(selector);
+                    if (el) {
+                        el.classList.add('gust-highlight');
+                        el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+                    }
+                } catch (e) {}
+            }
 
             let lastWorkingWisp = (function () { try { return ls.getItem('gust:wisp:last-working:v1'); } catch { return null; } })();
             function persistWorkingWisp(url) {
@@ -5394,6 +5614,14 @@
             const blockState = $("blockState");
             const devToggle = $("devToggle");
             const codeBtn = $("codeBtn");
+            const findBtn = $("findBtn");
+            const findOmniBtn = $("findOmniBtn");
+            const findBar = $("findBar");
+            const findInput = $("findInput");
+            const findPrevBtn = $("findPrev");
+            const findNextBtn = $("findNext");
+            const findCloseBtn = $("findClose");
+            const findStatus = $("findStatus");
             const logsEl = $("logs");
             const elementsEl = $("elements");
             const elementsTree = $("elementsTree");
@@ -5419,6 +5647,23 @@
             const ntDevtools = $("ntDevtools");
             const copyLogsBtn = $("copyLogs");
 
+            function bindElementViewerInteractions() {
+                if (!elementsTree) return;
+                elementsTree.addEventListener('click', function(e) {
+                    let target = e.target;
+                    while (target && !target.classList.contains('element-content')) {
+                        target = target.parentElement;
+                    }
+                    if (target && target.dataset && target.dataset.selector) {
+                        highlightElementInPage(target.dataset.selector);
+                        elementsTree.querySelectorAll('.element-content.selected').forEach(el => el.classList.remove('selected'));
+                        target.classList.add('selected');
+                    }
+                });
+            }
+
+            bindElementViewerInteractions();
+
             let curl = null;
             let abortCtrl = null;
             let pageUrl = "";
@@ -5437,6 +5682,14 @@
             const HOME_INTERNAL = "gust://newtab";
 
             const SETTINGS_INTERNAL = "gust://settings";
+            let findState = {
+                query: "",
+                doc: null,
+                matches: [],
+                currentIndex: 0,
+                active: false
+            };
+            let findDebounce = null;
 
             const VALID_SETTINGS_SECTIONS = new Set([
                 'connection','search','privacy','cache','filesandmedia',
@@ -5454,6 +5707,335 @@
                     const section = url.replace("gust://settings/", "").split("/")[0];
                     return !VALID_SETTINGS_SECTIONS.has(section);
                 }
+                return true;
+            }
+
+            function escapeRegExp(value) {
+                return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            }
+
+            function mergeAdjacentTextNodes(root) {
+                if (!root || !root.querySelectorAll) return;
+                const nodes = root.querySelectorAll('*');
+                nodes.forEach((el) => {
+                    let node = el.firstChild;
+                    while (node) {
+                        const next = node.nextSibling;
+                        if (node.nodeType === Node.TEXT_NODE && next && next.nodeType === Node.TEXT_NODE) {
+                            node.textContent += next.textContent;
+                            next.remove();
+                            continue;
+                        }
+                        node = next;
+                    }
+                });
+            }
+
+            function resetFindSearch() {
+                if (findState.doc) {
+                    try {
+                        findState.doc.querySelectorAll('mark.gust-find-highlight').forEach((mark) => {
+                            const text = findState.doc.createTextNode(mark.textContent);
+                            mark.replaceWith(text);
+                        });
+                        mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
+                    } catch (_) {}
+                }
+                findState = {
+                    query: "",
+                    doc: null,
+                    matches: [],
+                    currentIndex: 0,
+                    active: false
+                };
+            }
+
+            function clearFindHighlights() {
+                if (!findState.doc) return;
+                try {
+                    findState.doc.querySelectorAll('mark.gust-find-highlight').forEach((mark) => {
+                        const text = findState.doc.createTextNode(mark.textContent);
+                        mark.replaceWith(text);
+                    });
+                    mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
+                } catch (_) {}
+                findState.matches = [];
+            }
+
+            function getFindDocument() {
+                try {
+                    if (!frame || !frame.contentWindow) return null;
+                    const doc = frame.contentWindow.document;
+                    if (!doc || !doc.documentElement) return null;
+                    return doc;
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            function isFindAvailable() {
+                if (!pageUrl || pageUrl === HOME_INTERNAL || isSettingsPage(pageUrl) || isErrorPage) return false;
+                return !!getFindDocument();
+            }
+
+            function injectFindStyles(doc) {
+                if (!doc || !doc.head || doc.getElementById('gust-find-styles')) return;
+                const style = doc.createElement('style');
+                style.id = 'gust-find-styles';
+                style.textContent = `
+                    mark.gust-find-highlight { background: rgba(255, 214, 102, 0.5); color: inherit; border-radius: 2px; padding: 0 1px; box-shadow: 0 0 0 1px rgba(255, 214, 102, 0.35); }
+                    mark.gust-find-highlight.current { background: rgba(255, 177, 64, 0.98); color: #111827; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6); }
+                `;
+                doc.head.appendChild(style);
+            }
+
+            function collectFindMatches(doc, query) {
+                const matches = [];
+                const root = doc.body || doc.documentElement;
+                if (!root) return matches;
+                injectFindStyles(doc);
+
+                // Fix: Don't match empty string, and skip if query is empty or whitespace
+                if (!query || !query.trim()) return matches;
+                const regex = new RegExp(escapeRegExp(query), 'gi');
+                const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                    acceptNode(node) {
+                        if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
+                        const parent = node.parentElement;
+                        if (!parent || parent.closest('script,style,textarea,input,select,button,noscript,svg,code,pre')) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        if (parent.isContentEditable) return NodeFilter.FILTER_REJECT;
+                        if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                });
+
+                const textNodes = [];
+                while (walker.nextNode()) {
+                    textNodes.push(walker.currentNode);
+                }
+
+                for (const node of textNodes) {
+                    const text = node.nodeValue || '';
+                    if (!text.trim()) continue;
+                    regex.lastIndex = 0;
+                    let match;
+                    const fragment = doc.createDocumentFragment();
+                    let lastIndex = 0;
+                    let hasMatch = false;
+
+                    while ((match = regex.exec(text)) !== null) {
+                        hasMatch = true;
+                        if (match.index > lastIndex) {
+                            fragment.appendChild(doc.createTextNode(text.slice(lastIndex, match.index)));
+                        }
+                        const mark = doc.createElement('mark');
+                        mark.className = 'gust-find-highlight';
+                        mark.textContent = match[0];
+                        fragment.appendChild(mark);
+                        matches.push(mark);
+                        lastIndex = match.index + match[0].length;
+                    }
+
+                    if (!hasMatch) continue;
+                    if (lastIndex < text.length) {
+                        fragment.appendChild(doc.createTextNode(text.slice(lastIndex)));
+                    }
+                    node.replaceWith(fragment);
+                }
+
+                return matches;
+            }
+
+            function updateFindControlState() {
+                const available = isFindAvailable();
+                const hasMatches = !!findState.matches.length;
+                const canUse = available && !!(findInput?.value?.trim());
+
+                if (findBtn) {
+                    findBtn.disabled = !available;
+                    findBtn.title = available ? 'Find in page (Alt+F / Ctrl+F)' : 'Find is unavailable on this page';
+                    findBtn.classList.toggle('disabled', !available);
+                }
+                if (findOmniBtn) {
+                    findOmniBtn.disabled = !available;
+                    findOmniBtn.title = available ? 'Find in page (Alt+F)' : 'Find is unavailable on this page';
+                    findOmniBtn.classList.toggle('disabled', !available);
+                }
+                if (findPrevBtn) findPrevBtn.disabled = !canUse || !hasMatches;
+                if (findNextBtn) findNextBtn.disabled = !canUse || !hasMatches;
+
+                if (!available) {
+                    resetFindSearch();
+                    if (findBar && !findBar.classList.contains('hidden')) {
+                        closeFindBar();
+                    }
+                }
+            }
+
+            function setFindStatus(message, isError) {
+                if (!findStatus) return;
+                findStatus.textContent = message || "";
+                findStatus.style.color = isError ? "var(--err)" : "var(--tx3)";
+            }
+
+            function openFindBar() {
+                if (!findBar || !findInput) return;
+                if (!isFindAvailable()) {
+                    updateFindControlState();
+                    setFindStatus("Find is unavailable on this page", true);
+                    return;
+                }
+
+                findBar.classList.remove("hidden");
+                updateFindControlState();
+                if (!findInput.value.trim()) {
+                    setFindStatus("Search within the current page");
+                } else {
+                    const doc = getFindDocument();
+                    if (doc && (findState.doc !== doc || findState.query !== findInput.value.trim())) {
+                        clearFindHighlights();
+                        findState.doc = doc;
+                        findState.query = findInput.value.trim();
+                        findState.matches = collectFindMatches(doc, findState.query);
+                        findState.currentIndex = 0;
+                        findState.active = true;
+                    }
+                    if (!findState.matches.length) {
+                        setFindStatus(`No matches for "${findInput.value.trim()}"`, true);
+                    } else {
+                        findState.currentIndex = 0;
+                        findState.active = true;
+                        findState.matches.forEach((mark) => mark.classList.remove('current'));
+                        findState.matches[0]?.classList.add('current');
+                        try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                        setFindStatus(`Match 1 of ${findState.matches.length}`);
+                    }
+                }
+                window.setTimeout(() => {
+                    findInput.focus();
+                    findInput.select();
+                }, 0);
+            }
+
+            function closeFindBar() {
+                if (!findBar) return;
+                findBar.classList.add("hidden");
+                resetFindSearch();
+                setFindStatus("");
+                if (document.activeElement === findInput) {
+                    findInput.blur();
+                }
+            }
+
+            function toggleFindBar() {
+                if (findBar && !findBar.classList.contains('hidden')) {
+                    closeFindBar();
+                } else {
+                    openFindBar();
+                }
+            }
+
+            function updateBookmarksHeight() {
+                const wrap = document.getElementById('bookmarksWrap');
+                const el = document.getElementById('bookmarks');
+                if (!wrap) return;
+                const isHidden = wrap.classList.contains('hidden');
+                let height = 0;
+                if (!isHidden && el) {
+                    height = el.offsetHeight;
+                    if (height < 30) {
+                        height = el.scrollHeight || 45;
+                    }
+                }
+                document.documentElement.style.setProperty('--bookmarks-height', `${height}px`);
+            }
+
+            function refreshFindResults() {
+                const query = findInput?.value?.trim() || "";
+                const doc = getFindDocument();
+
+                if (!query) {
+                    clearFindHighlights();
+                    resetFindSearch();
+                    setFindStatus("Search within the current page");
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (!doc || !isFindAvailable()) {
+                    setFindStatus("Find is unavailable on this page", true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (findState.query !== query || findState.doc !== doc) {
+                    clearFindHighlights();
+                    findState.doc = doc;
+                    findState.query = query;
+                    findState.matches = collectFindMatches(doc, query);
+                    findState.currentIndex = 0;
+                    findState.active = true;
+                }
+
+                if (!findState.matches.length) {
+                    setFindStatus(`No matches for "${query}"`, true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                findState.matches.forEach((mark) => mark.classList.remove('current'));
+                findState.matches[0]?.classList.add('current');
+                try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                setFindStatus(`Match 1 of ${findState.matches.length}`);
+                updateFindControlState();
+                return true;
+            }
+
+            function findInPage(backwards) {
+                const query = findInput?.value?.trim() || "";
+                const doc = getFindDocument();
+
+                if (!query) {
+                    setFindStatus("Type a term to search", true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (!doc || !isFindAvailable()) {
+                    setFindStatus("Find is unavailable on this page", true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (findState.query !== query || findState.doc !== doc || !findState.active || !findState.matches.length) {
+                    clearFindHighlights();
+                    findState.doc = doc;
+                    findState.query = query;
+                    findState.matches = collectFindMatches(doc, query);
+                    findState.currentIndex = 0;
+                    findState.active = true;
+                }
+
+                if (!findState.matches.length) {
+                    setFindStatus(`No matches for "${query}"`, true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (backwards) {
+                    findState.currentIndex = (findState.currentIndex - 1 + findState.matches.length) % findState.matches.length;
+                } else {
+                    findState.currentIndex = (findState.currentIndex + 1) % findState.matches.length;
+                }
+
+                findState.matches.forEach((mark) => mark.classList.remove('current'));
+                findState.matches[findState.currentIndex]?.classList.add('current');
+                try { findState.matches[findState.currentIndex]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                setFindStatus(`Match ${findState.currentIndex + 1} of ${findState.matches.length}`);
+                updateFindControlState();
+                try { frame.contentWindow.focus(); } catch (_) {}
                 return true;
             }
 
@@ -6826,6 +7408,7 @@
                 bookmarksEl.appendChild(addBtn);
 
                 if (toggle) bookmarksEl.appendChild(toggle);
+                updateBookmarksHeight();
             }
 
             function getPriority(url, mime) {
@@ -8116,6 +8699,7 @@
                         $("stop").classList.add("hidden");
                     }
                 }
+                updateFindControlState();
             }
 
             function normUrl(u) {
@@ -10482,6 +11066,7 @@ _VIEWER_DL_JS +
                 const initiatorTabId = activeTabId; 
 
                 frame.removeAttribute('srcdoc');
+                resetFindSearch();
 
                 url = normUrl(url);
                 if (!url) {
@@ -11543,6 +12128,51 @@ _VIEWER_DL_JS +
                 if (e.key === "Enter") go(urlInput.value);
             };
 
+            if (findBtn) findBtn.onclick = () => toggleFindBar();
+            if (findOmniBtn) findOmniBtn.onclick = () => toggleFindBar();
+            findPrevBtn.onclick = () => findInPage(true);
+            findNextBtn.onclick = () => findInPage(false);
+            findCloseBtn.onclick = () => closeFindBar();
+
+            findInput.oninput = () => {
+                clearTimeout(findDebounce);
+                findDebounce = setTimeout(() => {
+                    if (!findInput.value.trim()) {
+                        resetFindSearch();
+                        setFindStatus("Search within the current page");
+                        updateFindControlState();
+                        return;
+                    }
+                    refreshFindResults();
+                }, 120);
+            };
+
+            findInput.onkeydown = e => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    findInPage(e.shiftKey);
+                }
+                if (e.key === "Escape") {
+                    e.preventDefault();
+                    closeFindBar();
+                }
+            };
+
+            document.addEventListener('keydown', e => {
+                if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'f') {
+                    e.preventDefault();
+                    toggleFindBar();
+                }
+                if (e.key === 'Escape' && findBar && !findBar.classList.contains('hidden')) {
+                    e.preventDefault();
+                    closeFindBar();
+                }
+            });
+            window.addEventListener('resize', updateBookmarksHeight);
+            if (bookmarksWrap) {
+                bookmarksWrap.addEventListener('transitionend', updateBookmarksHeight);
+            }
+
             // Drag a link or text URL onto the address bar
             (function() {
                 const omniboxEl = urlInput.closest('.omnibox');
@@ -12332,6 +12962,9 @@ _VIEWER_DL_JS +
                     bookmarksWrap.classList.add('hidden');
                     if (showBookmarksBtn) showBookmarksBtn.style.display = 'grid';
                     try { ls.setItem('gust:bookmarksbar:v1', 'false'); } catch (_) {}
+                    updateBookmarksHeight();
+                    setTimeout(updateBookmarksHeight, 50);
+                    setTimeout(updateBookmarksHeight, 150);
                 };
             }
             if (showBookmarksBtn) {
@@ -12339,6 +12972,9 @@ _VIEWER_DL_JS +
                     bookmarksWrap.classList.remove('hidden');
                     showBookmarksBtn.style.display = 'none';
                     try { ls.setItem('gust:bookmarksbar:v1', 'true'); } catch (_) {}
+                    updateBookmarksHeight();
+                    setTimeout(updateBookmarksHeight, 50);
+                    setTimeout(updateBookmarksHeight, 150);
                 };
             }
 
@@ -13002,11 +13638,15 @@ _VIEWER_DL_JS +
                     bookmarksBarSwitch.classList.toggle("on", bmBarOn);
                     if (bookmarksEl) bookmarksWrap.classList.toggle('hidden', !bmBarOn);
                     if (showBookmarksBtn) showBookmarksBtn.style.display = bmBarOn ? 'none' : 'grid';
+                    updateBookmarksHeight();
                     bookmarksBarSwitch.onclick = () => {
                         const nowOn = bookmarksBarSwitch.classList.toggle("on");
                         try { ls.setItem(bmBarKey, nowOn ? 'true' : 'false'); } catch (_) { }
                         if (bookmarksEl) bookmarksWrap.classList.toggle('hidden', !nowOn);
                         if (showBookmarksBtn) showBookmarksBtn.style.display = nowOn ? 'none' : 'grid';
+                        updateBookmarksHeight();
+                        setTimeout(updateBookmarksHeight, 50);
+                        setTimeout(updateBookmarksHeight, 150);
                     };
                 }
 
@@ -13419,8 +14059,8 @@ _VIEWER_DL_JS +
             }
 
             function wireShortcutEditButtons() {
-                const shortcutNames = ['newtab', 'closetab', 'reload', 'bookmark', 'focusurl', 'settings', 'logs', 'inspector', 'history', 'metrics', 'fullscreen'];
-                const defaultKeys = ['T', 'W', 'R', 'D', 'L', ',', 'G', 'I', 'H', 'M'];
+                const shortcutNames = ['newtab', 'closetab', 'reload', 'bookmark', 'focusurl', 'settings', 'logs', 'inspector', 'history', 'metrics', 'fullscreen', 'find'];
+                const defaultKeys = ['T', 'W', 'R', 'D', 'L', ',', 'G', 'I', 'H', 'M', 'K', 'F'];
                 document.querySelectorAll('.settings-section[data-section="shortcuts"] .settings-btn-icon').forEach((btn, idx) => {
                     const scIdx = Math.floor(idx / 2); 
                     const isReset = idx % 2 === 1;
@@ -13820,9 +14460,10 @@ _VIEWER_DL_JS +
                 inspector: () => { toggleElements(); },
                 history: () => { if (historyPopup.classList.contains('open')) hideHistoryPopup(); else showHistoryPopup(); },
                 metrics: () => { metricsModal.style.display === 'flex' ? hideMetrics() : showMetrics(); },
-                fullscreen: () => { if (!document.fullscreenElement) _doRequestFullscreen().catch(() => {}); else document.exitFullscreen(); }
+                fullscreen: () => { if (!document.fullscreenElement) _doRequestFullscreen().catch(() => {}); else document.exitFullscreen(); },
+                find: () => toggleFindBar()
             };
-            const SC_DEFAULTS = { newtab: 'T', closetab: 'W', reload: 'R', bookmark: 'D', focusurl: 'L', settings: ',', logs: 'G', inspector: 'I', history: 'H', metrics: 'M', fullscreen: 'F' };
+            const SC_DEFAULTS = { newtab: 'T', closetab: 'W', reload: 'R', bookmark: 'D', focusurl: 'L', settings: ',', logs: 'G', inspector: 'I', history: 'H', metrics: 'M', fullscreen: 'K', find: 'F' };
             let scMap = {}; 
 
             function buildShortcutMap() {
@@ -13836,8 +14477,6 @@ _VIEWER_DL_JS +
             buildShortcutMap();
 
             document.addEventListener("keydown", (e) => {
-                const tag = document.activeElement?.tagName;
-                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
                 const modal = $("shortcutEditModal");
                 if (modal && modal.style.display === 'flex') return;
                 let scEnabled = true;
@@ -13848,6 +14487,10 @@ _VIEWER_DL_JS +
                     const k = e.key === ',' ? ',' : e.key.toUpperCase();
                     const action = scMap[k] || scMap[e.key.toUpperCase()];
                     if (action && SC_ACTIONS[action]) {
+                        const tag = document.activeElement?.tagName;
+                        if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                            if (action !== 'find') return;
+                        }
                         e.preventDefault();
                         SC_ACTIONS[action]();
                     }
@@ -13878,6 +14521,13 @@ _VIEWER_DL_JS +
                     title: 'Address and Search Bar',
                     pad: 10,
                     body: 'Type a URL or search term and press Enter. The lock icon shows connection security, and clicking on it shows site info. The bookmark icon saves the current page instantly.',
+                    pos: 'below'
+                },
+                {
+                    target: '#findOmniBtn',
+                    icon: '<i class="fa-solid fa-magnifying-glass-arrow-right"></i>',
+                    title: 'Find in Page',
+                    body: 'Search for text on the active page. Toggle the find bar with this button, Alt+F, or Ctrl+F. You can go to the next or previous match using the arrow buttons or Enter/Shift+Enter.',
                     pos: 'below'
                 },
                 {
@@ -14168,6 +14818,22 @@ _VIEWER_DL_JS +
                                     clone.style.boxShadow = 'none';
                                     clone.style.opacity = '1';
                                     clone.style.zIndex = '2';
+
+                                    const itemsToActivate = [];
+                                    if (clone.hasAttribute('disabled') || clone.classList.contains('disabled') || clone.classList.contains('bookmark-btn-disabled')) {
+                                        itemsToActivate.push(clone);
+                                    }
+                                    if (clone.querySelectorAll) {
+                                        clone.querySelectorAll('[disabled], .disabled, .bookmark-btn-disabled').forEach(item => {
+                                            itemsToActivate.push(item);
+                                        });
+                                    }
+                                    itemsToActivate.forEach(item => {
+                                        item.removeAttribute('disabled');
+                                        item.classList.remove('disabled', 'bookmark-btn-disabled');
+                                        item.style.opacity = '1';
+                                    });
+
                                     cloneWrap.appendChild(clone);
                                 } catch (e) { }
                             }
