@@ -19,7 +19,7 @@
     <script type="module">window._esModulesSupported = true;</script>
     <style>
 
-        :root { 
+        :root {
             --bg0: #0d0f12;
             --bg1: #181c21;
             --bg2: #1c2026;
@@ -673,6 +673,7 @@
 
             /* Transitions for opening, closing, and moving */
             transition: top 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        right 0.12s ease-out,
                         transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
                         opacity 0.22s ease,
                         visibility 0.22s ease;
@@ -1055,6 +1056,24 @@
         #devToggle:hover i        { transform: rotate(-12deg) scale(1.12); }
         /* elements/codeBtn inspector — pulse */
         #codeBtn:hover i          { transform: scale(1.2); }
+
+        /* Panel button active — blue border */
+        #devToggle.active, #codeBtn.active, #aiBtn.active {
+            border: 1px solid var(--ac) !important;
+            color: var(--ac);
+            background: rgba(157, 229, 255, 0.07);
+        }
+
+        /* AI button active state */
+        #aiBtn.active             { color: inherit; background: inherit; border-color: inherit; }
+        #aiBtn.active i           { color: inherit; }
+        /* GUST Assistant — magic wand tap */
+        @keyframes gust-wand-tap {
+            0%   { transform: rotate(0deg); }
+            40%  { transform: rotate(20deg); }
+            100% { transform: rotate(0deg); }
+        }
+        #aiBtn:hover i            { animation: gust-wand-tap 0.35s ease-in-out; }
         /* find — magnify pop */
         #findBtn:hover i          { transform: scale(1.15); }
 
@@ -1599,14 +1618,14 @@
             width: 100%;
             height: 22px;
             background: var(--bg0);
-            border: 1px solid var(--bd);
+            border: 1px solid transparent;
             border-radius: 5px;
             color: var(--tx);
             font-family: var(--mono);
             font-size: 10.5px;
             padding: 0 6px 0 22px;
             outline: none;
-            transition: border-color .12s;
+            transition: border-color .15s;
         }
 
         .elements-search:focus {
@@ -1943,14 +1962,14 @@
             width: 100%;
             height: 22px;
             background: var(--bg0);
-            border: 1px solid var(--bd);
+            border: 1px solid transparent;
             border-radius: 5px;
             color: var(--tx);
             font-family: var(--mono);
             font-size: 10.5px;
             padding: 0 6px 0 22px;
             outline: none;
-            transition: border-color .12s;
+            transition: border-color .15s;
         }
 
         .log-search:focus {
@@ -2282,16 +2301,17 @@
             flex: 1;
             height: 44px;
             border-radius: var(--radius-full);
-            border: 1px solid var(--bd);
+            border: 1px solid transparent;
             background: rgba(13, 15, 18, .75);
             color: var(--tx);
             padding: 0 16px;
             outline: none;
             font-size: 14px;
+            transition: border-color .15s, background .15s;
         }
 
         .nt-search input:focus {
-            border-color: rgba(157, 229, 255, .5);
+            border-color: var(--ac);
             background: rgba(13, 15, 18, .9)
         }
 
@@ -3348,6 +3368,7 @@
         @keyframes _gust-beam    { 0%,100%{transform:scaleX(1) scaleY(1)} 40%{transform:scaleX(1.2) scaleY(.85)} 70%{transform:scaleX(.9) scaleY(1.1)} }
 
         /* Connection — wired: pulse like signal */
+        .settings-nav-item[data-section="aiassistant"]:hover i { animation: gust-wand-tap 0.35s ease-in-out; }
         .settings-nav-item[data-section="connection"]:hover i {
             animation: _gust-pulse .55s cubic-bezier(.34,1.56,.64,1) forwards;
         }
@@ -3479,7 +3500,220 @@
             background: none;
         }
 
-        
+        /* ── AI Sidebar ─────────────────────────────────────────────── */
+        .ai-sidebar {
+            width: 420px;
+            min-width: 260px;
+            background: var(--bg0);
+            border: 1px solid var(--bd);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .ai-sidebar.hidden {
+            display: none;
+        }
+
+        .ai-sidebar-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--bd);
+            background: var(--bg1);
+            flex-shrink: 0;
+        }
+
+        .ai-sidebar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--tx);
+            flex: 1;
+        }
+
+        .ai-sidebar-close {
+            background: none;
+            border: none;
+            color: var(--tx3);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: background .12s, color .12s;
+            flex-shrink: 0;
+        }
+
+        .ai-sidebar-close:hover {
+            background: var(--surface);
+            color: var(--tx);
+        }
+
+        .ai-sidebar-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ai-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--bd) transparent;
+        }
+
+        .ai-welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            height: 100%;
+            color: var(--tx3);
+            text-align: center;
+            padding: 24px;
+        }
+
+        .ai-welcome-icon {
+            font-size: 28px;
+            color: var(--ac);
+            opacity: 1;
+        }
+
+        .ai-welcome h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tx2);
+            margin: 0;
+        }
+
+        .ai-welcome p {
+            font-size: 12px;
+            color: var(--tx3);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .ai-input-area {
+            padding: 10px 12px;
+            border-top: 1px solid var(--bd);
+            background: var(--bg1);
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .ai-input-wrap {
+            flex: 1;
+            border: 1px solid var(--bd);
+            border-radius: var(--radius-sm);
+            background: var(--bg0);
+            display: flex;
+            overflow: hidden;
+            transition: border-color .15s;
+        }
+
+        .ai-input-wrap:focus-within {
+            border-color: var(--ac);
+        }
+
+        .ai-textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--tx);
+            font: inherit;
+            font-size: 13px;
+            resize: none;
+            height: 36px;
+            max-height: 120px;
+            line-height: 1.5;
+            padding: 8px 10px;
+            scrollbar-width: thin;
+            box-sizing: border-box;
+            display: block;
+        }
+
+        .ai-textarea::placeholder {
+            color: var(--tx3);
+        }
+
+        .ai-send-btn {
+            background: var(--ac);
+            border: none;
+            color: #000;
+            width: 40px;
+            align-self: stretch;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+            flex-shrink: 0;
+            transition: background .12s, opacity .12s;
+        }
+
+        .ai-send-btn:hover {
+            background: var(--ac2);
+        }
+
+        .ai-send-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .ai-panel-resize-handle {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 40px;
+            background: var(--bd);
+            border-radius: 0 2px 2px 0;
+            cursor: ew-resize;
+            z-index: 10;
+            transition: background .15s;
+        }
+
+        .ai-panel-resize-handle:hover,
+        .ai-panel-resize-handle.dragging {
+            background: var(--ac);
+        }
+
+        .ai-panel-resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 1px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 16px;
+            background: repeating-linear-gradient(to bottom,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.3) 2px,
+                    rgba(255, 255, 255, 0.3) 3px);
+        }
+
+        /* ── End AI Sidebar ─────────────────────────────────────────── */
+
         .adblock-modal {
             position: fixed;
             width: 280px;
@@ -3858,6 +4092,10 @@
             </button>
             <!-- Removed duplicate findBtn from toolbar -->
 
+            <button class="tool-btn" id="aiBtn" title="Toggle GUST Assistant">
+                <i class="fas fa-wand-magic-sparkles"></i>
+            </button>
+
             <button class="tool-toggle on" id="blockToggle" title="Toggle ad/tracker blocking">
                 <i class="fas fa-shield-halved"></i>
                 <span id="blockState">Protected</span>
@@ -4233,12 +4471,14 @@
 
                         
                         <div
-                            style="width:200px; min-width:200px; height:100%; background:rgba(13,15,18,0.7); border-right:1px solid var(--bd); display:flex; flex-direction:column; padding:24px 0; backdrop-filter:blur(8px);">
+                            style="width:200px; min-width:200px; height:100%; background:rgba(13,15,18,0.7); border-right:1px solid var(--bd); display:flex; flex-direction:column; padding:24px 0; backdrop-filter:blur(8px); overflow-y:auto; min-height:0;">
 
                             
-                            <nav style="display:flex; flex-direction:column; gap:2px; padding:0 12px; flex:1;">
+                            <nav style="display:flex; flex-direction:column; gap:2px; padding:0 12px; min-height:100%;">
                                 <button class="settings-nav-item active" data-section="connection"><i
                                         class="fas fa-network-wired"></i><span>Connection</span></button>
+                                <button class="settings-nav-item" data-section="aiassistant"><i
+                                        class="fas fa-wand-magic-sparkles"></i><span>AI Assistant</span></button>
                                 <button class="settings-nav-item" data-section="search"><i
                                         class="fas fa-magnifying-glass"></i><span>Search</span></button>
                                 <button class="settings-nav-item" data-section="privacy"><i
@@ -4369,6 +4609,22 @@
 
 
                             
+                            <div class="settings-section" data-section="aiassistant" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-wand-magic-sparkles"></i> Context</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-switch-row">
+                                            <div>
+                                                <div class="settings-switch-label">Page context by default</div>
+                                                <div class="settings-hint">Automatically enable Page Context when the assistant opens.</div>
+                                            </div>
+                                            <div class="settings-switch on" id="settingsAiContextSwitch">
+                                                <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="settings-section" data-section="search" style="display:none;">
                                 <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-magnifying-glass"></i> Default
@@ -4378,7 +4634,7 @@
                                     </div>
                                 </div>
                                 <div class="settings-card">
-                                    <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck <span style="font-size:10px;font-weight:700;color:#ff4444;margin-left:4px;">[BROKEN]</span></div>
+                                    <div class="settings-card-head"><i class="fas fa-spell-check"></i> Spellcheck <span style="font-size:10px;font-weight:700;color:#ff4444;margin-left:4px;">[broken]</span></div>
                                     <div class="settings-card-body">
                                         <div class="settings-switch-row">
                                             <div>
@@ -4582,8 +4838,7 @@
                                         <div class="settings-switch-row">
                                             <div>
                                                 <div class="settings-switch-label">Panels on the left</div>
-                                                <div class="settings-hint">Move the Logs and Elements panels to the left
-                                                    side of the browser window instead of the right.</div>
+                                                <div class="settings-hint">Move side panels to the left side of the browser window instead of the right.</div>
                                             </div>
                                             <div class="settings-switch" id="settingsPanelsLeftSwitch">
                                                 <div class="settings-switch-track">
@@ -5452,6 +5707,40 @@
                     <button class="ctx-item" id="ctxHideElement"><i class="fas fa-eye-slash" style="width:14px"></i> Hide Element</button>
                 </div>
             </div>
+
+            <!-- ── AI Sidebar ──────────────────────────────────────────────── -->
+            <div class="ai-sidebar hidden" id="aiSidebar">
+                <div class="ai-panel-resize-handle" id="aiResizeHandle"></div>
+                <div class="ai-sidebar-head">
+                    <span class="ai-sidebar-title">GUST Assistant <span style="font-size:10px;font-weight:700;color:#ff4444;margin-left:4px;">[experimental]</span></span>
+                    <div style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--tx2);user-select:none;">
+                        <span>Page Context</span>
+                        <div class="settings-switch" id="aiContextToggle" title="Let GUST Assistant read the current page" style="transform:scale(0.72);transform-origin:right center;">
+                            <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-sidebar-body">
+                    <div class="ai-messages" id="aiMessages">
+                        <div class="ai-welcome" id="aiWelcome">
+                            <div class="ai-welcome-icon">
+                                <i class="fas fa-wand-magic-sparkles" style="color:var(--ac);opacity:1;font-size:28px;"></i>
+                            </div>
+                            <h3>GUST Assistant</h3>
+                            <p>Ask anything about the page you're browsing, get help with web content, or just chat.</p>
+                        </div>
+                    </div>
+                    <div class="ai-input-area">
+                        <div class="ai-input-wrap">
+                            <textarea class="ai-textarea" id="aiTextarea" placeholder="Ask something…" autocomplete="off" spellcheck="false"></textarea>
+                        </div>
+                        <button class="ai-send-btn" id="aiSendBtn" title="Send" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- ── End AI Sidebar ───────────────────────────────────────────── -->
         </main>
     </div>
 
@@ -5460,6 +5749,19 @@
         onerror="(function(){ const reason='The libcurl.js script could not be fetched from cdn.jsdelivr.net. The CDN may be unreachable or blocked.'; window._libcurlLoadError=reason; console.error('[GUST] libcurl.js failed to load:', reason); })();"
     ></script>
     <script>
+        // Early stub so openFindBar can call this before the AI IIFE initialises it
+        window._updateFindBarPos = function() {
+            const fb = document.getElementById('findBar');
+            if (!fb) return;
+            const panelIds = ['aiSidebar', 'logs', 'elements'];
+            let panelW = 0;
+            for (const id of panelIds) {
+                const p = document.getElementById(id);
+                if (p && p.offsetWidth > 0) { panelW = p.offsetWidth; break; }
+            }
+            fb.style.right = (panelW > 0 ? panelW + 26 : 16) + 'px';
+        };
+
         (function () {
             // ── Per-instance storage isolation ────────────────────────────────
             // Each downloaded copy of this file gets a unique instance ID so
@@ -5883,6 +6185,7 @@
                     setFindStatus("Find is unavailable on this page", true);
                     return;
                 }
+                if (window._updateFindBarPos) window._updateFindBarPos();
                 findBar.classList.remove("hidden");
                 updateFindControlState();
                 if (!findInput.value.trim()) {
@@ -7951,8 +8254,15 @@
             function toggleLogs() {
                 if (!logsEl) return;
                 const wasHidden = logsEl.classList.contains("hidden");
+                if (wasHidden) {
+                    // Close other panels
+                    if (elementsEl && !elementsEl.classList.contains('hidden')) { elementsEl.classList.add('hidden'); $('codeBtn')?.classList.remove('active'); const _ov = $('elemHighlightOverlay'); if (_ov) _ov.style.display = 'none'; }
+                    const aiSb = document.getElementById('aiSidebar'); if (aiSb && !aiSb.classList.contains('hidden')) { aiSb.classList.add('hidden'); $('aiBtn')?.classList.remove('active'); }
+                }
                 logsEl.classList.toggle("hidden");
-
+                $('devToggle')?.classList.toggle('active', wasHidden);
+                document.body.classList.toggle('panel-open', wasHidden);
+                if (window._updateFindBarPos) window._updateFindBarPos();
                 if (wasHidden && !panelWidthPersist) {
                     logsEl.style.width = '420px';
                 }
@@ -7961,12 +8271,18 @@
             function toggleElements() {
                 if (!elementsEl) return;
                 const wasHidden = elementsEl.classList.contains("hidden");
+                if (wasHidden) {
+                    // Close other panels
+                    if (logsEl && !logsEl.classList.contains('hidden')) { logsEl.classList.add('hidden'); $('devToggle')?.classList.remove('active'); }
+                    const aiSb = document.getElementById('aiSidebar'); if (aiSb && !aiSb.classList.contains('hidden')) { aiSb.classList.add('hidden'); $('aiBtn')?.classList.remove('active'); }
+                }
                 elementsEl.classList.toggle("hidden");
-
+                $('codeBtn')?.classList.toggle('active', wasHidden);
+                document.body.classList.toggle('panel-open', wasHidden);
+                if (window._updateFindBarPos) window._updateFindBarPos();
                 if (wasHidden && !panelWidthPersist) {
                     elementsEl.style.width = '420px';
                 }
-
                 if (!elementsEl.classList.contains("hidden")) {
                     inspectCurrentPage();
                 } else {
@@ -8432,6 +8748,10 @@
                         }, 400);
                     }
                     updateNav();
+                    // Auto-refresh element inspector after page load if open
+                    if (elementsEl && !elementsEl.classList.contains('hidden')) {
+                        setTimeout(() => inspectCurrentPage(), 600);
+                    }
                 } else if (state === "error") {
                     progressBar.classList.remove("loading");
                     progressBar.classList.add("error");
@@ -14522,6 +14842,7 @@ _VIEWER_DL_JS +
                     const deltaX = panelsLeft ? e.clientX - startX : startX - e.clientX;
                     const newWidth = Math.max(250, Math.min(800, startWidth + deltaX));
                     panel.style.width = newWidth + 'px';
+                    if (window._updateFindBarPos) window._updateFindBarPos();
                 });
 
                 const stopResize = () => {
@@ -15343,6 +15664,235 @@ _VIEWER_DL_JS +
                     });
                 }
             }, 400);
+            // ─────────────────────────────────────────────────────────────────
+
+            // ── GUST Assistant (Pollinations.ai — no API key needed) ─────────
+            (() => {
+                const aiBtn      = document.getElementById('aiBtn');
+                const aiSidebar  = document.getElementById('aiSidebar');
+                const aiTextarea = document.getElementById('aiTextarea');
+                const aiSendBtn  = document.getElementById('aiSendBtn');
+                const aiMessages = document.getElementById('aiMessages');
+                const aiWelcome  = document.getElementById('aiWelcome');
+                const aiHandle   = document.getElementById('aiResizeHandle');
+                const frame      = document.getElementById('frame');
+
+                if (!aiBtn || !aiSidebar) return;
+
+                // Pollinations text API — POST /openai, no auth, CORS open, streaming supported.
+                // Docs: https://github.com/pollinations/pollinations/blob/main/APIDOCS.md
+                const POLLINATIONS = 'https://text.pollinations.ai/openai';
+                const MODEL        = 'openai-fast';  // gpt-5-nano — fastest available on text.pollinations.ai
+                const SYSTEM       = 'You are GUST Assistant for the GUST Browser. Reply like a smart friend texting — short, natural, no fluff. No "Got it!", no "Sure thing!", no filler. Just answer. Remember everything in the conversation.';
+
+                let _history   = [];
+                let _thinking  = false;
+                let _useContext = localStorage.getItem('gust_ai_ctx') !== 'false';
+
+                const _ctxToggle = document.getElementById('aiContextToggle');
+                const _ctxSetting = document.getElementById('settingsAiContextSwitch');
+
+                function _setCtx(val) {
+                    _useContext = val;
+                    localStorage.setItem('gust_ai_ctx', val);
+                    if (_ctxToggle) _ctxToggle.classList.toggle('on', val);
+                    if (_ctxSetting) _ctxSetting.classList.toggle('on', val);
+                }
+
+                _setCtx(_useContext);
+
+                if (_ctxToggle) _ctxToggle.addEventListener('click', () => _setCtx(!_useContext));
+                if (_ctxSetting) _ctxSetting.addEventListener('click', () => _setCtx(!_useContext));
+
+
+
+
+
+
+                // ── Sidebar open/close ──────────────────────────────────────
+                function openAI()  {
+                    // Close other panels first
+                    const logsEl2 = document.getElementById('logsPanel') || document.querySelector('.logs-panel') || (typeof logsEl !== 'undefined' ? logsEl : null);
+                    const elemsEl2 = document.getElementById('elementsPanel') || document.querySelector('.elements-panel') || (typeof elementsEl !== 'undefined' ? elementsEl : null);
+                    if (logsEl2 && !logsEl2.classList.contains('hidden')) { logsEl2.classList.add('hidden'); document.getElementById('devToggle')?.classList.remove('active'); }
+                    if (elemsEl2 && !elemsEl2.classList.contains('hidden')) { elemsEl2.classList.add('hidden'); document.getElementById('codeBtn')?.classList.remove('active'); const _ov = document.getElementById('elemHighlightOverlay'); if (_ov) _ov.style.display = 'none'; }
+                    aiSidebar.classList.remove('hidden'); aiBtn.classList.add('active'); document.body.classList.add('panel-open'); _updateFindBarPos(); aiTextarea && aiTextarea.focus();
+                }
+                function closeAI() { aiSidebar.classList.add('hidden'); aiBtn.classList.remove('active'); document.body.classList.remove('panel-open'); _updateFindBarPos(); }
+                aiBtn.addEventListener('click', () =>
+                    aiSidebar.classList.contains('hidden') ? openAI() : closeAI());
+
+                // ── Textarea resize + send enable ───────────────────────────
+                aiTextarea && aiTextarea.addEventListener('input', () => {
+                    aiSendBtn.disabled = !aiTextarea.value.trim() || _thinking;
+                    aiTextarea.style.height = '36px';
+                    const h = Math.min(aiTextarea.scrollHeight, 120);
+                    if (h > 36) aiTextarea.style.height = h + 'px';
+                });
+                aiTextarea && aiTextarea.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!aiTextarea.value.trim() || _thinking) return;
+                        const text = aiTextarea.value.trim();
+                        aiTextarea.value = '';
+                        aiTextarea.style.height = '36px';
+                        aiSendBtn.disabled = true;
+                        sendMessage(text);
+                    }
+                });
+
+                // ── Resize handle ───────────────────────────────────────────
+                // ── Find-bar positioning ───────────────────────────────
+                window._updateFindBarPos = function _updateFindBarPos() {
+                    const fb = document.getElementById('findBar');
+                    if (!fb) return;
+                    const panelIds = ['aiSidebar', 'logs', 'elements'];
+                    let panelW = 0;
+                    for (const id of panelIds) {
+                        const p = document.getElementById(id);
+                        if (p && p.offsetWidth > 0) { panelW = p.offsetWidth; break; }
+                    }
+                    fb.style.right = (panelW > 0 ? panelW + 26 : 16) + 'px';
+                }
+
+                let _rz = false, _rx = 0, _rw = 0;
+                aiHandle && aiHandle.addEventListener('mousedown', (e) => {
+                    _rz = true; _rx = e.clientX; _rw = aiSidebar.offsetWidth;
+                    aiHandle.classList.add('dragging');
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+                document.addEventListener('mousemove', (e) => {
+                    if (!_rz) return;
+                    const w = Math.max(260, Math.min(700, _rw - (e.clientX - _rx)));
+                    aiSidebar.style.width = w + 'px';
+                    _updateFindBarPos();
+                });
+                document.addEventListener('mouseup', () => {
+                    if (_rz) { _rz = false; aiHandle && aiHandle.classList.remove('dragging'); document.body.style.userSelect = ''; }
+                });
+
+                // ── DOM helpers ─────────────────────────────────────────────
+                function getPageContext() {
+                    return (typeof pageUrl !== 'undefined' ? pageUrl : '')||'';
+                }
+
+                function appendMsg(role, text) {
+                    if (aiWelcome) aiWelcome.style.display = 'none';
+                    const wrap = document.createElement('div');
+                    wrap.className = 'ai-msg ai-msg--' + role;
+                    wrap.style.cssText = role === 'user'
+                        ? 'align-self:flex-end;background:var(--bg3);color:var(--tx);padding:8px 12px;border-radius:12px 12px 3px 12px;max-width:85%;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;border:1px solid var(--ac);'
+                        : 'align-self:flex-start;color:var(--tx);font-size:13px;line-height:1.6;max-width:100%;white-space:pre-wrap;word-break:break-word;border-left:3px solid var(--ac);padding-left:10px;';
+                    wrap.textContent = text;
+                    aiMessages.appendChild(wrap);
+                    aiMessages.scrollTop = aiMessages.scrollHeight;
+                    return wrap;
+                }
+
+                function setThinking(on) {
+                    _thinking = on;
+                    aiSendBtn.disabled = on || !aiTextarea?.value.trim();
+                    if (aiTextarea) aiTextarea.disabled = on;
+                }
+
+                // ── Pollinations chat ───────────────────────────────────────
+                async function sendMessage(userText) {
+                    setThinking(true);
+
+                    // Inject page context only if toggle is on
+                    let content = userText;
+                    if (_useContext) {
+                        const url = getPageContext();
+                        if (url) {
+                            let urlNote = '';
+                            if (url === 'gust://newtab') urlNote = ' (this is the GUST browser new tab page)';
+                            else if (url.startsWith('gust://settings')) urlNote = ' (this is an internal GUST settings page)';
+                            content = `[Context only — not part of the user's question: The user is currently on ${url}${urlNote}.]
+
+${userText}`;
+                        }
+                    }
+
+                    _history.push({ role: 'user', content });
+                    appendMsg('user', userText);
+
+                    const typingEl = appendMsg('assistant', '');
+                    typingEl.innerHTML = '<span class="gust-typing-dots"><span></span><span></span><span></span></span>';
+                    if (!document.getElementById('gust-typing-style')) {
+                        const s = document.createElement('style');
+                        s.id = 'gust-typing-style';
+                        s.textContent = `.gust-typing-dots{display:inline-flex;align-items:center;gap:4px;padding:2px 0}.gust-typing-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:#fff;opacity:1;animation:gust-bounce 1.2s ease-in-out infinite}.gust-typing-dots span:nth-child(2){animation-delay:.2s}.gust-typing-dots span:nth-child(3){animation-delay:.4s}@keyframes gust-bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}`;
+                        document.head.appendChild(s);
+                    }
+
+                    try {
+                        const res = await fetch(POLLINATIONS, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                model:    MODEL,
+                                messages: [{ role: 'system', content: SYSTEM }, ..._history],
+                                stream:   true,
+                            })
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.text().catch(() => res.status);
+                            throw new Error(`Pollinations HTTP ${res.status}: ${err}`);
+                        }
+
+                        // Stream SSE tokens
+                        const reader  = res.body.getReader();
+                        const decoder = new TextDecoder();
+                        let reply = '';
+                        typingEl.innerHTML = '';
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            const chunk = decoder.decode(value, { stream: true });
+                            for (const line of chunk.split('\n')) {
+                                if (!line.startsWith('data: ')) continue;
+                                const data = line.slice(6).trim();
+                                if (data === '[DONE]') break;
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    const token  = parsed.choices?.[0]?.delta?.content ?? '';
+                                    if (token) {
+                                        reply += token;
+                                        typingEl.textContent = reply;
+                                        aiMessages.scrollTop = aiMessages.scrollHeight;
+                                    }
+                                } catch { /* partial chunk, skip */ }
+                            }
+                        }
+
+                        if (!reply) reply = '(no response)';
+                        typingEl.textContent = reply;
+                        _history.push({ role: 'assistant', content: reply });
+
+                    } catch (e) {
+                        typingEl.remove();
+                        appendMsg('assistant', '⚠ GUST error: ' + (e.message || 'Unknown error.'));
+                        _history.pop();
+                    }
+
+                    setThinking(false);
+                    aiMessages.scrollTop = aiMessages.scrollHeight;
+                }
+
+                // ── Send button ─────────────────────────────────────────────
+                aiSendBtn && aiSendBtn.addEventListener('click', () => {
+                    const text = aiTextarea?.value.trim();
+                    if (!text || _thinking) return;
+                    aiTextarea.value = '';
+                    aiTextarea.style.height = '36px';
+                    aiSendBtn.disabled = true;
+                    sendMessage(text);
+                });
+
+            })();
             // ─────────────────────────────────────────────────────────────────
 
             init();
