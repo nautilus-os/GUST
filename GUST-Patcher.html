@@ -106,6 +106,9 @@ button,input,select,textarea{font:inherit}
 @keyframes _gust-flick   { 0%,100%{transform:rotate(0) scale(1)} 25%{transform:rotate(-8deg) scale(1.15)} 60%{transform:rotate(6deg) scale(.95)} }
 @keyframes _gust-jolt    { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 50%{transform:translateX(5px)} 75%{transform:translateX(-2px)} }
 @keyframes _gust-stamp   { 0%{transform:scale(1) translateY(0)} 35%{transform:scale(.82) translateY(3px)} 65%{transform:scale(1.12) translateY(-2px)} 100%{transform:scale(1) translateY(0)} }
+/* AI Assistant — wand: flick (magic tap) */
+@keyframes _gust-wand-tap { 0%{transform:rotate(0) scale(1)} 25%{transform:rotate(-10deg) scale(1.15)} 60%{transform:rotate(8deg) scale(.95)} 100%{transform:rotate(0) scale(1)} }
+.settings-nav-item[data-section="aiassistant"]:hover i { animation: _gust-wand-tap .35s ease-in-out forwards; }
 /* Connection — wired: pulse like signal */
 .settings-nav-item[data-section="connection"]:hover i { animation: _gust-pulse .55s cubic-bezier(.34,1.56,.64,1) forwards; }
 /* Search — magnifying glass: bob */
@@ -302,6 +305,7 @@ button,input,select,textarea{font:inherit}
     <nav id="settingsNav2" style="padding:0 12px;">
       <button class="settings-nav-item" data-section="connection"><i class="fas fa-network-wired"></i><span class="nav-label">Connection</span><span class="nav-count" id="nc-connection"></span></button>
       <button class="settings-nav-item" data-section="fallback"><i class="fas fa-rotate-left"></i><span class="nav-label">Fallback</span><span class="nav-count" id="nc-fallback"></span></button>
+      <button class="settings-nav-item" data-section="aiassistant"><i class="fas fa-wand-magic-sparkles"></i><span class="nav-label">AI Assistant</span><span class="nav-count" id="nc-aiassistant"></span></button>
       <button class="settings-nav-item" data-section="search"><i class="fas fa-magnifying-glass"></i><span class="nav-label">Search</span><span class="nav-count" id="nc-search"></span></button>
       <button class="settings-nav-item" data-section="privacy"><i class="fas fa-shield-halved"></i><span class="nav-label">Privacy</span><span class="nav-count" id="nc-privacy"></span></button>
       <button class="settings-nav-item" data-section="cache"><i class="fas fa-database"></i><span class="nav-label">Cache</span><span class="nav-count" id="nc-cache"></span></button>
@@ -369,7 +373,7 @@ button,input,select,textarea{font:inherit}
         <div class="preset-card-desc">Removes thread controls, favicon proxying, WebRTC blocking, smart request headers, spellcheck, request &amp; page user-agent spoofing, dev console logs, dev inspector, metrics, and the language picker.</div>
       </div>
       <div class="preset-card-footer">
-        <button class="preset-dl-btn primary" id="presetStealthBtn" onclick="downloadPreset('stealth')" disabled><i class="fas fa-download"></i> Download GUST Lite</button>
+        <button class="preset-dl-btn primary" id="presetLiteBtn" onclick="downloadLite()" disabled><i class="fas fa-download"></i> Download GUST Lite</button>
       </div>
     </div>
 
@@ -391,6 +395,25 @@ button,input,select,textarea{font:inherit}
     <div class="settings-card-head"><i class="fas fa-language"></i> Language</div>
     <div class="settings-card-body">
       <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Preferred language picker</div><div class="patch-row-desc">Removes the language selector from Settings.</div></div><div class="patch-check checked" data-patch="language" data-section="language" onclick="togglePatch(this)"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI ASSISTANT -->
+<div class="settings-section" data-section="aiassistant">
+  <div class="section-head"><div class="section-title">AI Assistant</div><div class="select-btns"><button class="select-btn" onclick="selectAll('aiassistant',true)">Select all</button><span class="select-sep">·</span><button class="select-btn" onclick="selectAll('aiassistant',false)">None</button></div></div>
+  <div class="sidebar-master-bar">
+    <div class="sidebar-master-bar-icon"><i class="fas fa-wand-magic-sparkles"></i></div>
+    <div class="sidebar-master-bar-info">
+      <div class="sidebar-master-bar-label">Show AI Assistant in Settings Sidebar</div>
+      <div class="sidebar-master-bar-desc">Uncheck to remove the <strong>AI Assistant</strong> entry from GUST's Settings sidebar and hide the AI toolbar button entirely. The assistant panel and all its settings will be inaccessible.</div>
+    </div>
+    <div class="sidebar-master-check checked" data-patch="sidebar-nav-aiassistant" data-section="aiassistant" data-master-for="ai-context" onclick="toggleSidebarMaster(this)"></div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-card-head"><i class="fas fa-wand-magic-sparkles"></i> Context</div>
+    <div class="settings-card-body">
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Page context by default</div><div class="patch-row-desc"><strong>Uncheck to disable</strong> the "Page Context by default" setting and remove its toggle from Settings › AI Assistant. The assistant will never automatically receive the current page's content when opened.</div></div><div class="patch-check checked" data-patch="ai-context" data-section="aiassistant" onclick="togglePatch(this)"></div></div>
     </div>
   </div>
 </div>
@@ -1267,6 +1290,7 @@ function buildPatchScript(removedPatches) {
 
   // ---- Sidebar nav hide rules (hides the nav item in GUST Browser Settings) ----
   if (rm.has('sidebar-nav-connection'))    css('.settings-nav-item[data-section=\"connection\"]');
+  if (rm.has('sidebar-nav-aiassistant'))   css('.settings-nav-item[data-section=\"aiassistant\"]');
   if (rm.has('sidebar-nav-fallback'))      css('.settings-nav-item[data-section=\"fallback\"]');
   if (rm.has('sidebar-nav-search'))        css('.settings-nav-item[data-section=\"search\"]');
   if (rm.has('sidebar-nav-privacy'))       css('.settings-nav-item[data-section=\"privacy\"]');
@@ -1306,11 +1330,20 @@ function buildPatchScript(removedPatches) {
   if (rm.has('fallback-5xx'))      { ls('gust:fallback:5xx','0'); }
   if (rm.has('fallback-timeout'))  { ls('gust:fallback:timeout','0'); }
   if (rm.has('fallback-dns'))      { ls('gust:fallback:dns','0'); }
+  if (rm.has('ai-context'))        { ls('gust_ai_ctx','false'); }
 
   // ---- CSS hide rules (selectors verified against GUST source) ----
   // Each rule hides the settings UI element when that patch is removed.
   // NOTE: these only hide the settings option — the feature itself is
   // disabled via the localStorage pre-seeds above.
+
+  // AI Assistant
+  // ai-context is child of sidebar-nav-aiassistant
+  if (rm.has('sidebar-nav-aiassistant')) {
+    css('#aiBtn,#aiSidebar');
+  }
+  if (rm.has('ai-context'))
+    (rm.has('sidebar-nav-aiassistant') ? badge : css)('#settingsAiContextSwitch');
 
   // Connection
   // wisp-url, threads, webrtc-block, media-headers are children of sidebar-nav-connection
@@ -1554,6 +1587,7 @@ function buildPatchScript(removedPatches) {
     js('})();');
     css('.tab-drag-ghost,.tab-drag-slot,.tab-dragging');
   }
+  if (rm.has('sidebar-nav-aiassistant')) stubFns(['openAI','closeAI','toggleAI']);
   if (rm.has('tab-context')) stubFns(['showTabContext','tabContextMenu','openTabMenu']);
   if (rm.has('dev-logs'))      stubFns(['initLogPanel','toggleLogPanel','addLog','logRequest','toggleLogs']);
   if (rm.has('dev-inspector')) stubFns(['initInspector','toggleInspector','inspectElement','toggleElements']);
@@ -2064,27 +2098,19 @@ const LITE_PATCHES = [
   'spellcheck','search-favicon','ua-request','ua-page',
   'dev-logs','dev-inspector','metrics','language'
 ];
-const CLASSROOM_PATCHES = [
-  'wisp-url','threads','webrtc-block','clear-cache',
-  'shortcuts-panel','core-devtools','tutorial-include','tutorial-auto','tutorial-settings','adblock-toggle'
-];
 
-function downloadPreset(name) {
+function downloadLite() {
   if (!sourceLoaded || !sourceHTML) {
     alert('Source not loaded yet.');
     return;
   }
-  const presetEnabled = name === 'stealth' ? LITE_PATCHES : CLASSROOM_PATCHES;
-  // Save current state
   const saved = {};
   document.querySelectorAll('.patch-check[data-patch]').forEach(el => {
     saved[el.dataset.patch] = el.classList.contains('checked');
   });
-  // Apply preset: check only the preset patches
   document.querySelectorAll('.patch-check[data-patch]').forEach(el => {
-    el.classList.toggle('checked', presetEnabled.includes(el.dataset.patch));
+    el.classList.toggle('checked', LITE_PATCHES.includes(el.dataset.patch));
   });
-  // Build using the existing logic
   const removed = [
     ...[...document.querySelectorAll('.patch-check[data-patch]')]
       .filter(e => !e.classList.contains('checked'))
@@ -2103,14 +2129,13 @@ function downloadPreset(name) {
       if (firstScript !== -1) html = html.slice(0, firstScript) + patchScript + html.slice(firstScript);
     }
   }
-  const stamp = '<!-- GUST Patcher preset:' + name + ' build ' + new Date().toISOString() + ' -->';
+  const stamp = '<!-- GUST Patcher preset:lite build ' + new Date().toISOString() + ' -->';
   html = html.replace(/<!doctype html>/i, '<!doctype html>\n' + stamp);
-  // Restore saved state
   document.querySelectorAll('.patch-check[data-patch]').forEach(el => {
     el.classList.toggle('checked', saved[el.dataset.patch]);
   });
   updateCounts();
-  triggerDownload(html, name === 'stealth' ? 'GUST-Lite.html' : 'gust-' + name + '.html');
+  triggerDownload(html, 'GUST-Lite.html');
 }
 
 function triggerDownload(content, filename) {
@@ -2125,7 +2150,7 @@ function triggerDownload(content, filename) {
 
 function updatePresetButtons() {
   const can = sourceLoaded && !!sourceHTML;
-  const s = document.getElementById('presetStealthBtn');
+  const s = document.getElementById('presetLiteBtn');
   if (s) s.disabled = !can;
 }
 
