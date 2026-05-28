@@ -15777,14 +15777,61 @@ _VIEWER_DL_JS +
                     return (typeof pageUrl !== 'undefined' ? pageUrl : '')||'';
                 }
 
+                // ── Mini Markdown renderer ───────────────────────────────────
+                function renderMd(text) {
+                    // Escape HTML first
+                    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+                    // Split into code-block vs normal segments to protect code
+                    const parts = text.split(/(```[\s\S]*?```)/g);
+                    let html = parts.map((part, i) => {
+                        if (i % 2 === 1) {
+                            // Fenced code block
+                            const inner = part.replace(/^```[^\n]*\n?/, '').replace(/```$/, '');
+                            return `<pre style="background:var(--bg3);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;overflow-x:auto;font-family:var(--mono);font-size:12px;line-height:1.5;margin:4px 0;white-space:pre;"><code>${esc(inner)}</code></pre>`;
+                        }
+                        let s = esc(part);
+                        // Headings
+                        s = s.replace(/^### (.+)$/gm, '<strong style="font-size:13px;color:var(--ac);display:block;margin:6px 0 2px;">$1</strong>');
+                        s = s.replace(/^## (.+)$/gm,  '<strong style="font-size:14px;color:var(--ac);display:block;margin:6px 0 2px;">$1</strong>');
+                        s = s.replace(/^# (.+)$/gm,   '<strong style="font-size:15px;color:var(--ac);display:block;margin:6px 0 2px;">$1</strong>');
+                        // Bold & italic
+                        s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+                        s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                        s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                        // Inline code
+                        s = s.replace(/`([^`]+)`/g, '<code style="background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:12px;">$1</code>');
+                        // Links
+                        s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" style="color:var(--ac);text-decoration:underline;" target="_blank">$1</a>');
+                        // Bare URLs
+                        s = s.replace(/(^|[\s(])((https?:\/\/)[^\s<>)"]+)/g, '$1<a href="$2" style="color:var(--ac);text-decoration:underline;" target="_blank">$2</a>');
+                        // Unordered lists (- or *)
+                        s = s.replace(/^[ \t]*[-*] (.+)$/gm, '<li style="margin-left:16px;list-style:disc;">$1</li>');
+                        s = s.replace(/(<li[\s\S]*?<\/li>)/g, m => `<ul style="margin:4px 0;padding-left:4px;">${m}</ul>`);
+                        // Ordered lists
+                        s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li style="margin-left:16px;list-style:decimal;">$1</li>');
+                        // Horizontal rule
+                        s = s.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--bd);margin:8px 0;">');
+                        // Line breaks → <br> (preserve paragraphs)
+                        s = s.replace(/\n\n+/g, '<br><br>');
+                        s = s.replace(/\n/g, '<br>');
+                        return s;
+                    }).join('');
+                    return html;
+                }
+
                 function appendMsg(role, text) {
                     if (aiWelcome) aiWelcome.style.display = 'none';
                     const wrap = document.createElement('div');
                     wrap.className = 'ai-msg ai-msg--' + role;
                     wrap.style.cssText = role === 'user'
                         ? 'align-self:flex-end;background:var(--bg3);color:var(--tx);padding:8px 12px;border-radius:12px 12px 3px 12px;max-width:85%;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;border:1px solid var(--ac);'
-                        : 'align-self:flex-start;color:var(--tx);font-size:13px;line-height:1.6;max-width:100%;white-space:pre-wrap;word-break:break-word;border-left:3px solid var(--ac);padding-left:10px;';
-                    wrap.textContent = text;
+                        : 'align-self:flex-start;color:var(--tx);font-size:13px;line-height:1.6;max-width:100%;word-break:break-word;border-left:3px solid var(--ac);padding-left:10px;';
+                    if (role === 'user') {
+                        wrap.textContent = text;
+                    } else {
+                        wrap.innerHTML = renderMd(text);
+                    }
                     aiMessages.appendChild(wrap);
                     aiMessages.scrollTop = aiMessages.scrollHeight;
                     return wrap;
@@ -15863,7 +15910,7 @@ ${userText}`;
                                         reply += token;
                                         // Strip Pollinations ad footer from live display
                                         const displayReply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
-                                        typingEl.textContent = displayReply || reply;
+                                        typingEl.innerHTML = renderMd(displayReply || reply);
                                         aiMessages.scrollTop = aiMessages.scrollHeight;
                                     }
                                 } catch { /* partial chunk, skip */ }
@@ -15874,7 +15921,7 @@ ${userText}`;
                         // Strip Pollinations ad footer
                         reply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
                         if (!reply) reply = '(no response)';
-                        typingEl.textContent = reply;
+                        typingEl.innerHTML = renderMd(reply);
                         _history.push({ role: 'assistant', content: reply });
 
                     } catch (e) {
