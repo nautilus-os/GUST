@@ -15861,13 +15861,18 @@ ${userText}`;
                                     const token  = parsed.choices?.[0]?.delta?.content ?? '';
                                     if (token) {
                                         reply += token;
-                                        typingEl.textContent = reply;
+                                        // Strip Pollinations ad footer from live display
+                                        const displayReply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
+                                        typingEl.textContent = displayReply || reply;
                                         aiMessages.scrollTop = aiMessages.scrollHeight;
                                     }
                                 } catch { /* partial chunk, skip */ }
                             }
                         }
 
+                        if (!reply) reply = '(no response)';
+                        // Strip Pollinations ad footer
+                        reply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
                         if (!reply) reply = '(no response)';
                         typingEl.textContent = reply;
                         _history.push({ role: 'assistant', content: reply });
