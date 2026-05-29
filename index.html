@@ -6037,27 +6037,32 @@
             function resetFindSearch() {
                 if (findState.doc) {
                     try {
-                        findState.doc.querySelectorAll('mark.gust-find-highlight').forEach(mark => {
-                            mark.replaceWith(findState.doc.createTextNode(mark.textContent));
+                        findState.doc.querySelectorAll('mark.gust-find-highlight').forEach((mark) => {
+                            const text = findState.doc.createTextNode(mark.textContent);
+                            mark.replaceWith(text);
                         });
+                        mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
                     } catch (_) {}
                 }
-                try { frame.contentWindow?.postMessage({ type: 'gust:findClear' }, '*'); } catch (_) {}
-                findState = { query: "", count: 0, matches: [], doc: null, currentIndex: -1, active: false };
+                findState = {
+                    query: "",
+                    doc: null,
+                    matches: [],
+                    currentIndex: 0,
+                    active: false
+                };
             }
 
             function clearFindHighlights() {
-                if (findState.doc) {
-                    try {
-                        findState.doc.querySelectorAll('mark.gust-find-highlight').forEach(mark => {
-                            mark.replaceWith(findState.doc.createTextNode(mark.textContent));
-                        });
-                    } catch (_) {}
-                }
-                try { frame.contentWindow?.postMessage({ type: 'gust:findClear' }, '*'); } catch (_) {}
+                if (!findState.doc) return;
+                try {
+                    findState.doc.querySelectorAll('mark.gust-find-highlight').forEach((mark) => {
+                        const text = findState.doc.createTextNode(mark.textContent);
+                        mark.replaceWith(text);
+                    });
+                    mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
+                } catch (_) {}
                 findState.matches = [];
-                findState.count = 0;
-                findState.currentIndex = -1;
             }
 
             function getFindDocument() {
@@ -6073,7 +6078,7 @@
 
             function isFindAvailable() {
                 if (!pageUrl || pageUrl === HOME_INTERNAL || isSettingsPage(pageUrl) || isErrorPage) return false;
-                return true;
+                return !!getFindDocument();
             }
 
             function injectFindStyles(doc) {
@@ -6148,7 +6153,7 @@
 
             function updateFindControlState() {
                 const available = isFindAvailable();
-                const hasMatches = findState.count > 0;
+                const hasMatches = !!findState.matches.length;
                 const canUse = available && !!(findInput?.value?.trim());
 
                 if (findBtn) {
@@ -6191,7 +6196,25 @@
                 if (!findInput.value.trim()) {
                     setFindStatus("Search within the current page");
                 } else {
-                    refreshFindResults();
+                    const doc = getFindDocument();
+                    if (doc && (findState.doc !== doc || findState.query !== findInput.value.trim())) {
+                        clearFindHighlights();
+                        findState.doc = doc;
+                        findState.query = findInput.value.trim();
+                        findState.matches = collectFindMatches(doc, findState.query);
+                        findState.currentIndex = 0;
+                        findState.active = true;
+                    }
+                    if (!findState.matches.length) {
+                        setFindStatus(`No matches for "${findInput.value.trim()}"`, true);
+                    } else {
+                        findState.currentIndex = 0;
+                        findState.active = true;
+                        findState.matches.forEach((mark) => mark.classList.remove('current'));
+                        findState.matches[0]?.classList.add('current');
+                        try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                        setFindStatus(`Match 1 of ${findState.matches.length}`);
+                    }
                 }
                 window.setTimeout(() => {
                     findInput.focus();
@@ -6234,6 +6257,8 @@
 
             function refreshFindResults() {
                 const query = findInput?.value?.trim() || "";
+                const doc = getFindDocument();
+
                 if (!query) {
                     clearFindHighlights();
                     resetFindSearch();
@@ -6241,97 +6266,80 @@
                     updateFindControlState();
                     return false;
                 }
-                if (!isFindAvailable()) {
+
+                if (!doc || !isFindAvailable()) {
                     setFindStatus("Find is unavailable on this page", true);
                     updateFindControlState();
                     return false;
                 }
-                const doc = getFindDocument();
-                if (doc) {
-                    // Direct DOM access (Firefox, same-origin)
-                    if (findState.query !== query || !findState.active) {
-                        clearFindHighlights();
-                        findState.query = query;
-                        findState.matches = collectFindMatches(doc, query);
-                        findState.doc = doc;
-                        findState.currentIndex = -1;
-                        findState.active = true;
-                    }
-                    findState.count = findState.matches.length;
-                    if (!findState.matches.length) {
-                        setFindStatus(`No matches for "${query}"`, true);
-                        updateFindControlState();
-                        return false;
-                    }
-                    findState.matches.forEach(m => m.classList.remove('current'));
-                    findState.matches[0]?.classList.add('current');
-                    findState.currentIndex = 0;
-                    try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
-                    setFindStatus(`Match 1 of ${findState.matches.length}`);
-                    updateFindControlState();
-                    return true;
-                } else {
-                    // postMessage fallback (Chrome cross-origin blob)
+
+                if (findState.query !== query || findState.doc !== doc) {
+                    clearFindHighlights();
+                    findState.doc = doc;
                     findState.query = query;
+                    findState.matches = collectFindMatches(doc, query);
+                    findState.currentIndex = 0;
                     findState.active = true;
-                    console.log('[GUST FIND] sending gust:find via postMessage, query:', query, 'contentWindow:', frame.contentWindow);
-                    try { frame.contentWindow?.postMessage({ type: 'gust:find', query }, '*'); } catch (err) { console.error('[GUST FIND] postMessage failed:', err); }
-                    return true;
                 }
+
+                if (!findState.matches.length) {
+                    setFindStatus(`No matches for "${query}"`, true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                findState.matches.forEach((mark) => mark.classList.remove('current'));
+                findState.matches[0]?.classList.add('current');
+                try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                setFindStatus(`Match 1 of ${findState.matches.length}`);
+                updateFindControlState();
+                return true;
             }
 
             function findInPage(backwards) {
                 const query = findInput?.value?.trim() || "";
+                const doc = getFindDocument();
+
                 if (!query) {
                     setFindStatus("Type a term to search", true);
                     updateFindControlState();
                     return false;
                 }
-                if (!isFindAvailable()) {
+
+                if (!doc || !isFindAvailable()) {
                     setFindStatus("Find is unavailable on this page", true);
                     updateFindControlState();
                     return false;
                 }
-                const doc = getFindDocument();
-                if (doc) {
-                    // Direct DOM access (Firefox, same-origin)
-                    if (findState.query !== query || findState.doc !== doc || !findState.active || !findState.matches?.length) {
-                        clearFindHighlights();
-                        findState.doc = doc;
-                        findState.query = query;
-                        findState.matches = collectFindMatches(doc, query);
-                        findState.currentIndex = -1;
-                        findState.active = true;
-                        findState.count = findState.matches.length;
-                    }
-                    if (!findState.matches.length) {
-                        setFindStatus(`No matches for "${query}"`, true);
-                        updateFindControlState();
-                        return false;
-                    }
-                    if (backwards) {
-                        findState.currentIndex = (findState.currentIndex - 1 + findState.matches.length) % findState.matches.length;
-                    } else {
-                        findState.currentIndex = (findState.currentIndex + 1) % findState.matches.length;
-                    }
-                    findState.matches.forEach(m => m.classList.remove('current'));
-                    findState.matches[findState.currentIndex]?.classList.add('current');
-                    try { findState.matches[findState.currentIndex]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
-                    setFindStatus(`Match ${findState.currentIndex + 1} of ${findState.matches.length}`);
-                    updateFindControlState();
-                    try { frame.contentWindow.focus(); } catch (_) {}
-                    return true;
-                } else {
-                    // postMessage fallback (Chrome cross-origin blob)
-                    if (findState.query !== query || !findState.active || !findState.count) {
-                        findState.query = query;
-                        findState.active = true;
-                        try { frame.contentWindow?.postMessage({ type: 'gust:find', query }, '*'); } catch (_) {}
-                    } else {
-                        try { frame.contentWindow?.postMessage({ type: 'gust:findNav', backwards: !!backwards }, '*'); } catch (_) {}
-                    }
-                    return true;
+
+                if (findState.query !== query || findState.doc !== doc || !findState.active || !findState.matches.length) {
+                    clearFindHighlights();
+                    findState.doc = doc;
+                    findState.query = query;
+                    findState.matches = collectFindMatches(doc, query);
+                    findState.currentIndex = 0;
+                    findState.active = true;
                 }
+
+                if (!findState.matches.length) {
+                    setFindStatus(`No matches for "${query}"`, true);
+                    updateFindControlState();
+                    return false;
+                }
+
+                if (backwards) {
+                    findState.currentIndex = (findState.currentIndex - 1 + findState.matches.length) % findState.matches.length;
+                } else {
+                    findState.currentIndex = (findState.currentIndex + 1) % findState.matches.length;
+                }
+
+                findState.matches.forEach((mark) => mark.classList.remove('current'));
+                findState.matches[findState.currentIndex]?.classList.add('current');
+                try { findState.matches[findState.currentIndex]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                setFindStatus(`Match ${findState.currentIndex + 1} of ${findState.matches.length}`);
+                updateFindControlState();
+                try { frame.contentWindow.focus(); } catch (_) {}
+                return true;
             }
 
             function renderErrorPage(url, errorType, errorCode, errorDescription, errorSuggestions) {
@@ -8574,22 +8582,6 @@
             }
 
             window.addEventListener('message', (e) => {
-                if (e.data?.type === 'gust:findResult') {
-                    console.log('[GUST FIND] received gust:findResult:', e.data);
-                    if (e.data.error) { console.error('[GUST FIND ERROR]', e.data.error); }
-                    const { count, index } = e.data;
-                    findState.count = count || 0;
-                    findState.currentIndex = index ?? -1;
-                    findState.active = true;
-                    if (findState.count === 0) {
-                        const q = findInput?.value?.trim() || '';
-                        setFindStatus(q ? `No matches for "${q}"` : 'Search within the current page', !!q);
-                    } else {
-                        setFindStatus(`Match ${findState.currentIndex + 1} of ${findState.count}`);
-                    }
-                    updateFindControlState();
-                    return;
-                }
                 if (e.data?.type === 'gust:stylesResult') {
                     if (currentDetailTab !== 'styles') return;
                     const content = $('elemDetailContent');
@@ -9895,88 +9887,6 @@ window.addEventListener('message', e => {
   }
   if (d.type === 'gust:spellcheck') {
     try { document.querySelectorAll('input, textarea').forEach(el => el.spellcheck = !!d.enabled); } catch(e) {}
-  }
-  if (d.type === 'gust:find') {
-    console.log('[GUST FIND injected] received gust:find, query:', d.query);
-    try {
-      document.querySelectorAll('mark.gust-find-highlight').forEach(mark => {
-        mark.replaceWith(document.createTextNode(mark.textContent));
-      });
-      const mergeText = root => {
-        if (!root) return;
-        root.querySelectorAll('*').forEach(el => {
-          let node = el.firstChild;
-          while (node) {
-            const next = node.nextSibling;
-            if (node.nodeType === 3 && next && next.nodeType === 3) { node.textContent += next.textContent; next.remove(); continue; }
-            node = next;
-          }
-        });
-      };
-      mergeText(document.body || document.documentElement);
-      const query = d.query || '';
-      if (!query.trim()) { parent.postMessage({ type: 'gust:findResult', count: 0, index: -1 }, '*'); return; }
-      if (!document.getElementById('gust-find-styles')) {
-        const s = document.createElement('style'); s.id = 'gust-find-styles';
-        s.textContent = 'mark.gust-find-highlight{background:rgba(255,214,102,0.5);color:inherit;border-radius:2px;padding:0 1px;box-shadow:0 0 0 1px rgba(255,214,102,0.35)}mark.gust-find-highlight.current{background:rgba(255,177,64,0.98);color:#111827;box-shadow:0 0 0 1px rgba(255,255,255,0.6)}';
-        document.head.appendChild(s);
-      }
-      const _esc = q => q.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\\$&'); const regex = new RegExp(_esc(query), 'gi');
-      const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT, {
-        acceptNode(node) {
-          if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
-          const p = node.parentElement;
-          if (!p || p.closest('script,style,textarea,input,select,button,noscript,svg,code,pre')) return NodeFilter.FILTER_REJECT;
-          if (p.isContentEditable) return NodeFilter.FILTER_REJECT;
-          if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      });
-      const textNodes = [];
-      while (walker.nextNode()) textNodes.push(walker.currentNode);
-      let matchCount = 0;
-      for (const node of textNodes) {
-        const text = node.nodeValue || '';
-        regex.lastIndex = 0;
-        let match, lastIndex = 0, hasMatch = false;
-        const frag = document.createDocumentFragment();
-        while ((match = regex.exec(text)) !== null) {
-          hasMatch = true;
-          if (match.index > lastIndex) frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
-          const mark = document.createElement('mark');
-          mark.className = 'gust-find-highlight';
-          mark.textContent = match[0];
-          frag.appendChild(mark);
-          matchCount++;
-          lastIndex = match.index + match[0].length;
-        }
-        if (!hasMatch) continue;
-        if (lastIndex < text.length) frag.appendChild(document.createTextNode(text.slice(lastIndex)));
-        node.replaceWith(frag);
-      }
-      const marks = document.querySelectorAll('mark.gust-find-highlight');
-      let currentIndex = -1;
-      if (marks.length) { marks[0].classList.add('current'); marks[0].scrollIntoView({ block: 'center', inline: 'nearest' }); currentIndex = 0; }
-      parent.postMessage({ type: 'gust:findResult', count: matchCount, index: currentIndex }, '*');
-    } catch(e) { try { parent.postMessage({ type: 'gust:findResult', count: 0, index: -1, error: String(e) }, '*'); } catch(_) {} }
-  }
-  if (d.type === 'gust:findNav') {
-    try {
-      const marks = Array.from(document.querySelectorAll('mark.gust-find-highlight'));
-      if (!marks.length) { parent.postMessage({ type: 'gust:findResult', count: 0, index: -1 }, '*'); return; }
-      let cur = marks.findIndex(m => m.classList.contains('current'));
-      marks.forEach(m => m.classList.remove('current'));
-      if (d.backwards) { cur = (cur - 1 + marks.length) % marks.length; }
-      else { cur = (cur + 1) % marks.length; }
-      marks[cur].classList.add('current');
-      marks[cur].scrollIntoView({ block: 'center', inline: 'nearest' });
-      parent.postMessage({ type: 'gust:findResult', count: marks.length, index: cur }, '*');
-    } catch(e) {}
-  }
-  if (d.type === 'gust:findClear') {
-    try {
-      document.querySelectorAll('mark.gust-find-highlight').forEach(mark => mark.replaceWith(document.createTextNode(mark.textContent)));
-    } catch(e) {}
   }
 });
 
@@ -11469,9 +11379,6 @@ _VIEWER_DL_JS +
                 const okTab = tabs.find(t => t.id === initiatorTabId);
                 if (okTab) okTab.hasError = false;
                 renderTabs();
-                updateFindControlState();
-                // Chrome can take a tick longer to make the blob document accessible
-                setTimeout(updateFindControlState, 100);
             }
             // ─────────────────────────────────────────────────────────────
 
