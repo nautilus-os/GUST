@@ -3746,6 +3746,47 @@
             cursor: not-allowed;
         }
 
+        .ai-thinking .ai-input-wrap { border-color: var(--err); }
+        .ai-thinking .ai-send-btn { background: var(--err); }
+        .ai-thinking .ai-input-wrap,
+        .ai-thinking .ai-send-btn { opacity: 0.4; pointer-events: none; }
+        .ai-permission-wait .ai-input-wrap { border-color: var(--err); }
+        .ai-permission-wait .ai-send-btn { background: var(--err); }
+        .ai-permission-wait .ai-input-wrap,
+        .ai-permission-wait .ai-send-btn { opacity: 0.4; pointer-events: none; }
+
+        .ai-permission-bar {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 8px;
+            right: 8px;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: var(--bg2);
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--tx);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+            z-index: 10;
+        }
+        .ai-permission-bar.visible { display: flex; }
+        .ai-permission-bar .perm-btns { margin-left: auto; display: flex; gap: 4px; }
+        .ai-permission-bar button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+        .ai-permission-bar button:hover { background: var(--bg3); }
+        .ai-permission-bar .perm-check { color: var(--ok); }
+        .ai-permission-bar .perm-x { color: var(--err); }
+
         .ai-panel-resize-handle {
             position: absolute;
             left: 0;
@@ -5814,7 +5855,14 @@
                             <p>Ask anything about the page you're browsing, get help with web content, or just chat.</p>
                         </div>
                     </div>
-                    <div class="ai-input-area">
+                    <div class="ai-input-area" style="position:relative;">
+                        <div class="ai-permission-bar" id="aiPermissionBar">
+                            <span>Allow GUST Assistant to access this page?</span>
+                            <div class="perm-btns">
+                            <button class="perm-check" id="permAllow" title="Allow"><i class="fas fa-check"></i></button>
+                            <button class="perm-x" id="permDeny" title="Deny"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
                         <div class="ai-input-wrap">
                             <textarea class="ai-textarea" id="aiTextarea" placeholder="Ask something…" autocomplete="off" spellcheck="false"></textarea>
                         </div>
@@ -15724,8 +15772,10 @@ _VIEWER_DL_JS +
                 // Pollinations text API — POST /openai, no auth, CORS open, streaming supported.
                 // Docs: https://github.com/pollinations/pollinations/blob/main/APIDOCS.md
                 const POLLINATIONS = 'https://text.pollinations.ai/openai';
-                const MODEL        = 'openai-fast';
-                const SYSTEM       = 'You are GUST Assistant for the GUST Browser. Reply like a smart friend texting — short, natural, no fluff. No "Got it!", no "Sure thing!", no filler. Just answer. Remember everything in the conversation.';
+                const MODEL        = 'openai';
+                const _SYSTEM_CTX   = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. You are given the user\'s current URL for context, but you must never guess, assume, or speculate about the page\'s actual content—only state verified facts, and admit you don\'t know if you lack information. You cannot read the page by default; if the user asks about the specific content of their active tab, state that you need permission to access it and always append exactly `function assistantRequestPageContext` to the very end of your message. If the user responds with "Denied." to your request to access the page, accept the denial and move on.';
+                const _SYSTEM_NOCTX = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. Only state facts. Do not guess or speculate. If you don\'t know something, say so.';
+                function _systemPrompt() { return _useContext ? _SYSTEM_CTX : _SYSTEM_NOCTX; }
 
                 let _history   = [];
                 let _thinking  = false;
@@ -15879,8 +15929,47 @@ _VIEWER_DL_JS +
                 function setThinking(on) {
                     _thinking = on;
                     aiSendBtn.disabled = on || !aiTextarea?.value.trim();
-                    if (aiTextarea) aiTextarea.disabled = on;
+                    if (aiTextarea) {
+                        aiTextarea.disabled = on;
+                        if (!on) {
+                            const bar = document.getElementById('aiPermissionBar');
+                            if (!bar || !bar.classList.contains('visible')) aiTextarea.placeholder = 'Ask something…';
+                        } else {
+                            aiTextarea.placeholder = 'Please wait for a response.';
+                        }
+                    }
+                    aiSidebar.classList.toggle('ai-thinking', on);
                 }
+
+                function assistantRequestPageContext() {
+                    if (!_useContext) return;
+                    const bar = document.getElementById('aiPermissionBar');
+                    if (!bar) return;
+                    bar.classList.add('visible');
+                    aiSidebar.classList.remove('ai-thinking');
+                    aiSidebar.classList.add('ai-permission-wait');
+                    if (aiTextarea) { aiTextarea.disabled = true; aiTextarea.placeholder = 'Please choose a response.'; }
+                    aiSendBtn.disabled = true;
+                    aiMessages.scrollTop = aiMessages.scrollHeight;
+                }
+
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('#permDeny')) {
+                        const bar = document.getElementById('aiPermissionBar');
+                        if (bar) bar.classList.remove('visible');
+                        aiSidebar.classList.remove('ai-permission-wait');
+                        if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
+                        aiSendBtn.disabled = false;
+                        sendMessage('Denied.');
+                    }
+                    if (e.target.closest('#permAllow')) {
+                        const bar = document.getElementById('aiPermissionBar');
+                        if (bar) bar.classList.remove('visible');
+                        aiSidebar.classList.remove('ai-permission-wait');
+                        if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
+                        aiSendBtn.disabled = false;
+                    }
+                });
 
                 // ── Pollinations chat ───────────────────────────────────────
                 async function sendMessage(userText) {
@@ -15913,55 +16002,73 @@ ${userText}`;
                     }
 
                     try {
-                        const res = await fetch(POLLINATIONS, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                model:    MODEL,
-                                messages: [{ role: 'system', content: SYSTEM }, ..._history],
-                                stream:   true,
-                            })
-                        });
-
-                        if (!res.ok) {
-                            const err = await res.text().catch(() => res.status);
-                            throw new Error(`Pollinations HTTP ${res.status}: ${err}`);
+                    let lastErr;
+                    for (let _retry = 0; _retry < 3; _retry++) {
+                        if (_retry) {
+                            typingEl.innerHTML = '<span class="gust-typing-dots"><span></span><span></span><span></span></span>';
+                            await new Promise(r => setTimeout(r, 1500));
                         }
+                        try {
+                            const ac = new AbortController();
+                            const to = setTimeout(() => ac.abort(), 30000);
+                            const res = await fetch(POLLINATIONS, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    model:    MODEL,
+                                    messages: [{ role: 'system', content: _systemPrompt() }, ..._history],
+                                    stream:   true,
+                                }),
+                                signal: ac.signal
+                            });
+                            clearTimeout(to);
 
-                        // Stream SSE tokens
-                        const reader  = res.body.getReader();
-                        const decoder = new TextDecoder();
-                        let reply = '';
-                        typingEl.innerHTML = '';
-
-                        while (true) {
-                            const { done, value } = await reader.read();
-                            if (done) break;
-                            const chunk = decoder.decode(value, { stream: true });
-                            for (const line of chunk.split('\n')) {
-                                if (!line.startsWith('data: ')) continue;
-                                const data = line.slice(6).trim();
-                                if (data === '[DONE]') break;
-                                try {
-                                    const parsed = JSON.parse(data);
-                                    const token  = parsed.choices?.[0]?.delta?.content ?? '';
-                                    if (token) {
-                                        reply += token;
-                                        // Strip Pollinations ad footer from live display
-                                        const displayReply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
-                                        typingEl.innerHTML = renderMd(displayReply || reply);
-                                        aiMessages.scrollTop = aiMessages.scrollHeight;
-                                    }
-                                } catch { /* partial chunk, skip */ }
+                            if (!res.ok) {
+                                const err = await res.text().catch(() => res.status);
+                                throw new Error(`Pollinations HTTP ${res.status}: ${err}`);
                             }
-                        }
 
-                        if (!reply) reply = '(no response)';
-                        // Strip Pollinations ad footer
-                        reply = reply.replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
-                        if (!reply) reply = '(no response)';
-                        typingEl.innerHTML = renderMd(reply);
-                        _history.push({ role: 'assistant', content: reply });
+                            // Stream SSE tokens
+                            const reader  = res.body.getReader();
+                            const decoder = new TextDecoder();
+                            let reply = '';
+                            typingEl.innerHTML = '';
+
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+                                const chunk = decoder.decode(value, { stream: true });
+                                for (const line of chunk.split('\n')) {
+                                    if (!line.startsWith('data: ')) continue;
+                                    const data = line.slice(6).trim();
+                                    if (data === '[DONE]') break;
+                                    try {
+                                        const parsed = JSON.parse(data);
+                                        const token  = parsed.choices?.[0]?.delta?.content ?? '';
+                                        if (token) {
+                                            reply += token;
+                                            const displayReply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
+                                            typingEl.innerHTML = renderMd(displayReply || reply);
+                                            aiMessages.scrollTop = aiMessages.scrollHeight;
+                                        }
+                                    } catch { /* partial chunk, skip */ }
+                                }
+                            }
+
+                            if (!reply) reply = '(no response)';
+                            const _needsPerm = reply.includes('function assistantRequestPageContext');
+                            reply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
+                            if (!reply) reply = _needsPerm ? 'I need permission to access the content of this page.' : '(no response)';
+                            typingEl.innerHTML = renderMd(reply);
+                            _history.push({ role: 'assistant', content: reply });
+                            if (_needsPerm) assistantRequestPageContext();
+                            lastErr = null;
+                            break;
+                        } catch (e2) {
+                            lastErr = e2;
+                        }
+                    }
+                    if (lastErr) throw lastErr;
 
                     } catch (e) {
                         typingEl.remove();
