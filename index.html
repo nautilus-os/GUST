@@ -782,6 +782,75 @@
             white-space: nowrap;
         }
 
+        .find-results {
+            max-height: 145px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            margin-top: 2px;
+        }
+
+        .find-results.hidden {
+            display: none;
+        }
+
+        .find-result-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: var(--mono);
+            transition: background 0.12s;
+            line-height: 1.4;
+        }
+
+        .find-result-item:hover {
+            background: var(--surface);
+        }
+
+        .find-result-item.current {
+            outline: none;
+            padding-left: 18px;
+            position: relative;
+        }
+        .find-result-item.current::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--ac);
+        }
+
+        .find-result-tag {
+            color: var(--ac);
+            flex-shrink: 0;
+        }
+
+        .find-result-match {
+            color: var(--warn);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .find-results::-webkit-scrollbar {
+            width: 4px;
+        }
+        .find-results::-webkit-scrollbar-thumb {
+            background: var(--surface2);
+            border-radius: 2px;
+        }
+
         .security-chip {
             display: flex;
             align-items: center;
@@ -1021,7 +1090,6 @@
             flex-direction: row-reverse;
         }
 
-        
         .panels-left .panel-resize-handle {
             left: auto;
             right: 0;
@@ -1520,7 +1588,7 @@
         }
 
         .logs.hidden {
-            display: none
+            display: none;
         }
 
         .elements {
@@ -1536,7 +1604,7 @@
         }
 
         .elements.hidden {
-            display: none
+            display: none;
         }
 
         .panel-resize-handle {
@@ -2279,8 +2347,8 @@
             position: absolute;
             top: calc(100% + 8px);
             left: 0;
-            min-width: 100px;
-            width: 100px;
+            min-width: 132px;
+            width: auto;
             background: var(--bg1);
             border: 1px solid var(--bd);
             border-radius: 8px;
@@ -4135,6 +4203,7 @@
                         </div>
                     </div>
                     <div class="find-status" id="findStatus"></div>
+                    <div class="find-results hidden" id="findResults"></div>
                 </div>
 
                 <div class="newtab active" id="newtab">
@@ -4190,6 +4259,7 @@
                                 <i class="fas fa-chevron-down"></i>
                                 <div class="nt-engine-dropdown" id="ntEngineDropdown">
                                     <button data-engine="brave">Brave</button>
+                                    <button data-engine="ddg">DuckDuckGo</button>
                                     <button data-engine="bing">Bing</button>
                                 </div>
                             </div>
@@ -4610,6 +4680,20 @@
 
                             
                             <div class="settings-section" data-section="aiassistant" style="display:none;">
+                                <div class="settings-card">
+                                    <div class="settings-card-head"><i class="fas fa-microchip"></i> Provider</div>
+                                    <div class="settings-card-body">
+                                        <div class="settings-toggle-row">
+                                            <button class="settings-engine-btn active">
+                                                <div class="engine-radio"><div class="engine-radio-dot"></div></div>
+                                                <div>
+                                                    <div class="engine-name">pollinations.ai</div>
+                                                    <div class="engine-url" style="margin-top:2px;">https://pollinations.ai</div>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-wand-magic-sparkles"></i> Context</div>
                                     <div class="settings-card-body">
@@ -5607,7 +5691,7 @@
                     z-index:50;
                     outline:2px solid var(--ac,#9de5ff);
                     outline-offset:0px;
-                    box-shadow:0 0 0 4px rgba(157,229,255,0.18), inset 0 0 0 9999px rgba(157,229,255,0.08);
+                    box-shadow:0 0 0 4px rgba(157,229,255,0.25), inset 0 0 0 9999px rgba(157,229,255,0.20);
                     border-radius:2px;
                     transition:top .08s,left .08s,width .08s,height .08s;
                 "></div>
@@ -6044,6 +6128,8 @@
                         mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
                     } catch (_) {}
                 }
+                const rl = document.getElementById('findResults');
+                if (rl) { rl.innerHTML = ''; rl.classList.add('hidden'); }
                 findState = {
                     query: "",
                     doc: null,
@@ -6063,6 +6149,8 @@
                     mergeAdjacentTextNodes(findState.doc.body || findState.doc.documentElement);
                 } catch (_) {}
                 findState.matches = [];
+                const rl = document.getElementById('findResults');
+                if (rl) { rl.innerHTML = ''; rl.classList.add('hidden'); }
             }
 
             function getFindDocument() {
@@ -6086,10 +6174,24 @@
                 const style = doc.createElement('style');
                 style.id = 'gust-find-styles';
                 style.textContent = `
-                    mark.gust-find-highlight { background: rgba(255, 214, 102, 0.5); color: inherit; border-radius: 2px; padding: 0 1px; box-shadow: 0 0 0 1px rgba(255, 214, 102, 0.35); }
-                    mark.gust-find-highlight.current { background: rgba(255, 177, 64, 0.98); color: #111827; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6); }
+                    mark.gust-find-highlight { background: rgba(255, 200, 70, 0.55); color: inherit; border-radius: 2px; padding: 0 1px; box-shadow: 0 0 0 1px rgba(255, 200, 70, 0.3); }
+                    mark.gust-find-highlight.current { background: rgba(255, 160, 40, 0.98); color: #111827; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6); }
                 `;
                 doc.head.appendChild(style);
+            }
+
+            function getShortPath(el) {
+                const parts = [];
+                let cur = el;
+                while (cur && cur.parentElement) {
+                    const tag = cur.tagName.toLowerCase();
+                    const id = cur.id ? '#' + cur.id : '';
+                    const cls = cur.className && typeof cur.className === 'string' ? '.' + cur.className.trim().split(/\s+/)[0] : '';
+                    parts.unshift(tag + id + cls);
+                    if (parts.length >= 3) break;
+                    cur = cur.parentElement;
+                }
+                return parts.join(' > ');
             }
 
             function collectFindMatches(doc, query) {
@@ -6098,26 +6200,24 @@
                 if (!root) return matches;
                 injectFindStyles(doc);
 
-                // Fix: Don't match empty string, and skip if query is empty or whitespace
                 if (!query || !query.trim()) return matches;
                 const regex = new RegExp(escapeRegExp(query), 'gi');
+
+                // Walk ALL text nodes including those inside script, style, etc.
                 const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
                     acceptNode(node) {
                         if (!node || !node.nodeValue) return NodeFilter.FILTER_REJECT;
-                        const parent = node.parentElement;
-                        if (!parent || parent.closest('script,style,textarea,input,select,button,noscript,svg,code,pre')) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        if (parent.isContentEditable) return NodeFilter.FILTER_REJECT;
                         if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                        const p = node.parentElement;
+                        if (!p) return NodeFilter.FILTER_REJECT;
+                        if (p.isContentEditable) return NodeFilter.FILTER_REJECT;
+                        if (p.closest('textarea,input,select,button')) return NodeFilter.FILTER_REJECT;
                         return NodeFilter.FILTER_ACCEPT;
                     }
                 });
 
                 const textNodes = [];
-                while (walker.nextNode()) {
-                    textNodes.push(walker.currentNode);
-                }
+                while (walker.nextNode()) textNodes.push(walker.currentNode);
 
                 for (const node of textNodes) {
                     const text = node.nodeValue || '';
@@ -6137,7 +6237,7 @@
                         mark.className = 'gust-find-highlight';
                         mark.textContent = match[0];
                         fragment.appendChild(mark);
-                        matches.push(mark);
+                        matches.push({ element: node.parentElement, type: 'text', text: match[0], mark: mark, path: getShortPath(node.parentElement) });
                         lastIndex = match.index + match[0].length;
                     }
 
@@ -6183,6 +6283,41 @@
                 findStatus.style.color = isError ? "var(--err)" : "var(--tx3)";
             }
 
+            function renderFindResultsList() {
+                const rl = document.getElementById('findResults');
+                if (!rl) return;
+                if (!findState.matches.length) { rl.innerHTML = ''; rl.classList.add('hidden'); return; }
+                rl.innerHTML = '';
+                rl.classList.remove('hidden');
+                findState.matches.forEach((m, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'find-result-item' + (i === findState.currentIndex ? ' current' : '');
+                    item.innerHTML = '<span class="find-result-tag">' + escapeHtml(m.path || '') + '</span>' +
+                        '<span class="find-result-match">' + escapeHtml(m.text.substring(0, 60)) + '</span>';
+                    item.onclick = () => { selectFindMatch(i); };
+                    rl.appendChild(item);
+                });
+                const active = rl.querySelector('.current');
+                if (active) active.scrollIntoView({ block: 'nearest' });
+            }
+
+            function selectFindMatch(index) {
+                if (index < 0 || index >= findState.matches.length) return;
+                const doc = findState.doc;
+                if (!doc) return;
+                doc.querySelectorAll('mark.gust-find-highlight.current').forEach(m => m.classList.remove('current'));
+                const m = findState.matches[index];
+                findState.currentIndex = index;
+                findState.active = true;
+                if (m.mark) {
+                    m.mark.classList.add('current');
+                    try { m.mark.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
+                }
+                setFindStatus('Match ' + (index + 1) + ' of ' + findState.matches.length);
+                renderFindResultsList();
+                updateFindControlState();
+            }
+
             function openFindBar() {
                 if (!findBar || !findInput) return;
                 if (!isFindAvailable()) {
@@ -6207,13 +6342,10 @@
                     }
                     if (!findState.matches.length) {
                         setFindStatus(`No matches for "${findInput.value.trim()}"`, true);
+                        renderFindResultsList();
                     } else {
-                        findState.currentIndex = 0;
-                        findState.active = true;
-                        findState.matches.forEach((mark) => mark.classList.remove('current'));
-                        findState.matches[0]?.classList.add('current');
-                        try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
-                        setFindStatus(`Match 1 of ${findState.matches.length}`);
+                        renderFindResultsList();
+                        selectFindMatch(0);
                     }
                 }
                 window.setTimeout(() => {
@@ -6284,15 +6416,13 @@
 
                 if (!findState.matches.length) {
                     setFindStatus(`No matches for "${query}"`, true);
+                    renderFindResultsList();
                     updateFindControlState();
                     return false;
                 }
 
-                findState.matches.forEach((mark) => mark.classList.remove('current'));
-                findState.matches[0]?.classList.add('current');
-                try { findState.matches[0]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
-                setFindStatus(`Match 1 of ${findState.matches.length}`);
-                updateFindControlState();
+                renderFindResultsList();
+                selectFindMatch(0);
                 return true;
             }
 
@@ -6323,21 +6453,18 @@
 
                 if (!findState.matches.length) {
                     setFindStatus(`No matches for "${query}"`, true);
+                    renderFindResultsList();
                     updateFindControlState();
                     return false;
                 }
 
+                let next;
                 if (backwards) {
-                    findState.currentIndex = (findState.currentIndex - 1 + findState.matches.length) % findState.matches.length;
+                    next = (findState.currentIndex - 1 + findState.matches.length) % findState.matches.length;
                 } else {
-                    findState.currentIndex = (findState.currentIndex + 1) % findState.matches.length;
+                    next = (findState.currentIndex + 1) % findState.matches.length;
                 }
-
-                findState.matches.forEach((mark) => mark.classList.remove('current'));
-                findState.matches[findState.currentIndex]?.classList.add('current');
-                try { findState.matches[findState.currentIndex]?.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (_) {}
-                setFindStatus(`Match ${findState.currentIndex + 1} of ${findState.matches.length}`);
-                updateFindControlState();
+                selectFindMatch(next);
                 try { frame.contentWindow.focus(); } catch (_) {}
                 return true;
             }
@@ -13537,7 +13664,7 @@ _VIEWER_DL_JS +
                             selectedEngine = 'brave';
                             try { ls.setItem('gust:engine:v1', 'brave'); } catch { }
                         }
-                        const engineNames = { brave: 'Brave', bing: 'Bing' };
+                        const engineNames = { brave: 'Brave', ddg: 'DuckDuckGo', bing: 'Bing' };
                         ntEngineLabel.textContent = engineNames[selectedEngine] || 'Brave';
                         ntEngineDropdown.querySelectorAll('button').forEach(b => {
                             b.classList.toggle('active', b.dataset.engine === selectedEngine);
@@ -13712,6 +13839,7 @@ _VIEWER_DL_JS +
                 container.innerHTML = "";
                 const engines = [
                     { key: "brave", name: "Brave", url: SEARCH_ENGINES.brave },
+                    { key: "ddg", name: "DuckDuckGo", url: SEARCH_ENGINES.ddg },
                     { key: "bing", name: "Bing", url: SEARCH_ENGINES.bing }
                 ];
                 engines.forEach(eng => {
@@ -14891,6 +15019,13 @@ _VIEWER_DL_JS +
                     icon: '<i class="fas fa-code"></i>',
                     title: 'Page Inspector',
                     body: 'Inspect the live DOM of any page. Browse the element tree, view computed styles, box model and attributes. Works even if devtools are disabled in your browser.',
+                    pos: 'below-left'
+                },
+                {
+                    target: '#aiBtn',
+                    icon: '<i class="fas fa-wand-magic-sparkles"></i>',
+                    title: 'GUST Assistant',
+                    body: 'Opens the AI sidebar. Ask questions about the current page, or just use it like a normal AI chatbot.',
                     pos: 'below-left'
                 },
                 {
