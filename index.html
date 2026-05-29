@@ -15724,7 +15724,7 @@ _VIEWER_DL_JS +
                 // Pollinations text API — POST /openai, no auth, CORS open, streaming supported.
                 // Docs: https://github.com/pollinations/pollinations/blob/main/APIDOCS.md
                 const POLLINATIONS = 'https://text.pollinations.ai/openai';
-                const MODEL        = 'openai-fast';  // gpt-5-nano — fastest available on text.pollinations.ai
+                const MODEL        = 'openai-fast';
                 const SYSTEM       = 'You are GUST Assistant for the GUST Browser. Reply like a smart friend texting — short, natural, no fluff. No "Got it!", no "Sure thing!", no filler. Just answer. Remember everything in the conversation.';
 
                 let _history   = [];
@@ -15745,9 +15745,6 @@ _VIEWER_DL_JS +
 
                 if (_ctxToggle) _ctxToggle.addEventListener('click', () => _setCtx(!_useContext));
                 if (_ctxSetting) _ctxSetting.addEventListener('click', () => _setCtx(!_useContext));
-
-
-
 
 
 
