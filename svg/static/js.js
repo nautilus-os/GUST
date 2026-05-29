@@ -132,9 +132,9 @@
 
   let WISP = (function () {
     try {
-      return ls.getItem("gust:wisp:v1") || "wss://wisp.mercurywork.shop/";
+      return ls.getItem("gust:wisp:v1") || "wss://wisp.rhw.one/wisp/";
     } catch {
-      return "wss://wisp.mercurywork.shop/";
+      return "wss://wisp.rhw.one/wisp/";
     }
   })();
   const $ = (s) => document.getElementById(s);
@@ -8623,7 +8623,7 @@ parent.postMessage({ t: 'ready' }, '*');
     }
     if (wispReset && wispInput) {
       wispReset.onclick = async () => {
-        const defaultWisp = "wss://wisp.mercurywork.shop/";
+        const defaultWisp = "wss://wisp.rhw.one/wisp/";
         wispInput.value = defaultWisp;
         try {
           ls.setItem("gust:wisp:v1", defaultWisp);

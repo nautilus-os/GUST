@@ -5972,7 +5972,7 @@
                 try { ls.setItem('gust:wisp:last-working:v1', url); } catch {}
                 lastWorkingWisp = url;
             }
-            let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.mercurywork.shop/"; } catch { return "wss://wisp.mercurywork.shop/"; } })();
+            let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.rhw.one/wisp/"; } catch { return "wss://wisp.rhw.one/wisp/"; } })();
             const $ = s => document.getElementById(s);
             const frame = $('frame');
             let _pendingNavHint = null;
@@ -13945,7 +13945,7 @@ _VIEWER_DL_JS +
                 }
                 if (wispReset && wispInput) {
                     wispReset.onclick = async () => {
-                        const defaultWisp = "wss://wisp.mercurywork.shop/";
+                        const defaultWisp = "wss://wisp.rhw.one/wisp/";
                         wispInput.value = defaultWisp;
                         try {
                             ls.setItem('gust:wisp:v1', defaultWisp);
