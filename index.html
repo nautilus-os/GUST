@@ -15777,8 +15777,8 @@ _VIEWER_DL_JS +
                 // Docs: https://github.com/pollinations/pollinations/blob/main/APIDOCS.md
                 const POLLINATIONS = 'https://text.pollinations.ai/openai';
                 const MODEL        = 'openai';
-                const _SYSTEM_CTX   = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. You cannot read the page by default and you are not given the URL or title. If the user asks about the specific content of their active tab, the page URL, or the page title, state that you need permission to access this information and always append exactly `function assistantRequestPageContext` to the very end of your message. If the user responds with "Approved." followed by page context (content, URL, title), use that information to answer their questions about the page. If the user responds with "Denied." to your request, accept the denial and move on.';
-                const _SYSTEM_NOCTX = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. Only state facts. Do not guess or speculate. If you don\'t know something, say so.';
+                const _SYSTEM_CTX   = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: natural and direct. Be concise but don\'t force brevity if the topic requires more detail. You cannot read the page by default and you are not given the URL or title. If the user asks about the specific content of their active tab, the page URL, or the page title, state that you need permission to access this information and always append *exactly* this string with zero changes: `function assistantRequestPageContext` — no variations, no abbreviations, no different wording will work. Do NOT write "assistantPageContext", "requestPageContext", "getPageContext", "viewPageContent", or anything else. It MUST be `function assistantRequestPageContext` verbatim. If the user responds with "Approved" followed by page context (content, URL, title, language, viewport), use that information to answer their questions about the page. If the user responds with "Denied" to your request, accept the denial and move on.';
+                const _SYSTEM_NOCTX = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: natural, direct, and to the point. Be concise but don\'t force brevity if the topic requires more detail. Only state facts. Do not guess or speculate. If you don\'t know something, say so.';
                 function _systemPrompt() { return _useContext ? _SYSTEM_CTX : _SYSTEM_NOCTX; }
 
                 let _history   = [];
@@ -15973,6 +15973,32 @@ _VIEWER_DL_JS +
                     }
                 }
 
+                function isCutOff(text) {
+                    const t = text.trim();
+                    if (!t) return false;
+                    if (/[.!?)\]]$/.test(t)) return false;
+                    if (/[`([{*]$/.test(t)) return true;
+                    if (/\w$/.test(t)) return true;
+                    return false;
+                }
+
+                function showContinueBar() {
+                    let bar = document.getElementById('aiContinueBar');
+                    if (!bar) {
+                        bar = document.createElement('div');
+                        bar.id = 'aiContinueBar';
+                        bar.className = 'ai-permission-bar';
+                        bar.innerHTML = '<span>GUST Assistant was cut off. Continue?</span><div class="perm-btns"><button class="perm-check" id="aiContinueBtn" title="Continue"><i class="fas fa-check"></i></button></div>';
+                        const inputArea = document.querySelector('.ai-input-area');
+                        if (inputArea) inputArea.appendChild(bar);
+                        bar.querySelector('#aiContinueBtn').onclick = () => {
+                            bar.classList.remove('visible');
+                            sendMessage('Continue', true);
+                        };
+                    }
+                    bar.classList.add('visible');
+                }
+
                 document.addEventListener('click', (e) => {
                     if (e.target.closest('#permDeny')) {
                         const bar = document.getElementById('aiPermissionBar');
@@ -15980,7 +16006,7 @@ _VIEWER_DL_JS +
                         aiSidebar.classList.remove('ai-permission-wait', 'ai-capturing');
                         if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
                         aiSendBtn.disabled = false;
-                        sendMessage('Denied.');
+                        sendMessage('Denied');
                     }
                     if (e.target.closest('#permAllow')) {
                         const bar = document.getElementById('aiPermissionBar');
@@ -15993,14 +16019,18 @@ _VIEWER_DL_JS +
                             const pageText = extractPageText();
                             const urlInfo = getPageContext();
                             const title = (() => { try { const f = document.getElementById('frame'); const d = f?.contentDocument || (f?.contentWindow && f.contentWindow.document); return d?.title?.trim() || ''; } catch { return ''; } })();
-                            let msg = 'Approved.\n\n---';
+                            const lang = (() => { try { return ls?.getItem('gust:language:v1')?.trim() || navigator.language?.split('-')[0] || 'en'; } catch { return navigator.language?.split('-')[0] || 'en'; } })();
+                            const vp = window.innerWidth + 'x' + window.innerHeight;
+                            let msg = 'Approved\n\n---';
                             if (pageText) msg += '\n\n[Page Content: ' + pageText + '.]';
                             if (urlInfo) msg += '\n\n[The user is currently on ' + urlInfo + '.]';
                             if (title) msg += '\n\n[The title of the page the user is currently on is ' + title + '.]';
+                            msg += '\n\n[The user\'s language is ' + lang + '.]';
+                            if (vp !== '0x0') msg += '\n\n[The viewport size is ' + vp + '.]';
                             aiSidebar.classList.remove('ai-capturing');
                             if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
                             aiSendBtn.disabled = false;
-                            sendMessage(msg, true, 'Approved.');
+                            sendMessage(msg, true, 'Approved');
                         }, 100);
                     }
                 });
@@ -16010,6 +16040,8 @@ _VIEWER_DL_JS +
                 async function sendMessage(userText, skipContext, displayText) {
                     setThinking(true);
                     _lastMsg = { userText, skipContext, displayText };
+                    const contBar = document.getElementById('aiContinueBar');
+                    if (contBar) contBar.classList.remove('visible');
 
                     let content = userText;
 
@@ -16074,7 +16106,11 @@ _VIEWER_DL_JS +
                                         const token  = parsed.choices?.[0]?.delta?.content ?? '';
                                         if (token) {
                                             reply += token;
-                                            const displayReply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
+                                            // Suppress partial marker during streaming so it never flashes
+                                            let displayReply = reply;
+                                            const _markerMatch = displayReply.match(/(?:function\s+)?assistantRequestPageContext/);
+                                            if (_markerMatch) displayReply = displayReply.slice(0, _markerMatch.index);
+                                            displayReply = displayReply.replace(/\s*`?\s*function\s+assistantRequestPageContext\s*`?\s*/gi, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
                                             if (displayReply) typingEl.innerHTML = renderMd(displayReply);
                                             aiMessages.scrollTop = aiMessages.scrollHeight;
                                         }
@@ -16086,11 +16122,13 @@ _VIEWER_DL_JS +
                                 if (_retry < 3) continue;
                                 reply = '(no response)';
                             }
-                            const _needsPerm = reply.includes('function assistantRequestPageContext');
-                            reply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
+                            const _needsPerm = /assistantRequestPageContext/.test(reply);
+                            reply = reply.replace(/\s*`?\s*function\s+assistantRequestPageContext\s*`?\s*/gi, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
                             if (!reply) reply = _needsPerm ? 'I need permission to access the content of this page.' : '(no response)';
                             typingEl.innerHTML = renderMd(reply);
+                            typingEl.innerHTML = typingEl.innerHTML.replace(/assistantRequestPageContext/gi, '');
                             _history.push({ role: 'assistant', content: reply });
+                            if (!_needsPerm && isCutOff(reply)) showContinueBar();
                             if (_needsPerm) assistantRequestPageContext();
                             lastErr = null;
                             break;
