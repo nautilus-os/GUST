@@ -8367,7 +8367,7 @@
                         icon.className = blockEnabled ? "fas fa-shield-halved" : "fas fa-xmark";
                     }
                 }
-                if (blockState) blockState.textContent = blockEnabled ? "Protected" : "Paused";
+                if (blockState) blockState.textContent = blockEnabled ? "Protected" : "Disabled";
             }
 
             function applyFontSize(value) {
@@ -12828,11 +12828,11 @@ _VIEWER_DL_JS +
                     adblockStatsCount.textContent = (adblockStatsCount.dataset.count || "0");
                 } else {
                     blockToggle.classList.remove("on", "site-paused");
-                    blockToggle.querySelector("span").textContent = "Paused";
+                    blockToggle.querySelector("span").textContent = "Disabled";
                     blockToggle.querySelector("i").className = "fas fa-xmark";
                     adblockLargeToggle.classList.remove("on", "site-paused");
                     adblockLargeToggle.innerHTML = '<i class="fas fa-xmark"></i>';
-                    adblockStatusText.textContent = "Protection Paused";
+                    adblockStatusText.textContent = "Protection Disabled";
                     adblockStatusText.style.color = "var(--tx2)";
                 }
                 // Let site-paused state override the green if needed
@@ -12862,11 +12862,13 @@ _VIEWER_DL_JS +
                 e.stopPropagation();
                 // If site is paused, big button re-enables for this site and ensures global block is on
                 if (typeof isSitePaused === 'function' && isSitePaused()) {
-                    const host = typeof getCurrentHost === 'function' ? getCurrentHost() : null;
-                    if (host) {
-                        const list = (typeof getAllowlist === 'function' ? getAllowlist() : []).filter(h => h !== host);
-                        if (typeof saveAllowlist === 'function') saveAllowlist(list);
-                        if (typeof updateSettingsAllowlistUI === 'function') updateSettingsAllowlistUI();
+                    if (blockEnabled) {
+                        const host = typeof getCurrentHost === 'function' ? getCurrentHost() : null;
+                        if (host) {
+                            const list = (typeof getAllowlist === 'function' ? getAllowlist() : []).filter(h => h !== host);
+                            if (typeof saveAllowlist === 'function') saveAllowlist(list);
+                            if (typeof updateSettingsAllowlistUI === 'function') updateSettingsAllowlistUI();
+                        }
                     }
                     if (!blockEnabled) setBlockEnabled(true);
                     updateAdblockUI();
@@ -12932,31 +12934,40 @@ _VIEWER_DL_JS +
                     pauseSiteBtnText.textContent = 'Pause for this site';
                     pauseSiteBtn.querySelector('i').className = 'fas fa-pause';
                 }
-                // Update big toggle appearance if site is paused (but global block is on)
-                if (blockEnabled && paused) {
+                // Update big toggle appearance
+                if (paused) {
                     adblockLargeToggle.classList.remove('on');
                     adblockLargeToggle.classList.add('site-paused');
                     adblockLargeToggle.innerHTML = '<i class="fas fa-pause"></i>';
-                    adblockStatusText.textContent = 'Paused for this site';
+                    adblockStatusText.textContent = blockEnabled ? 'Paused for this site' : 'Protection Disabled';
                     adblockStatusText.style.color = 'var(--warn)';
-                } else if (blockEnabled && !paused) {
+                } else if (blockEnabled) {
                     adblockLargeToggle.classList.remove('site-paused');
                     adblockLargeToggle.classList.add('on');
                     adblockLargeToggle.innerHTML = '<i class="fas fa-shield-halved"></i>';
                     adblockStatusText.textContent = 'Protection Active';
                     adblockStatusText.style.color = 'var(--ok)';
+                } else {
+                    adblockLargeToggle.classList.remove('on', 'site-paused');
+                    adblockLargeToggle.innerHTML = '<i class="fas fa-xmark"></i>';
+                    adblockStatusText.textContent = 'Protection Disabled';
+                    adblockStatusText.style.color = 'var(--tx2)';
                 }
                 // Update navbar blockToggle badge
-                if (blockEnabled && paused) {
+                if (paused) {
                     blockToggle.classList.remove('on');
                     blockToggle.classList.add('site-paused');
                     blockToggle.querySelector('i').className = 'fas fa-pause';
                     if (blockState) blockState.textContent = 'Paused';
-                } else if (blockEnabled && !paused) {
+                } else if (blockEnabled) {
                     blockToggle.classList.remove('site-paused');
                     blockToggle.classList.add('on');
                     blockToggle.querySelector('i').className = 'fas fa-shield-halved';
                     if (blockState) blockState.textContent = 'Protected';
+                } else {
+                    blockToggle.classList.remove('on', 'site-paused');
+                    blockToggle.querySelector('i').className = 'fas fa-xmark';
+                    if (blockState) blockState.textContent = 'Disabled';
                 }
                 pauseSiteBtn.style.display = '';
             }
@@ -12981,6 +12992,8 @@ _VIEWER_DL_JS +
                         list.push(host);
                     }
                     saveAllowlist(list);
+                    // Auto-enable global block when toggling pause state while disabled
+                    if (!blockEnabled) setBlockEnabled(true);
                     updatePauseSiteBtn();
                     updateSettingsAllowlistUI();
                     // Reload the page so the proxy script is re-injected with updated allowlist
@@ -13071,7 +13084,7 @@ _VIEWER_DL_JS +
                     const origin = parsed?.origin || url;
                     hostEl.textContent = host;
                     protoEl.innerHTML = `<span class="err">Connection error</span>`;
-                    blockEl.innerHTML = blockEnabled ? `<span class="ok">Protected</span>` : `<span style="color:var(--tx3)">Paused</span>`;
+                    blockEl.innerHTML = blockEnabled ? `<span class="ok">Protected</span>` : `<span style="color:var(--tx3)">Disabled</span>`;
                     const cc = getCookieCount(origin);
                     cookieEl.innerHTML = cc > 0 ? `<span class="ok">${cc} stored</span>` : `<span style="color:var(--tx3)">None</span>`;
                     const ch = getCacheCount(host);
