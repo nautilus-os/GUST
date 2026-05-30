@@ -3754,6 +3754,10 @@
         .ai-permission-wait .ai-send-btn { background: var(--err); }
         .ai-permission-wait .ai-input-wrap,
         .ai-permission-wait .ai-send-btn { opacity: 0.4; pointer-events: none; }
+        .ai-capturing .ai-input-wrap { border-color: var(--ac); }
+        .ai-capturing .ai-send-btn { background: var(--ac); }
+        .ai-capturing .ai-input-wrap,
+        .ai-capturing .ai-send-btn { opacity: 0.6; pointer-events: none; }
 
         .ai-permission-bar {
             display: none;
@@ -5972,7 +5976,7 @@
                 try { ls.setItem('gust:wisp:last-working:v1', url); } catch {}
                 lastWorkingWisp = url;
             }
-            let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.rhw.one/wisp/"; } catch { return "wss://wisp.rhw.one/wisp/"; } })();
+            let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.mercurywork.shop/"; } catch { return "wss://wisp.mercurywork.shop/"; } })();
             const $ = s => document.getElementById(s);
             const frame = $('frame');
             let _pendingNavHint = null;
@@ -13945,7 +13949,7 @@ _VIEWER_DL_JS +
                 }
                 if (wispReset && wispInput) {
                     wispReset.onclick = async () => {
-                        const defaultWisp = "wss://wisp.rhw.one/wisp/";
+                        const defaultWisp = "wss://wisp.mercurywork.shop/";
                         wispInput.value = defaultWisp;
                         try {
                             ls.setItem('gust:wisp:v1', defaultWisp);
@@ -15773,7 +15777,7 @@ _VIEWER_DL_JS +
                 // Docs: https://github.com/pollinations/pollinations/blob/main/APIDOCS.md
                 const POLLINATIONS = 'https://text.pollinations.ai/openai';
                 const MODEL        = 'openai';
-                const _SYSTEM_CTX   = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. You are given the user\'s current URL for context, but you must never guess, assume, or speculate about the page\'s actual content—only state verified facts, and admit you don\'t know if you lack information. You cannot read the page by default; if the user asks about the specific content of their active tab, state that you need permission to access it and always append exactly `function assistantRequestPageContext` to the very end of your message. If the user responds with "Denied." to your request to access the page, accept the denial and move on.';
+                const _SYSTEM_CTX   = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. You cannot read the page by default and you are not given the URL or title. If the user asks about the specific content of their active tab, the page URL, or the page title, state that you need permission to access this information and always append exactly `function assistantRequestPageContext` to the very end of your message. If the user responds with "Approved." followed by page context (content, URL, title), use that information to answer their questions about the page. If the user responds with "Denied." to your request, accept the denial and move on.';
                 const _SYSTEM_NOCTX = 'You are the GUST Browser\'s AI assistant, GUST Assistant. Reply like a smart friend texting: short, natural, direct, and free of filler. Only state facts. Do not guess or speculate. If you don\'t know something, say so.';
                 function _systemPrompt() { return _useContext ? _SYSTEM_CTX : _SYSTEM_NOCTX; }
 
@@ -15871,6 +15875,9 @@ _VIEWER_DL_JS +
                     // Escape HTML first
                     const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
+                    // Normalise \r\n → \n so all line-anchored patterns work
+                    text = text.replace(/\r\n/g, '\n');
+
                     // Split into code-block vs normal segments to protect code
                     const parts = text.split(/(```[\s\S]*?```)/g);
                     let html = parts.map((part, i) => {
@@ -15890,17 +15897,17 @@ _VIEWER_DL_JS +
                         s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
                         // Inline code
                         s = s.replace(/`([^`]+)`/g, '<code style="background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:12px;">$1</code>');
-                        // Links
+                        // Links (http + https)
                         s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href="$2" style="color:var(--ac);text-decoration:underline;" target="_blank">$1</a>');
                         // Bare URLs
                         s = s.replace(/(^|[\s(])((https?:\/\/)[^\s<>)"]+)/g, '$1<a href="$2" style="color:var(--ac);text-decoration:underline;" target="_blank">$2</a>');
-                        // Unordered lists (- or *)
+                        // Unordered lists
                         s = s.replace(/^[ \t]*[-*] (.+)$/gm, '<li style="margin-left:16px;list-style:disc;">$1</li>');
                         s = s.replace(/(<li[\s\S]*?<\/li>)/g, m => `<ul style="margin:4px 0;padding-left:4px;">${m}</ul>`);
                         // Ordered lists
                         s = s.replace(/^[ \t]*\d+\. (.+)$/gm, '<li style="margin-left:16px;list-style:decimal;">$1</li>');
-                        // Horizontal rule
-                        s = s.replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--bd);margin:8px 0;">');
+                        // Horizontal rule: ---, ***, ___
+                        s = s.replace(/^[ \t]*([-*_])\1{2,}[ \t]*$/gm, '<hr style="border:none;border-top:2px solid var(--tx3);margin:12px 0;opacity:0.5;">');
                         // Line breaks → <br> (preserve paragraphs)
                         s = s.replace(/\n\n+/g, '<br><br>');
                         s = s.replace(/\n/g, '<br>');
@@ -15916,11 +15923,7 @@ _VIEWER_DL_JS +
                     wrap.style.cssText = role === 'user'
                         ? 'align-self:flex-end;background:var(--bg3);color:var(--tx);padding:8px 12px;border-radius:12px 12px 3px 12px;max-width:85%;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word;border:1px solid var(--ac);'
                         : 'align-self:flex-start;color:var(--tx);font-size:13px;line-height:1.6;max-width:100%;word-break:break-word;border-left:3px solid var(--ac);padding-left:10px;';
-                    if (role === 'user') {
-                        wrap.textContent = text;
-                    } else {
-                        wrap.innerHTML = renderMd(text);
-                    }
+                    wrap.innerHTML = renderMd(text);
                     aiMessages.appendChild(wrap);
                     aiMessages.scrollTop = aiMessages.scrollHeight;
                     return wrap;
@@ -15945,19 +15948,36 @@ _VIEWER_DL_JS +
                     if (!_useContext) return;
                     const bar = document.getElementById('aiPermissionBar');
                     if (!bar) return;
-                    bar.classList.add('visible');
-                    aiSidebar.classList.remove('ai-thinking');
+                    // Clear any stale state so the bar always shows
+                    aiSidebar.classList.remove('ai-thinking', 'ai-capturing');
                     aiSidebar.classList.add('ai-permission-wait');
+                    bar.classList.add('visible');
                     if (aiTextarea) { aiTextarea.disabled = true; aiTextarea.placeholder = 'Please choose a response.'; }
                     aiSendBtn.disabled = true;
                     aiMessages.scrollTop = aiMessages.scrollHeight;
+                }
+
+                function extractPageText() {
+                    try {
+                        const f = document.getElementById('frame');
+                        if (!f) return '';
+                        const doc = f.contentDocument || (f.contentWindow && f.contentWindow.document);
+                        if (!doc || !doc.body) return '';
+                        let text = doc.body.innerText || '';
+                        text = text.replace(/\s+/g, ' ').trim();
+                        const maxLen = 10000;
+                        if (text.length > maxLen) text = text.slice(0, maxLen) + '\n\n[content truncated at ' + maxLen + ' characters]';
+                        return text;
+                    } catch (e) {
+                        return '[Could not extract page content]';
+                    }
                 }
 
                 document.addEventListener('click', (e) => {
                     if (e.target.closest('#permDeny')) {
                         const bar = document.getElementById('aiPermissionBar');
                         if (bar) bar.classList.remove('visible');
-                        aiSidebar.classList.remove('ai-permission-wait');
+                        aiSidebar.classList.remove('ai-permission-wait', 'ai-capturing');
                         if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
                         aiSendBtn.disabled = false;
                         sendMessage('Denied.');
@@ -15966,31 +15986,35 @@ _VIEWER_DL_JS +
                         const bar = document.getElementById('aiPermissionBar');
                         if (bar) bar.classList.remove('visible');
                         aiSidebar.classList.remove('ai-permission-wait');
-                        if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
-                        aiSendBtn.disabled = false;
+                        aiSidebar.classList.add('ai-capturing');
+                        if (aiTextarea) { aiTextarea.disabled = true; aiTextarea.placeholder = 'Capturing page content…'; }
+                        aiSendBtn.disabled = true;
+                        setTimeout(() => {
+                            const pageText = extractPageText();
+                            const urlInfo = getPageContext();
+                            const title = (() => { try { const f = document.getElementById('frame'); const d = f?.contentDocument || (f?.contentWindow && f.contentWindow.document); return d?.title?.trim() || ''; } catch { return ''; } })();
+                            let msg = 'Approved.\n\n---';
+                            if (pageText) msg += '\n\n[Page Content: ' + pageText + '.]';
+                            if (urlInfo) msg += '\n\n[The user is currently on ' + urlInfo + '.]';
+                            if (title) msg += '\n\n[The title of the page the user is currently on is ' + title + '.]';
+                            aiSidebar.classList.remove('ai-capturing');
+                            if (aiTextarea) { aiTextarea.disabled = false; aiTextarea.placeholder = 'Ask something…'; aiTextarea.focus(); }
+                            aiSendBtn.disabled = false;
+                            sendMessage(msg, true, 'Approved.');
+                        }, 100);
                     }
                 });
 
                 // ── Pollinations chat ───────────────────────────────────────
-                async function sendMessage(userText) {
+                let _lastMsg = null;
+                async function sendMessage(userText, skipContext, displayText) {
                     setThinking(true);
+                    _lastMsg = { userText, skipContext, displayText };
 
-                    // Inject page context only if toggle is on
                     let content = userText;
-                    if (_useContext) {
-                        const url = getPageContext();
-                        if (url) {
-                            let urlNote = '';
-                            if (url === 'gust://newtab') urlNote = ' (this is the GUST browser new tab page)';
-                            else if (url.startsWith('gust://settings')) urlNote = ' (this is an internal GUST settings page)';
-                            content = `[Context only — not part of the user's question: The user is currently on ${url}${urlNote}.]
-
-${userText}`;
-                        }
-                    }
 
                     _history.push({ role: 'user', content });
-                    appendMsg('user', userText);
+                    appendMsg('user', displayText || userText);
 
                     const typingEl = appendMsg('assistant', '');
                     typingEl.innerHTML = '<span class="gust-typing-dots"><span></span><span></span><span></span></span>';
@@ -16001,9 +16025,9 @@ ${userText}`;
                         document.head.appendChild(s);
                     }
 
-                    try {
+                        try {
                     let lastErr;
-                    for (let _retry = 0; _retry < 3; _retry++) {
+                    for (let _retry = 0; _retry < 4; _retry++) {
                         if (_retry) {
                             typingEl.innerHTML = '<span class="gust-typing-dots"><span></span><span></span><span></span></span>';
                             await new Promise(r => setTimeout(r, 1500));
@@ -16025,7 +16049,10 @@ ${userText}`;
 
                             if (!res.ok) {
                                 const err = await res.text().catch(() => res.status);
-                                throw new Error(`Pollinations HTTP ${res.status}: ${err}`);
+                                const code = res.status;
+                                if (code === 429) throw new Error('Rate-limited by Pollinations. Please wait a moment and try again.');
+                                if (code >= 500) throw new Error('Pollinations server error (' + code + '). The service may be down right now.');
+                                throw new Error(`Pollinations HTTP ${code}: ${err}`);
                             }
 
                             // Stream SSE tokens
@@ -16048,14 +16075,17 @@ ${userText}`;
                                         if (token) {
                                             reply += token;
                                             const displayReply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
-                                            typingEl.innerHTML = renderMd(displayReply || reply);
+                                            if (displayReply) typingEl.innerHTML = renderMd(displayReply);
                                             aiMessages.scrollTop = aiMessages.scrollHeight;
                                         }
                                     } catch { /* partial chunk, skip */ }
                                 }
                             }
 
-                            if (!reply) reply = '(no response)';
+                            if (!reply) {
+                                if (_retry < 3) continue;
+                                reply = '(no response)';
+                            }
                             const _needsPerm = reply.includes('function assistantRequestPageContext');
                             reply = reply.replace(/\s*`?function assistantRequestPageContext`?\s*/g, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
                             if (!reply) reply = _needsPerm ? 'I need permission to access the content of this page.' : '(no response)';
@@ -16072,8 +16102,20 @@ ${userText}`;
 
                     } catch (e) {
                         typingEl.remove();
-                        appendMsg('assistant', '⚠ GUST error: ' + (e.message || 'Unknown error.'));
                         _history.pop();
+                        let msg;
+                        if (e.name === 'AbortError') msg = '⚠ The AI took too long. ';
+                        else if (e.name === 'TypeError') {
+                            console.warn('GUST AI fetch failed:', e.message, 'origin:', location.origin, 'protocol:', location.protocol);
+                            msg = '⚠ ' + (e.message || 'Network error') + ' ';
+                        }
+                        else msg = '⚠ ' + (e.message || 'Unknown error') + ' ';
+                        const retryEl = appendMsg('assistant', msg);
+                        const btn = document.createElement('span');
+                        btn.textContent = '↻ Retry';
+                        btn.style.cssText = 'color:var(--ac);cursor:pointer;font-weight:600;text-decoration:underline;margin-left:4px;';
+                        btn.onclick = () => { if (_lastMsg) sendMessage(_lastMsg.userText, _lastMsg.skipContext, _lastMsg.displayText); retryEl.remove(); };
+                        retryEl.appendChild(btn);
                     }
 
                     setThinking(false);
