@@ -1132,10 +1132,7 @@
             background: rgba(157, 229, 255, 0.07);
         }
 
-        /* AI button active state */
-        #aiBtn.active             { color: inherit; background: inherit; border-color: inherit; }
-        #aiBtn.active i           { color: inherit; }
-        /* GUST Assistant — magic wand tap */
+        /* AI button active state — uses the blue border + tint from the rule above */
         @keyframes gust-wand-tap {
             0%   { transform: rotate(0deg); }
             40%  { transform: rotate(20deg); }
@@ -7628,8 +7625,8 @@
             let wsSeq = 0;
             const wsMap = new Map();
 
-            let MAX_CONCURRENT = (function () { try { return parseInt(ls.getItem('gust:idlethreads:v1')) || 6; } catch { return 6; } })();
-            let MAX_CONCURRENT_ACTIVE = (function () { try { return parseInt(ls.getItem('gust:activethreads:v1')) || 6; } catch { return 6; } })();
+            let MAX_CONCURRENT = (function () { try { return parseInt(ls.getItem('gust:idlethreads:v1'), 10) || 6; } catch { return 6; } })();
+            let MAX_CONCURRENT_ACTIVE = (function () { try { return parseInt(ls.getItem('gust:activethreads:v1'), 10) || 6; } catch { return 6; } })();
             let _isPageLoading = false;
             let syncState = 1;
             let layoutChecksum = 0;
@@ -8629,7 +8626,7 @@
                 // Wire breadcrumb clicks to navigate up to ancestor
                 bc.querySelectorAll('.elem-crumb:not(.current)').forEach(span => {
                     span.onclick = () => {
-                        const idx = parseInt(span.dataset.idx);
+                        const idx = parseInt(span.dataset.idx, 10);
                         const el = crumbs[idx]?.el;
                         if (el) selectElementNode(el);
                     };
@@ -9631,8 +9628,8 @@
                     if (resp.status === 200 && rangeReq) {
                         const m = rangeReq.match(/bytes=(\d+)-(\d*)/);
                         if (m) {
-                            const start = parseInt(m[1]);
-                            const end   = m[2] ? parseInt(m[2]) : buf.byteLength - 1;
+                            const start = parseInt(m[1], 10);
+                            const end   = m[2] ? parseInt(m[2], 10) : buf.byteLength - 1;
                             buf = buf.slice(start, end + 1);
                         }
                     }
@@ -12388,7 +12385,7 @@ _VIEWER_DL_JS +
                     const _triggerMatches = (_isDns && _fbDns) || (_isTimeout && _fbTimeout) || (_is5xx && _fb5xx)
                         || (!_isDns && !_isTimeout && !_is5xx); // generic errors always eligible
 
-                    const _mainRetries = (() => { try { return parseInt(ls.getItem('gust:main:retries')) || 3; } catch { return 3; } })();
+                    const _mainRetries = (() => { try { return parseInt(ls.getItem('gust:main:retries'), 10) || 3; } catch { return 3; } })();
                     const _primaryHost = WISP.replace(/^wss?:\/\//, '').split('/')[0];
 
                     if (!_isRetry && _triggerMatches && !tabAbortControllers.get(initiatorTabId)?.signal?.aborted) {
@@ -13670,7 +13667,6 @@ _VIEWER_DL_JS +
 
                 try {
                     if (!ls.getItem('gust:initialized:v1')) {
-                        ls.clear();
                         ls.setItem('gust:initialized:v1', '1');
                     }
                 } catch(e) {}
@@ -13683,7 +13679,7 @@ _VIEWER_DL_JS +
                     try {
                         const saved = ls.getItem('gust:fontsize:v1');
                         if (saved !== null) {
-                            applyFontSize(parseInt(saved));
+                            applyFontSize(parseInt(saved, 10));
                         }
                     } catch (e) { }
 
@@ -14077,14 +14073,14 @@ _VIEWER_DL_JS +
                     try {
                         const saved = ls.getItem('gust:fontsize:v1');
                         if (saved !== null) {
-                            const size = parseInt(saved);
+                            const size = parseInt(saved, 10);
                             fontSlider.value = size;
                             applyFontSize(size);
                         }
                     } catch (e) { }
 
                     fontSlider.oninput = () => {
-                        const size = parseInt(fontSlider.value);
+                        const size = parseInt(fontSlider.value, 10);
                         applyFontSize(size);
                         try {
                             ls.setItem('gust:fontsize:v1', size.toString());
@@ -15986,7 +15982,8 @@ _VIEWER_DL_JS +
 
                 function showContinueBar() {
                     let bar = document.getElementById('aiContinueBar');
-                    if (!bar) {
+                    if (!bar || !bar.isConnected) {
+                        if (bar && !bar.isConnected) bar.remove();
                         bar = document.createElement('div');
                         bar.id = 'aiContinueBar';
                         bar.className = 'ai-permission-bar';
@@ -16093,7 +16090,7 @@ _VIEWER_DL_JS +
                             const reader  = res.body.getReader();
                             const decoder = new TextDecoder();
                             let reply = '';
-                            typingEl.innerHTML = '';
+                            let _firstToken = true;
 
                             while (true) {
                                 const { done, value } = await reader.read();
@@ -16113,7 +16110,10 @@ _VIEWER_DL_JS +
                                             const _markerMatch = displayReply.match(/(?:function\s+)?assistantRequestPageContext/);
                                             if (_markerMatch) displayReply = displayReply.slice(0, _markerMatch.index);
                                             displayReply = displayReply.replace(/\s*`?\s*function\s+assistantRequestPageContext\s*`?\s*/gi, '').replace(/\s*---\s*\*\*Support Pollinations\.AI:\*\*\s*---[\s\S]*$/i, '').trimEnd();
-                                            if (displayReply) typingEl.innerHTML = renderMd(displayReply);
+                                            if (displayReply) {
+                                                if (_firstToken) { _firstToken = false; typingEl.innerHTML = ''; }
+                                                typingEl.innerHTML = renderMd(displayReply);
+                                            }
                                             aiMessages.scrollTop = aiMessages.scrollHeight;
                                         }
                                     } catch { /* partial chunk, skip */ }
@@ -16154,7 +16154,7 @@ _VIEWER_DL_JS +
                         const btn = document.createElement('span');
                         btn.textContent = '↻ Retry';
                         btn.style.cssText = 'color:var(--ac);cursor:pointer;font-weight:600;text-decoration:underline;margin-left:4px;';
-                        btn.onclick = () => { if (_lastMsg) sendMessage(_lastMsg.userText, _lastMsg.skipContext, _lastMsg.displayText); retryEl.remove(); };
+                        btn.onclick = () => { if (_lastMsg && !_thinking) { _thinking = true; sendMessage(_lastMsg.userText, _lastMsg.skipContext, _lastMsg.displayText); btn.style.pointerEvents = 'none'; btn.style.opacity = '0.4'; retryEl.remove(); } };
                         retryEl.appendChild(btn);
                     }
 
