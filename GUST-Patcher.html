@@ -1323,8 +1323,7 @@ function buildPatchScript(removedPatches) {
   if (rm.has('nt-clock24'))      { ls('gust:24hrclock:v1','false'); }
   if (rm.has('shortcuts-panel')) { ls('gust:shortcutsEnabled','0'); }
   if (rm.has('tutorial-auto') || rm.has('tutorial-include')) {
-    // Seed all known tutorial key variants (bare + instance-prefixed via ls() helper)
-    ls('gust:tutorial','done'); ls('gust:tutorial:done','1'); ls('gust:tutorial:v1','done');
+    ls('gust:tutorial:v1','done');
   }
   if (rm.has('fallback-enabled'))  { ls('gust:fallback:enabled','0'); }
   if (rm.has('fallback-5xx'))      { ls('gust:fallback:5xx','0'); }
@@ -1587,11 +1586,11 @@ function buildPatchScript(removedPatches) {
     js('})();');
     css('.tab-drag-ghost,.tab-drag-slot,.tab-dragging');
   }
-  if (rm.has('sidebar-nav-aiassistant')) stubFns(['openAI','closeAI','toggleAI']);
-  if (rm.has('tab-context')) stubFns(['showTabContext','tabContextMenu','openTabMenu']);
-  if (rm.has('dev-logs'))      stubFns(['initLogPanel','toggleLogPanel','addLog','logRequest','toggleLogs']);
-  if (rm.has('dev-inspector')) stubFns(['initInspector','toggleInspector','inspectElement','toggleElements']);
-  if (rm.has('metrics'))       stubFns(['initMetrics','updateMetrics','toggleMetrics','startMetrics','showMetrics','hideMetrics']);
+  if (rm.has('sidebar-nav-aiassistant')) stubFns(['openAI','closeAI']);
+  if (rm.has('tab-context')) stubFns([]);
+  if (rm.has('dev-logs'))      stubFns(['toggleLogs']);
+  if (rm.has('dev-inspector')) stubFns(['toggleElements']);
+  if (rm.has('metrics'))       stubFns(['showMetrics','hideMetrics']);
 
   // ---- Assemble payload and base64-encode it ----
   // The payload is encoded so that no special characters (backticks, <\/script>,
