@@ -2589,6 +2589,11 @@
             animation: ctx-bounce .22s cubic-bezier(.34,1.56,.64,1) both;
         }
 
+        .context-menu.closing {
+            animation: ctx-bounce-out .14s ease-in both;
+            pointer-events: none;
+        }
+
         .context-menu-item {
             display: flex;
             align-items: center;
@@ -10773,6 +10778,9 @@ document.addEventListener('contextmenu', e => {
   e.preventDefault();
   parent.postMessage({ t: 'ctx', x: e.clientX, y: e.clientY }, '*');
 }, true);
+document.addEventListener('mousedown', e => {
+  parent.postMessage({ t: 'ctxclose' }, '*');
+}, true);
 
 try {
   const _navProto = Object.getPrototypeOf(navigator);
@@ -10813,6 +10821,12 @@ parent.postMessage({ t: 'ready' }, '*');
                     const x = rect.left + d.x;
                     const y = rect.top + d.y;
                     openContextMenu(x, y);
+                    return;
+                }
+                if (d.t === 'ctxclose') {
+                    if (contextMenu.classList.contains("active")) {
+                        animateClose(contextMenu, 140, () => contextMenu.classList.remove("active"));
+                    }
                     return;
                 }
 
