@@ -7026,7 +7026,7 @@
 
             // Poll the active tab's iframe every 1.5s for playing audio/video
             let _audioFalseCount = 0; // debounce: require 2 consecutive "not playing" before clearing icon
-            setInterval(() => {
+            if (ls.getItem('gust:tabMute:v1') !== 'false') setInterval(() => {
                 const tab = getActiveTab();
                 if (!tab || tab.url === HOME_INTERNAL || isSettingsPage(tab.url)) return;
                 let playing = false;
@@ -13709,7 +13709,7 @@ _VIEWER_DL_JS +
                     }
 
                     updateClock();
-                    setInterval(updateClock, 1000 * 10);
+                    if (ls.getItem('gust:showclock:v1') !== 'false') setInterval(updateClock, 1000 * 10);
                     loadSavedWallpaper();
                     if (ntEngineLabel) {
                         if (selectedEngine === 'google' || selectedEngine === 'ddg') {
@@ -14289,7 +14289,7 @@ _VIEWER_DL_JS +
                         var lang = (code && code.trim() !== '') ? code : (navigator.language || 'en');
                         if (lang.length > 2) lang = lang.substring(0, 2);
                         document.documentElement.setAttribute('lang', lang);
-                        if (code && code.trim() !== '' && code !== 'en') {
+                        if (ls.getItem('gust:autotranslate:v1') === '1' && code && code.trim() !== '' && code !== 'en') {
                             translatePage(code.trim().length >= 2 ? code.substring(0, 2) : code);
                         } else {
                             translatePage('');
@@ -14297,15 +14297,17 @@ _VIEWER_DL_JS +
                     } catch (_) { }
                 }
                 applySavedLanguage();
-                setTimeout(function() {
-                    try {
-                        var code = ls.getItem('gust:language:v1');
-                        if (code && code.trim() !== '' && code.trim() !== 'en') {
-                            var lang = code.trim().length >= 2 ? code.trim().substring(0, 2) : code.trim();
-                            translatePage(lang);
-                        }
-                    } catch (_) { }
-                }, 2000);
+                if (ls.getItem('gust:autotranslate:v1') === '1') {
+                    setTimeout(function() {
+                        try {
+                            var code = ls.getItem('gust:language:v1');
+                            if (code && code.trim() !== '' && code.trim() !== 'en') {
+                                var lang = code.trim().length >= 2 ? code.trim().substring(0, 2) : code.trim();
+                                translatePage(lang);
+                            }
+                        } catch (_) { }
+                    }, 2000);
+                }
                 if (langSelect) {
                     try {
                         const saved = ls.getItem('gust:language:v1');
