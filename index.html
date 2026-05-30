@@ -388,20 +388,19 @@
             position: fixed;
             z-index: 99999;
             background: var(--bg2);
-            border: 1px solid var(--bd2);
-            border-radius: var(--radius-md);
-            padding: 5px;
+            border: 1px solid var(--bd);
+            border-radius: 10px;
+            padding: 6px;
             min-width: 170px;
-            box-shadow: var(--shadow-md), 0 0 0 1px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             display: none;
             flex-direction: column;
-            gap: 1px;
-            animation: ctx-bounce .22s cubic-bezier(.34,1.56,.64,1) both;
             transform-origin: top left;
         }
 
         .tab-context-menu.active {
             display: flex;
+            animation: ctx-bounce .22s cubic-bezier(.34,1.56,.64,1) both;
         }
 
         @keyframes ctx-bounce {
@@ -428,61 +427,53 @@
         .tab-ctx-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 7px 10px;
-            border-radius: 7px;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
             border: none;
             background: transparent;
-            color: var(--tx2);
+            color: var(--tx);
             cursor: pointer;
             font-size: 13px;
-            font-family: var(--ui);
             width: 100%;
             text-align: left;
-            transition: background .1s, color .1s;
+            transition: background .12s;
         }
 
-        .tab-ctx-item:hover:not(:disabled):not(.disabled) {
+        .tab-ctx-item:hover {
             background: var(--surface2);
-            color: var(--tx);
         }
 
         .tab-ctx-item i {
             font-size: 13px;
             width: 16px;
             text-align: center;
-            color: var(--tx3);
-            flex-shrink: 0;
-        }
-
-        .tab-ctx-item:hover:not(:disabled):not(.disabled) i {
-            color: var(--ac);
+            color: var(--tx2);
         }
 
         .tab-ctx-item.danger {
             color: var(--err);
         }
-
         .tab-ctx-item.danger i {
-            color: var(--err);
-        }
-
-        .tab-ctx-item.danger:hover {
-            background: rgba(255, 149, 149, .1);
             color: var(--err);
         }
 
         .tab-ctx-item:disabled,
         .tab-ctx-item.disabled {
-            opacity: .38;
-            pointer-events: all;
+            opacity: 0.35;
             cursor: not-allowed;
+            pointer-events: all;
+        }
+
+        .tab-ctx-item:disabled:hover,
+        .tab-ctx-item.disabled:hover {
+            background: transparent;
         }
 
         .tab-ctx-separator {
             height: 1px;
             background: var(--bd);
-            margin: 3px 2px;
+            margin: 4px 0;
         }
 
         .tab-add {
@@ -2575,7 +2566,7 @@
             position: fixed;
             background: var(--bg2);
             border: 1px solid var(--bd);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 6px;
             min-width: 200px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
@@ -3384,6 +3375,21 @@
         .settings-switch.on .settings-switch-thumb {
             left: 22px;
             background: var(--ok);
+        }
+
+        #aiContextToggle .settings-switch-track {
+            width: 22px;
+            height: 12px;
+            border-radius: 6px;
+        }
+        #aiContextToggle .settings-switch-thumb {
+            width: 9px;
+            height: 9px;
+            top: 1px;
+            left: 1px;
+        }
+        #aiContextToggle.on .settings-switch-thumb {
+            left: 11px;
         }
 
         
@@ -4207,7 +4213,7 @@
             </button>
             <!-- Removed duplicate findBtn from toolbar -->
 
-            <button class="tool-btn" id="aiBtn" title="Toggle GUST Assistant">
+            <button class="tool-btn" id="aiBtn" title="Toggle GUST Assistant (Alt+A)">
                 <i class="fas fa-wand-magic-sparkles"></i>
             </button>
 
@@ -4459,18 +4465,10 @@
                         <i class="fas fa-plus"></i>
                         <span>New Tab</span>
                     </button>
-                    <button class="context-menu-item" id="ctxReload">
-                        <i class="fas fa-rotate-right"></i>
-                        <span>Reload</span>
-                    </button>
                     <div class="context-menu-separator"></div>
-                    <button class="context-menu-item" id="ctxBack">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>Back</span>
-                    </button>
-                    <button class="context-menu-item" id="ctxForward">
-                        <i class="fas fa-arrow-right"></i>
-                        <span>Forward</span>
+                    <button class="context-menu-item" id="ctxSettings">
+                        <i class="fas fa-gear"></i>
+                        <span>Settings</span>
                     </button>
                     <div class="context-menu-separator"></div>
                     <button class="context-menu-item" id="ctxBookmark">
@@ -4482,10 +4480,19 @@
                         <span>Copy URL</span>
                     </button>
                     <div class="context-menu-separator"></div>
-                    <button class="context-menu-item" id="ctxSettings">
-                        <i class="fas fa-gear"></i>
-                        <span>Settings</span>
+                    <button class="context-menu-item" id="ctxReload">
+                        <i class="fas fa-rotate-right"></i>
+                        <span>Reload</span>
                     </button>
+                    <button class="context-menu-item" id="ctxBack">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                    <button class="context-menu-item" id="ctxForward">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>Forward</span>
+                    </button>
+                    <div class="context-menu-separator"></div>
                     <button class="context-menu-item danger" id="ctxCloseTab">
                         <i class="fas fa-xmark"></i>
                         <span>Close Tab</span>
@@ -4494,13 +4501,14 @@
 
                 <!-- Tab right-click context menu -->
                 <div class="tab-context-menu" id="tabContextMenu">
-                    <button class="tab-ctx-item" id="tabCtxReload">
-                        <i class="fas fa-rotate-right"></i>
-                        <span>Reload Tab</span>
-                    </button>
                     <button class="tab-ctx-item" id="tabCtxMute">
                         <i class="fas fa-volume-xmark"></i>
                         <span>Mute Tab</span>
+                    </button>
+                    <div class="tab-ctx-separator"></div>
+                    <button class="tab-ctx-item" id="tabCtxReload">
+                        <i class="fas fa-rotate-right"></i>
+                        <span>Reload Tab</span>
                     </button>
                     <div class="tab-ctx-separator"></div>
                     <button class="tab-ctx-item danger" id="tabCtxClose">
@@ -5186,6 +5194,20 @@
                                                             style="font-size:11px;"></i></button>
                                                 </div>
                                             </div>
+                                            <div
+                                                style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span style="color:var(--tx2);">AI Assistant</span>
+                                                <div style="display:flex; gap:8px; align-items:center;">
+                                                    <code class="shortcut-display" data-shortcut="ai"
+                                                        style="background:var(--bg3); padding:4px 10px; border-radius:4px; color:var(--tx); font-size:11px; border:1px solid var(--bd);">Alt + A</code>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Edit shortcut"><i class="fas fa-pen"
+                                                            style="font-size:11px;"></i></button>
+                                                    <button class="settings-btn-icon" style="width:28px; height:28px;"
+                                                        title="Reset shortcut"><i class="fas fa-rotate-left"
+                                                            style="font-size:11px;"></i></button>
+                                                </div>
+                                            </div>
                                         </div><!-- /#shortcutsList -->
                                     </div>
                                 </div>
@@ -5846,7 +5868,7 @@
                     <span class="ai-sidebar-title">GUST Assistant <span style="font-size:10px;font-weight:700;color:#ff4444;margin-left:4px;">[experimental]</span></span>
                     <div style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--tx2);user-select:none;">
                         <span>Page Context</span>
-                        <div class="settings-switch" id="aiContextToggle" title="Let GUST Assistant read the current page" style="transform:scale(0.72);transform-origin:right center;">
+                        <div class="settings-switch" id="aiContextToggle" title="Let GUST Assistant read the current page">
                             <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
                         </div>
                     </div>
@@ -8304,18 +8326,18 @@
 
             function playGustAnimation(delay) {
                 if (_gustAnimLocked) return;
-                
-                const getBrandEls = () => {
+                const els = (() => {
                     const icon = document.querySelector('.nt-brand .gust-icon-anim');
                     const letters = document.querySelectorAll('.nt-brand .gust-letter-G, .nt-brand .gust-letter-U, .nt-brand .gust-letter-S, .nt-brand .gust-letter-T');
                     const badge = document.querySelector('.nt-brand .gust-badge-anim');
                     return [icon, ...letters, badge].filter(Boolean);
-                };
-                getBrandEls().forEach(el => { el.style.animation = 'none'; el.style.opacity = '0'; });
+                })();
+                els.forEach(el => { el.style.animation = 'none'; el.style.opacity = '0'; });
+                void els[0]?.offsetHeight; // force reflow
                 if (_gustAnimTimer) { clearTimeout(_gustAnimTimer); _gustAnimTimer = null; }
                 _gustAnimTimer = setTimeout(() => {
                     _gustAnimTimer = null;
-                    getBrandEls().forEach(el => { el.style.opacity = ''; el.style.animation = ''; });
+                    els.forEach(el => { el.style.opacity = ''; el.style.animation = ''; });
                 }, delay ?? 80);
             }
 
@@ -14606,8 +14628,8 @@ _VIEWER_DL_JS +
             }
 
             function wireShortcutEditButtons() {
-                const shortcutNames = ['newtab', 'closetab', 'reload', 'bookmark', 'focusurl', 'settings', 'logs', 'inspector', 'history', 'metrics', 'fullscreen', 'find'];
-                const defaultKeys = ['T', 'W', 'R', 'D', 'L', ',', 'G', 'I', 'H', 'M', 'K', 'F'];
+                const shortcutNames = ['newtab', 'closetab', 'reload', 'bookmark', 'focusurl', 'settings', 'logs', 'inspector', 'history', 'metrics', 'fullscreen', 'find', 'ai'];
+                const defaultKeys = ['T', 'W', 'R', 'D', 'L', ',', 'G', 'I', 'H', 'M', 'K', 'F', 'A'];
                 document.querySelectorAll('.settings-section[data-section="shortcuts"] .settings-btn-icon').forEach((btn, idx) => {
                     const scIdx = Math.floor(idx / 2); 
                     const isReset = idx % 2 === 1;
@@ -15009,9 +15031,10 @@ _VIEWER_DL_JS +
                 history: () => { if (historyPopup.classList.contains('open')) hideHistoryPopup(); else showHistoryPopup(); },
                 metrics: () => { metricsModal.style.display === 'flex' ? hideMetrics() : showMetrics(); },
                 fullscreen: () => { if (!document.fullscreenElement) _doRequestFullscreen().catch(() => {}); else document.exitFullscreen(); },
+                ai: () => { const sb = document.getElementById('aiSidebar'), btn = document.getElementById('aiBtn'); if (sb && btn) btn.click(); },
                 find: () => toggleFindBar()
             };
-            const SC_DEFAULTS = { newtab: 'T', closetab: 'W', reload: 'R', bookmark: 'D', focusurl: 'L', settings: ',', logs: 'G', inspector: 'I', history: 'H', metrics: 'M', fullscreen: 'K', find: 'F' };
+            const SC_DEFAULTS = { newtab: 'T', closetab: 'W', reload: 'R', bookmark: 'D', focusurl: 'L', settings: ',', logs: 'G', inspector: 'I', history: 'H', metrics: 'M', fullscreen: 'K', find: 'F', ai: 'A' };
             let scMap = {}; 
 
             function buildShortcutMap() {
