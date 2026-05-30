@@ -8464,6 +8464,12 @@
                     // Close other panels
                     if (logsEl && !logsEl.classList.contains('hidden')) { logsEl.classList.add('hidden'); $('devToggle')?.classList.remove('active'); }
                     const aiSb = document.getElementById('aiSidebar'); if (aiSb && !aiSb.classList.contains('hidden')) { aiSb.classList.add('hidden'); $('aiBtn')?.classList.remove('active'); }
+                } else {
+                    // Clear stale state when closing
+                    selectedElement = null;
+                    const bc = $('elementsBreadcrumb'); if (bc) { bc.innerHTML = ''; bc.classList.remove('visible'); }
+                    const detail = $('elementsDetail'); if (detail) detail.style.display = 'none';
+                    const content = $('elemDetailContent'); if (content) content.innerHTML = '';
                 }
                 elementsEl.classList.toggle("hidden");
                 $('codeBtn')?.classList.toggle('active', wasHidden);
@@ -8481,6 +8487,22 @@
             }
 
             function inspectCurrentPage() {
+                // Clear stale state from previous page
+                selectedElement = null;
+                const bc = $('elementsBreadcrumb'); if (bc) { bc.innerHTML = ''; bc.classList.remove('visible'); }
+                const dc = $('elemDetailContent'); if (dc) dc.innerHTML = '';
+                const detail = $('elementsDetail');
+                if (detail) {
+                    const toggle = $('elemDetailToggle');
+                    if (toggle && toggle.classList.contains('on')) {
+                        detail.style.display = 'flex';
+                        detail.style.flexDirection = 'column';
+                    } else {
+                        detail.style.display = 'none';
+                    }
+                }
+                const _ov = $('elemHighlightOverlay'); if (_ov) _ov.style.display = 'none';
+
                 if (pageUrl === HOME_INTERNAL || isSettingsPage(pageUrl)) {
                     elementsTree.innerHTML = '<li style="color: var(--tx3); padding: 8px;">Cannot inspect internal Gust pages</li>';
                     return;
@@ -8748,15 +8770,15 @@
             if (elemDetailToggleBtn && elemDetailPanel) {
                 elemDetailToggleBtn.addEventListener('click', () => {
                     const isOn = elemDetailToggleBtn.classList.toggle('on');
-                    // Always apply visibility; if turning on and an element is selected, show the panel
-                    if (isOn && selectedElement) {
+                    if (isOn) {
                         elemDetailPanel.style.display = 'flex';
                         elemDetailPanel.style.flexDirection = 'column';
-                        showElementDetail(selectedElement, currentDetailTab || 'styles');
-                    } else if (!isOn) {
+                        if (selectedElement) {
+                            showElementDetail(selectedElement, currentDetailTab || 'styles');
+                        }
+                    } else {
                         elemDetailPanel.style.display = 'none';
                     }
-                    // Store pref so next selection respects it
                     elemDetailToggleBtn._detailVisible = isOn;
                 });
                 elemDetailToggleBtn._detailVisible = true; // on by default
