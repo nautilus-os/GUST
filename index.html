@@ -1129,7 +1129,21 @@
             40%  { transform: rotate(20deg); }
             100% { transform: rotate(0deg); }
         }
+        #aiBtn {
+            position: relative;
+        }
         #aiBtn:hover i            { animation: gust-wand-tap 0.35s ease-in-out; }
+
+        #aiBtn.has-new::after {
+            content: '';
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--ac);
+        }
         /* find — magnify pop */
         #findBtn:hover i          { transform: scale(1.15); }
 
@@ -15879,7 +15893,7 @@ _VIEWER_DL_JS +
                     const elemsEl2 = document.getElementById('elementsPanel') || document.querySelector('.elements-panel') || (typeof elementsEl !== 'undefined' ? elementsEl : null);
                     if (logsEl2 && !logsEl2.classList.contains('hidden')) { logsEl2.classList.add('hidden'); document.getElementById('devToggle')?.classList.remove('active'); }
                     if (elemsEl2 && !elemsEl2.classList.contains('hidden')) { elemsEl2.classList.add('hidden'); document.getElementById('codeBtn')?.classList.remove('active'); const _ov = document.getElementById('elemHighlightOverlay'); if (_ov) _ov.style.display = 'none'; }
-                    aiSidebar.classList.remove('hidden'); aiBtn.classList.add('active'); document.body.classList.add('panel-open'); _updateFindBarPos(); aiTextarea && aiTextarea.focus();
+                    aiSidebar.classList.remove('hidden'); aiBtn.classList.add('active'); aiBtn.classList.remove('has-new'); document.body.classList.add('panel-open'); _updateFindBarPos(); aiTextarea && aiTextarea.focus();
                 }
                 function closeAI() { aiSidebar.classList.add('hidden'); aiBtn.classList.remove('active'); document.body.classList.remove('panel-open'); _updateFindBarPos(); }
                 aiBtn.addEventListener('click', () =>
@@ -16202,6 +16216,7 @@ _VIEWER_DL_JS +
                             typingEl.innerHTML = renderMd(reply);
                             typingEl.innerHTML = typingEl.innerHTML.replace(/assistantRequestPageContext/gi, '');
                             _history.push({ role: 'assistant', content: reply });
+                            if (aiSidebar.classList.contains('hidden')) aiBtn.classList.add('has-new');
                             if (!_needsPerm && isCutOff(reply)) showContinueBar();
                             if (_needsPerm) assistantRequestPageContext();
                             lastErr = null;
