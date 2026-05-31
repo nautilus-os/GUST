@@ -501,12 +501,18 @@ button,input,select,textarea{font:inherit}
       <div class="sidebar-master-bar-label">Show Search in Settings Sidebar</div>
       <div class="sidebar-master-bar-desc">Uncheck to remove the <strong>Search</strong> entry from GUST's Settings sidebar. The search engine picker, spellcheck toggle, and favicon proxy option will all be hidden from Settings.</div>
     </div>
-    <div class="sidebar-master-check checked" data-patch="sidebar-nav-search" data-section="search" data-master-for="search-engine spellcheck search-favicon" onclick="toggleSidebarMaster(this)"></div>
+    <div class="sidebar-master-check checked" data-patch="sidebar-nav-search" data-section="search" data-master-for="search-engine custom-search-engine spellcheck search-favicon" onclick="toggleSidebarMaster(this)"></div>
   </div>
   <div class="settings-card">
     <div class="settings-card-head"><i class="fas fa-magnifying-glass"></i> Default Search Engine</div>
     <div class="settings-card-body">
       <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Search engine picker</div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the search engine selector from Settings. Brave Search will be locked in as the default with no way to change it.</div></div><div class="patch-check checked" data-patch="search-engine" data-section="search" onclick="togglePatch(this)"></div></div>
+    </div>
+  </div>
+  <div class="settings-card">
+    <div class="settings-card-head"><i class="fas fa-pen"></i> Custom Search Engine</div>
+    <div class="settings-card-body">
+      <div class="patch-row"><div class="patch-row-info"><div class="patch-row-label">Custom search engine card</div><div class="patch-row-desc"><strong>Uncheck to remove</strong> the custom search engine config card from Settings. The <strong>Custom</strong> option will still appear in the engine picker but its name/URL card will be hidden.</div></div><div class="patch-check checked" data-patch="custom-search-engine" data-section="search" onclick="togglePatch(this)"></div></div>
     </div>
   </div>
   <div class="settings-card">
@@ -1385,9 +1391,11 @@ function buildPatchScript(removedPatches) {
   }
 
   // Search
-  // search-engine, spellcheck, search-favicon are children of sidebar-nav-search
+  // search-engine, custom-search-engine, spellcheck, search-favicon are children of sidebar-nav-search
   if (rm.has('search-engine'))
     css('#settingsEngineRows');
+  if (rm.has('custom-search-engine'))
+    (rm.has('sidebar-nav-search') ? badge : css)('#customSearchCard');
   if (rm.has('spellcheck')) {
     // Show a "broken" warning badge (special case — spellcheck doesn't actually work)
     js('(function(){');
