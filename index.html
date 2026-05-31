@@ -3391,22 +3391,24 @@
             background: var(--ok);
         }
 
-        #aiContextToggle .settings-switch-track {
-            width: 22px;
-            height: 12px;
-            border-radius: 6px;
-        }
-        #aiContextToggle .settings-switch-thumb {
-            width: 9px;
-            height: 9px;
-            top: 1px;
-            left: 1px;
-        }
-        #aiContextToggle.on .settings-switch-thumb {
-            left: 11px;
-        }
+
 
         
+        #aiContextToggle .settings-switch-track {
+            width: 33px;
+            height: 18px;
+            border-radius: 9px;
+        }
+        #aiContextToggle .settings-switch-thumb {
+            width: 13px;
+            height: 13px;
+            top: 1.5px;
+            left: 2px;
+        }
+        #aiContextToggle.on .settings-switch-thumb {
+            left: 16px;
+        }
+
         .settings-nav-item {
             display: flex;
             align-items: center;
@@ -5880,7 +5882,7 @@
                 <div class="ai-panel-resize-handle" id="aiResizeHandle"></div>
                 <div class="ai-sidebar-head">
                     <span class="ai-sidebar-title">GUST Assistant <span style="font-size:10px;font-weight:700;color:#ff4444;margin-left:4px;">[experimental]</span></span>
-                    <div style="display:flex;align-items:center;gap:4px;margin-left:auto;font-size:11px;color:var(--tx2);user-select:none;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-left:auto;font-size:13px;color:var(--tx2);user-select:none;">
                         <span>Page Context</span>
                         <div class="settings-switch" id="aiContextToggle" title="Let GUST Assistant read the current page">
                             <div class="settings-switch-track"><div class="settings-switch-thumb"></div></div>
