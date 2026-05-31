@@ -3410,6 +3410,11 @@
             left: 16px;
         }
 
+        .settings-card.depends-disabled {
+            opacity: 0.35;
+            pointer-events: none;
+            transition: opacity .18s;
+        }
         .settings-nav-item {
             display: flex;
             align-items: center;
@@ -4331,6 +4336,7 @@
                                     <button data-engine="brave">Brave</button>
                                     <button data-engine="ddg">DuckDuckGo</button>
                                     <button data-engine="bing">Bing</button>
+                                    <button data-engine="custom">Custom</button>
                                 </div>
                             </div>
                             <input id="ntSearch" placeholder="Search or enter address" autocomplete="off">
@@ -4787,6 +4793,25 @@
                                         Search Engine</div>
                                     <div class="settings-card-body">
                                         <div class="settings-toggle-row" id="settingsEngineRows"></div>
+                                    </div>
+                                </div>
+                                <div class="settings-card" id="customSearchCard" data-depends-on="custom">
+                                    <div class="settings-card-head"><i class="fas fa-pen"></i> Custom Search Engine</div>
+                                    <div class="settings-card-body">
+                                        <label class="settings-label">Engine Name</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" class="settings-input" id="customSearchNameInput" value="Custom" placeholder="My Engine">
+                                            <button class="settings-btn-icon" id="customSearchNameSaveBtn" title="Save"><i class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="customSearchNameResetBtn" title="Reset to default"><i class="fas fa-rotate-left"></i></button>
+                                        </div>
+                                        <div class="settings-hint" style="margin-top:14px;">Display name for the custom engine in the picker.</div>
+                                        <label class="settings-label" style="margin-top:14px;">Search URL</label>
+                                        <div style="display:flex; gap:8px;">
+                                            <input type="text" class="settings-input" id="customSearchUrlInput" value="" placeholder="https://example.com/search?q={q}">
+                                            <button class="settings-btn-icon" id="customSearchSaveBtn" title="Save"><i class="fas fa-check"></i></button>
+                                            <button class="settings-btn-icon" id="customSearchResetBtn" title="Reset to default"><i class="fas fa-rotate-left"></i></button>
+                                        </div>
+                                        <div class="settings-hint">Use <code>{q}</code> as the query placeholder. Only used when <strong>Custom</strong> engine is selected.</div>
                                     </div>
                                 </div>
                                 <div class="settings-card">
@@ -6871,8 +6896,11 @@
                 brave: "https://search.brave.com/search?q=",
                 ddg: "https://duckduckgo.com/?q=",
                 google: "https://www.google.com/search?q=",
-                bing: "https://www.bing.com/search?q="
+                bing: "https://www.bing.com/search?q=",
+                custom: "https://example.com/search?q={q}"
             };
+            const CUSTOM_SEARCH_URL_KEY = "gust:custom-search-url:v1";
+            const CUSTOM_SEARCH_NAME_KEY = "gust:custom-search-name:v1";
             const WALLPAPER_QUERIES = ["aurora", "nebula", "ocean", "fog", "desert", "mountain", "city night", "forest", "abstract"];
             const WALLPAPER_STORAGE_KEY = "gust:newtab-wallpaper:v1";
             const FAV_KEY = "gust:favorites:v1";
@@ -7162,7 +7190,8 @@
                 urlInput.value = tab.url;
                 setTabTitle(tab.title);
                 updateNav();
-                renderTabs();
+                document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tabId == tabId));
+                updateTabScrollBtns();
                 saveTabs();
                 if (typeof updatePauseSiteBtn === 'function') updatePauseSiteBtn();
 
@@ -8117,7 +8146,8 @@
                 const tab = getActiveTab();
                 if (tab) {
                     tab.title = title;
-                    renderTabs();
+                    const tabEl = document.querySelector(`.tab[data-tab-id="${tab.id}"] .tab-title`);
+                    if (tabEl) tabEl.textContent = escapeHtml(title);
                     saveTabs();
                 }
             }
@@ -8151,7 +8181,25 @@
 
             function getSearchBase() {
                 const key = selectedEngine || "brave";
+                if (key === "custom") {
+                    const customUrl = (function () { try { return ls.getItem(CUSTOM_SEARCH_URL_KEY); } catch { return ""; } })();
+                    return (customUrl || SEARCH_ENGINES.custom).replace("{q}", "");
+                }
                 return SEARCH_ENGINES[key] || SEARCH_ENGINES.brave;
+            }
+
+            function getCustomEngineName() {
+                try {
+                    const name = ls.getItem(CUSTOM_SEARCH_NAME_KEY);
+                    return (name && name.trim()) ? name.trim() : "Custom";
+                } catch { return "Custom"; }
+            }
+
+            function updateDependsOn() {
+                document.querySelectorAll('[data-depends-on]').forEach(el => {
+                    const dep = el.dataset.dependsOn;
+                    el.classList.toggle('depends-disabled', selectedEngine !== dep);
+                });
             }
 
             function updateClock() {
@@ -13617,7 +13665,7 @@ _VIEWER_DL_JS +
                         e.stopPropagation();
                         selectedEngine = btn.dataset.engine;
                         try { ls.setItem('gust:engine:v1', selectedEngine); } catch { }
-                        ntEngineLabel.textContent = btn.textContent;
+                        ntEngineLabel.textContent = selectedEngine === 'custom' ? getCustomEngineName() : btn.textContent;
 
                         ntEngineDropdown.querySelectorAll('button').forEach(b => b.classList.remove('active'));
                         btn.classList.add('active');
@@ -13800,7 +13848,7 @@ _VIEWER_DL_JS +
                             selectedEngine = 'brave';
                             try { ls.setItem('gust:engine:v1', 'brave'); } catch { }
                         }
-                        const engineNames = { brave: 'Brave', ddg: 'DuckDuckGo', bing: 'Bing' };
+                        const engineNames = { brave: 'Brave', ddg: 'DuckDuckGo', bing: 'Bing', custom: getCustomEngineName() };
                         ntEngineLabel.textContent = engineNames[selectedEngine] || 'Brave';
                         ntEngineDropdown.querySelectorAll('button').forEach(b => {
                             b.classList.toggle('active', b.dataset.engine === selectedEngine);
@@ -13973,10 +14021,13 @@ _VIEWER_DL_JS +
                 const container = $("settingsEngineRows");
                 if (!container) return;
                 container.innerHTML = "";
+                const customName = getCustomEngineName();
+                const customUrl = (function () { try { return ls.getItem(CUSTOM_SEARCH_URL_KEY); } catch { return ""; } })();
                 const engines = [
                     { key: "brave", name: "Brave", url: SEARCH_ENGINES.brave },
                     { key: "ddg", name: "DuckDuckGo", url: SEARCH_ENGINES.ddg },
-                    { key: "bing", name: "Bing", url: SEARCH_ENGINES.bing }
+                    { key: "bing", name: "Bing", url: SEARCH_ENGINES.bing },
+                    { key: "custom", name: customName, url: customUrl || SEARCH_ENGINES.custom }
                 ];
                 engines.forEach(eng => {
                     const btn = document.createElement("button");
@@ -13988,11 +14039,13 @@ _VIEWER_DL_JS +
                     btn.onclick = () => {
                         selectedEngine = eng.key;
                         try { ls.setItem('gust:engine:v1', selectedEngine); } catch { }
-                        if (ntEngineLabel) ntEngineLabel.textContent = eng.name;
+                        if (ntEngineLabel) ntEngineLabel.textContent = selectedEngine === 'custom' ? getCustomEngineName() : eng.name;
+                        updateDependsOn();
                         renderEngineButtons();
                     };
                     container.appendChild(btn);
                 });
+                updateDependsOn();
             }
 
             function wireSettingsEvents() {
@@ -14510,6 +14563,64 @@ _VIEWER_DL_JS +
                         try { ls.setItem(key, nowOn ? '1' : '0'); } catch (_) { }
                     };
                 });
+
+                // ── Custom search engine ────────────────────────────────
+                const customSearchInput = $("customSearchUrlInput");
+                const customSearchSave = $("customSearchSaveBtn");
+                const customSearchReset = $("customSearchResetBtn");
+                const customNameInput = $("customSearchNameInput");
+                const customNameSave = $("customSearchNameSaveBtn");
+                const customNameReset = $("customSearchNameResetBtn");
+                if (customNameInput) {
+                    try {
+                        const saved = ls.getItem(CUSTOM_SEARCH_NAME_KEY);
+                        if (saved) customNameInput.value = saved;
+                    } catch (_) {}
+                }
+                if (customNameSave && customNameInput) {
+                    customNameSave.onclick = () => {
+                        const val = customNameInput.value.trim() || "Custom";
+                        try { ls.setItem(CUSTOM_SEARCH_NAME_KEY, val); } catch (_) {}
+                        if (selectedEngine === "custom" && ntEngineLabel) ntEngineLabel.textContent = val;
+                        renderEngineButtons();
+                    };
+                }
+                if (customNameReset && customNameInput) {
+                    customNameReset.onclick = () => {
+                        try { ls.removeItem(CUSTOM_SEARCH_NAME_KEY); } catch (_) {}
+                        customNameInput.value = "Custom";
+                        if (selectedEngine === "custom" && ntEngineLabel) ntEngineLabel.textContent = "Custom";
+                        renderEngineButtons();
+                    };
+                }
+                if (customSearchInput) {
+                    try {
+                        const saved = ls.getItem(CUSTOM_SEARCH_URL_KEY);
+                        if (saved) customSearchInput.value = saved;
+                    } catch (_) {}
+                }
+                if (customSearchSave) {
+                    customSearchSave.onclick = () => {
+                        const val = customSearchInput.value.trim();
+                        if (!val || !val.includes("{q}")) {
+                            alert("Please enter a valid search URL with {q} as the query placeholder.");
+                            return;
+                        }
+                        try { ls.setItem(CUSTOM_SEARCH_URL_KEY, val); } catch (_) {}
+                        if (selectedEngine === "custom" && ntEngineLabel) ntEngineLabel.textContent = getCustomEngineName();
+                        renderEngineButtons();
+                    };
+                }
+                if (customSearchReset) {
+                    customSearchReset.onclick = () => {
+                        try { ls.removeItem(CUSTOM_SEARCH_URL_KEY); } catch (_) {}
+                        customSearchInput.value = SEARCH_ENGINES.custom;
+                        if (selectedEngine === "custom" && ntEngineLabel) ntEngineLabel.textContent = getCustomEngineName();
+                        renderEngineButtons();
+                    };
+                }
+                // Initial depends-on state
+                updateDependsOn();
                 // ───────────────────────────────────────────────────────────
             }
 
