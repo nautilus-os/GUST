@@ -9823,43 +9823,79 @@
                     } catch {}
                     headers.Referer = ref;
                 }
+                // ── Browser fingerprint normalisation ──────────────────────────
+                // Enforces a consistent, organic-looking header set so requests
+                // are indistinguishable from real Chrome navigation traffic.
+
+                // User-Agent — prefer saved UA, fall back to a current Chrome string
                 if (!headers['User-Agent'] && !headers['user-agent']) {
                     const _savedReqUA = (() => { try { return ls.getItem('gust:ua:request:v1'); } catch { return null; } })();
-                    headers['User-Agent'] = _savedReqUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+                    headers['User-Agent'] = _savedReqUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36';
                 }
+
+                // Accept-Language
                 if (!headers['Accept-Language'] && !headers['accept-language']) {
                     headers['Accept-Language'] = 'en-US,en;q=0.9';
                 }
+
+                // Sec-Fetch-* — only when the spoofing preference is enabled
                 if (!headers['Sec-Fetch-Mode'] && !headers['sec-fetch-mode'] && mediaPref('gust:media:headers:v1')) {
-                    // Determine correct Sec-Fetch-* values based on request context
-                    const reqOrigin = (() => { try { return new URL(url).origin; } catch { return ''; } })();
+                    const reqOrigin  = (() => { try { return new URL(url).origin; } catch { return ''; } })();
                     const pageOrigin = (() => { try { return pageUrl ? new URL(pageUrl).origin : ''; } catch { return ''; } })();
                     const isSameOrigin = reqOrigin && pageOrigin && reqOrigin === pageOrigin;
-                    const isSameSite = (() => {
+                    const isSameSite   = (() => {
                         try {
-                            const getETLD1 = h => h.split('.').slice(-2).join('.');
-                            return reqOrigin && pageOrigin && getETLD1(new URL(reqOrigin).hostname) === getETLD1(new URL(pageOrigin).hostname);
+                            const etld1 = h => h.split('.').slice(-2).join('.');
+                            return reqOrigin && pageOrigin &&
+                                   etld1(new URL(reqOrigin).hostname) === etld1(new URL(pageOrigin).hostname);
                         } catch { return false; }
                     })();
-                    // Top-level navigation
-                    if (!pageUrl || url === pageUrl) {
+
+                    const isNavigation = !pageUrl || url === pageUrl;
+                    if (isNavigation) {
+                        // Top-level document navigation
                         headers['Sec-Fetch-Mode'] = 'navigate';
                         headers['Sec-Fetch-Site'] = 'none';
                         headers['Sec-Fetch-Dest'] = 'document';
+                        headers['Sec-Fetch-User'] = '?1';   // present only on user-initiated navigations
                     } else {
-                        // Sub-resource: derive mode and site from URL/Accept header
-                        const accept = headers['Accept'] || headers['accept'] || '';
-                        const ext = url.split('?')[0].split('.').pop().toLowerCase();
-                        const isScript = /\.js$/i.test(url) || accept.includes('javascript');
-                        const isStyle  = /\.css$/i.test(url) || accept.includes('text/css');
-                        const isImage  = /\.(png|jpg|jpeg|gif|webp|svg|ico|avif)$/i.test(url) || accept.startsWith('image/');
-                        const isFont   = /\.(woff2?|ttf|otf|eot)$/i.test(url);
-                        const isJson   = accept.includes('application/json');
-                        headers['Sec-Fetch-Site'] = isSameOrigin ? 'same-origin' : isSameSite ? 'same-site' : 'cross-site';
-                        headers['Sec-Fetch-Mode'] = (isScript || isStyle || isFont) ? 'no-cors' : isJson ? 'cors' : 'no-cors';
-                        headers['Sec-Fetch-Dest'] = isScript ? 'script' : isStyle ? 'style' : isImage ? 'image' : isFont ? 'font' : 'empty';
+                        // Sub-resource — classify by Accept header and URL extension
+                        const accept  = (headers['Accept'] || headers['accept'] || '').toLowerCase();
+                        const urlPath = url.split('?')[0].toLowerCase();
+                        const ext     = urlPath.split('.').pop();
+
+                        const isScript = /\.m?js$/.test(urlPath) || accept.includes('javascript');
+                        const isStyle  = ext === 'css'           || accept.includes('text/css');
+                        const isFont   = /\.(woff2?|ttf|otf|eot)$/.test(urlPath);
+                        const isImage  = /\.(png|jpe?g|gif|webp|svg|ico|avif|bmp)$/.test(urlPath) || accept.startsWith('image/');
+                        const isJson   = accept.includes('application/json') || accept.includes('application/ld+json');
+                        const isXhr    = !!(headers['X-Requested-With'] || headers['x-requested-with']);
+                        const isDoc    = accept.includes('text/html');
+
+                        // Sec-Fetch-Site
+                        headers['Sec-Fetch-Site'] = isSameOrigin ? 'same-origin'
+                                                  : isSameSite   ? 'same-site'
+                                                  :                'cross-site';
+
+                        // Sec-Fetch-Mode
+                        // navigate  → full document loads
+                        // cors      → credentialed XHR / fetch / JSON API calls
+                        // no-cors   → opaque sub-resources (scripts, styles, fonts, images)
+                        headers['Sec-Fetch-Mode'] = isDoc                            ? 'navigate'
+                                                  : (isJson || isXhr)               ? 'cors'
+                                                  : (isScript || isStyle || isFont)  ? 'no-cors'
+                                                  :                                    'no-cors';
+
+                        // Sec-Fetch-Dest
+                        headers['Sec-Fetch-Dest'] = isScript ? 'script'
+                                                  : isStyle  ? 'style'
+                                                  : isFont   ? 'font'
+                                                  : isImage  ? 'image'
+                                                  : isDoc    ? 'document'
+                                                  :            'empty';   // XHR / fetch → empty
                     }
                 }
+                // ── End browser fingerprint normalisation ──────────────────────
                 let body = opts.body;
                 if (headers.__body_b64__ === "1") {
                     try {
