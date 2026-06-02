@@ -6067,6 +6067,123 @@
         onerror="(function(){ const reason='The libcurl.js script could not be fetched from cdn.jsdelivr.net. The CDN may be unreachable or blocked.'; window._libcurlLoadError=reason; console.error('[GUST] libcurl.js failed to load:', reason); })();"
     ></script>
     <script>
+        // ── Pure-JS Base64 utility ────────────────────────────────────────────
+        // Replaces window.atob / window.btoa throughout GUST.
+        // Uses a Uint8Array lookup table for maximum throughput and works in any
+        // legacy JS environment that lacks native atob/btoa (Web Workers, etc.).
+        const Base64 = (() => {
+            const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+            // Encode table: charCode → index (0-63), initialised once at load time
+            const ENC = new Uint8Array(256);
+            for (let i = 0; i < CHARS.length; i++) ENC[CHARS.charCodeAt(i)] = i;
+            // '=' padding char maps to 0 (handled structurally, not by value)
+            ENC['='.charCodeAt(0)] = 0;
+
+            /**
+             * encode(input) – accepts Uint8Array | ArrayBuffer | string (latin-1 binary)
+             * Returns a standard Base64 string.
+             */
+            function encode(input) {
+                let bytes;
+                if (typeof input === 'string') {
+                    // Treat as latin-1 binary string (same contract as btoa())
+                    bytes = new Uint8Array(input.length);
+                    for (let i = 0; i < input.length; i++) bytes[i] = input.charCodeAt(i) & 0xff;
+                } else if (input instanceof ArrayBuffer) {
+                    bytes = new Uint8Array(input);
+                } else {
+                    bytes = input; // already Uint8Array / TypedArray
+                }
+
+                const len = bytes.length;
+                const rem = len % 3;
+                const b64Len = (Math.floor(len / 3) * 4) + (rem ? 4 : 0);
+                const out = new Array(b64Len);
+                let o = 0;
+
+                // Process full 3-byte groups
+                const end = len - rem;
+                for (let i = 0; i < end; i += 3) {
+                    const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
+                    out[o++] = CHARS[ b0 >> 2];
+                    out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
+                    out[o++] = CHARS[(b1 & 0x0f) << 2 | b2 >> 6];
+                    out[o++] = CHARS[ b2 & 0x3f];
+                }
+
+                // Remainder (1 or 2 bytes)
+                if (rem === 1) {
+                    const b0 = bytes[end];
+                    out[o++] = CHARS[ b0 >> 2];
+                    out[o++] = CHARS[(b0 & 0x03) << 4];
+                    out[o++] = '=';
+                    out[o++] = '=';
+                } else if (rem === 2) {
+                    const b0 = bytes[end], b1 = bytes[end + 1];
+                    out[o++] = CHARS[ b0 >> 2];
+                    out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
+                    out[o++] = CHARS[(b1 & 0x0f) << 2];
+                    out[o++] = '=';
+                }
+
+                return out.join('');
+            }
+
+            /**
+             * decode(b64) – accepts a Base64 string (with or without padding)
+             * Returns a Uint8Array of the raw bytes.
+             */
+            function decode(b64) {
+                if (!b64) return new Uint8Array(0);
+
+                // Strip whitespace and normalise padding
+                b64 = b64.replace(/\s/g, '');
+                const rem = b64.length % 4;
+                if (rem === 2) b64 += '==';
+                else if (rem === 3) b64 += '=';
+
+                const len = b64.length;
+                let byteLen = (len / 4) * 3;
+                if (b64[len - 1] === '=') byteLen--;
+                if (b64[len - 2] === '=') byteLen--;
+
+                const out = new Uint8Array(byteLen);
+                let o = 0;
+
+                for (let i = 0; i < len; i += 4) {
+                    const e0 = ENC[b64.charCodeAt(i)];
+                    const e1 = ENC[b64.charCodeAt(i + 1)];
+                    const e2 = ENC[b64.charCodeAt(i + 2)];
+                    const e3 = ENC[b64.charCodeAt(i + 3)];
+
+                    out[o++] = (e0 << 2) | (e1 >> 4);
+                    if (o < byteLen) out[o++] = ((e1 & 0x0f) << 4) | (e2 >> 2);
+                    if (o < byteLen) out[o++] = ((e2 & 0x03) << 6) | e3;
+                }
+
+                return out;
+            }
+
+            /**
+             * decodeToString(b64) – convenience: decode Base64 → latin-1 binary string
+             * Matches the return type of native atob() for drop-in compatibility.
+             */
+            function decodeToString(b64) {
+                const bytes = decode(b64);
+                // Build in 32 KB chunks to avoid call-stack limits on very large buffers
+                let bin = '';
+                const CHUNK = 32768;
+                for (let i = 0; i < bytes.length; i += CHUNK) {
+                    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+                }
+                return bin;
+            }
+
+            return { encode, decode, decodeToString };
+        })();
+        // ─────────────────────────────────────────────────────────────────────
+
         // Early stub so openFindBar can call this before the AI IIFE initialises it
         window._updateFindBarPos = function() {
             const fb = document.getElementById('findBar');
@@ -9746,9 +9863,7 @@
                 let body = opts.body;
                 if (headers.__body_b64__ === "1") {
                     try {
-                        const bin = atob(body || "");
-                        const arr = new Uint8Array(bin.length);
-                        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                        const arr = Base64.decode(body || "");
                         body = arr;
                     } catch { }
                     delete headers.__body_b64__;
@@ -9893,18 +10008,11 @@
 
             function toB64(buf) {
                 const bytes = new Uint8Array(buf);
-                let bin = "";
-                const chunk = 32768;
-                for (let i = 0; i < bytes.length; i += chunk) {
-                    bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + chunk, bytes.length)));
-                }
-                return btoa(bin);
+                return Base64.encode(bytes);
             }
 
             function fromB64(b64) {
-                const bin = atob(b64 || "");
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                const arr = Base64.decode(b64 || "");
                 return arr;
             }
 
@@ -10236,7 +10344,7 @@ window.addEventListener('message', e => {
   if (d.t === 'r') { const p = pending.get(d.i); if (p) { pending.delete(d.i); clearTimeout(p.tm); d.e ? p.rj(new Error(d.e)) : p.rs(d); } }
   if (d.t === 'sse') { const h = sseHandlers.get(d.i); if (h) { if (d.error) { h.onerror?.(new Event('error')); sseHandlers.delete(d.i); } else if (d.done) { sseHandlers.delete(d.i); } else if (d.chunk) { h.onchunk?.(d.chunk); } } }
   if (d.t === 'streamStart') { const h = streamHandlers.get(d.i); if (h) h.onstart?.(d.status, d.headers); }
-  if (d.t === 'streamData') { const h = streamHandlers.get(d.i); if (h && d.d) { const bin = atob(d.d); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); h.ondata?.(arr); } }
+  if (d.t === 'streamData') { const h = streamHandlers.get(d.i); if (h && d.d) { const arr = Base64.decode(d.d); h.ondata?.(arr); } }
   if (d.t === 'streamEnd') { const h = streamHandlers.get(d.i); if (h) { h.onend?.(); streamHandlers.delete(d.i); } }
   if (d.t === 'streamError') { const h = streamHandlers.get(d.i); if (h) { h.onerror?.(new Error(d.error)); streamHandlers.delete(d.i); } }
   if (d.t === 'ws') {
@@ -10245,7 +10353,7 @@ window.addEventListener('message', e => {
     if (d.a === 'open') { ws.readyState = 1; ws.protocol = d.protocol || ''; const evt = new Event('open'); ws.dispatchEvent(evt); ws.onopen?.(evt); }
     if (d.a === 'message') {
       let data = d.d;
-      if (d.b64) { const bin = atob(d.d || ''); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); data = ws.binaryType === 'arraybuffer' ? arr.buffer : new Blob([arr]); }
+      if (d.b64) { const arr = Base64.decode(d.d || ''); data = ws.binaryType === 'arraybuffer' ? arr.buffer : new Blob([arr]); }
       const evt = new MessageEvent('message', { data });
       ws.dispatchEvent(evt);
       ws.onmessage?.(evt);
@@ -10320,12 +10428,7 @@ const blobs = new Map();
 const blobPromises = new Map();
 
 function b64FromArray(arr) {
-  let bin = "";
-  const chunk = 32768;
-  for (let i = 0; i < arr.length; i += chunk) {
-    bin += String.fromCharCode.apply(null, arr.subarray(i, i + chunk));
-  }
-  return btoa(bin);
+  return Base64.encode(arr);
 }
 
 async function fetchBlob(url, type) {
@@ -10335,7 +10438,7 @@ async function fetchBlob(url, type) {
   const promise = (async () => {
     const r = await req(url);
     if (!r.d) return '';
-    const bin = atob(r.d);
+    const arr_rd = Base64.decode(r.d);
     const arr = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     const blob = new Blob([arr], { type: r.m || type || 'application/octet-stream' });
@@ -10366,7 +10469,7 @@ window.fetch = async function(input, init = {}) {
   if (init.headers) { if (init.headers instanceof Headers) init.headers.forEach((v,k) => headers[k] = v); else if (typeof init.headers === 'object') Object.assign(headers, init.headers); }
   if (body instanceof FormData) body = new URLSearchParams(body).toString();
   else if (body instanceof URLSearchParams) body = body.toString();
-  else if (body instanceof ReadableStream) { const reader = body.getReader(); const chunks = []; while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); } const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0); const result = new Uint8Array(totalLength); let offset = 0; for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; } let _bin = ''; const _chunk = 32768; for (let _i = 0; _i < result.length; _i += _chunk) _bin += String.fromCharCode.apply(null, result.subarray(_i, _i + _chunk)); body = btoa(_bin); headers['__body_b64__'] = '1'; }
+  else if (body instanceof ReadableStream) { const reader = body.getReader(); const chunks = []; while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); } const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0); const result = new Uint8Array(totalLength); let offset = 0; for (const chunk of chunks) { result.set(chunk, offset); offset += chunk.length; } body = Base64.encode(result); headers['__body_b64__'] = '1'; }
   const wantsStream = headers['accept']?.includes('text/event-stream') || headers['Accept']?.includes('text/event-stream');
   if (wantsStream) {
     return new Promise((resolve, reject) => {
@@ -10378,9 +10481,7 @@ window.fetch = async function(input, init = {}) {
     });
   }
   const r = await req(url, { method, headers, body });
-  const bin = atob(r.d || '');
-  const arr = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const arr = Base64.decode(r.d || '');
   return new Response(arr, { status: r.s || 200, headers: new Headers(r.h || {}) });
 };
 
@@ -10469,7 +10570,7 @@ window.XMLHttpRequest = function() {
     try {
       const r = await req(url, { method, headers: reqH, body }); status = r.s || 200; respH = r.h || {};
       setReady(2); setReady(3);
-      const bin = atob(r.d || ''); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      const arr = Base64.decode(r.d || '');
       fire('progress', { lengthComputable: true, loaded: arr.length, total: arr.length });
       if (respType === 'arraybuffer') response = arr.buffer;
       else if (respType === 'blob') response = new Blob([arr]);
@@ -10550,7 +10651,7 @@ async function rewriteCss(css, base, _depth) {
       const importUrl = resolve(im[1], base);
       const r = await req(importUrl);
       if (r.d) {
-        const bin = atob(r.d); const arr = new Uint8Array(bin.length);
+        const arr = Base64.decode(r.d);
         for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
         let importCss = new TextDecoder().decode(arr);
         importCss = await rewriteCss(importCss, importUrl, (_depth || 0) + 1);
@@ -10595,7 +10696,7 @@ const origAppend = Node.prototype.appendChild;
 const origInsert = Node.prototype.insertBefore;
 
 const origSetAttr = Element.prototype.setAttribute;
-Element.prototype.setAttribute = function(name, value) { const tag = this.tagName; if (tag === 'LINK' && name === 'href' && (this.rel || '').includes('stylesheet')) { if (value && !/^(data:|blob:)/i.test(value)) { const url = resolve(value); if (shouldSkip(url)) return; const link = this; req(url).then(async r => { const bin = atob(r.d || ''); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); let css = new TextDecoder().decode(arr); css = await rewriteCss(css, url); const style = document.createElement('style'); style.textContent = css; if (link.parentNode) link.parentNode.replaceChild(style, link); }).catch(() => origSetAttr.call(this, name, value)); return; } } if ((tag === 'IMG' || tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE') && (name === 'src' || name === 'poster')) { if (value && !/^(data:|blob:)/i.test(value)) { this[name] = value; return; } } return origSetAttr.call(this, name, value); };
+Element.prototype.setAttribute = function(name, value) { const tag = this.tagName; if (tag === 'LINK' && name === 'href' && (this.rel || '').includes('stylesheet')) { if (value && !/^(data:|blob:)/i.test(value)) { const url = resolve(value); if (shouldSkip(url)) return; const link = this; req(url).then(async r => { const arr = Base64.decode(r.d || ''); let css = new TextDecoder().decode(arr); css = await rewriteCss(css, url); const style = document.createElement('style'); style.textContent = css; if (link.parentNode) link.parentNode.replaceChild(style, link); }).catch(() => origSetAttr.call(this, name, value)); return; } } if ((tag === 'IMG' || tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE') && (name === 'src' || name === 'poster')) { if (value && !/^(data:|blob:)/i.test(value)) { this[name] = value; return; } } return origSetAttr.call(this, name, value); };
 
 const processedEls = new WeakMap(); // url -> true, so we re-process if src changed
 function processEl(el) {
@@ -10917,7 +11018,7 @@ history.pushState = function(s, t, u) { if (u) { try { Object.assign(fakeLoc, ne
 history.replaceState = function(s, t, u) { if (u) { try { Object.assign(fakeLoc, new URL(resolve(u))); } catch {} parent.postMessage({ t: 'uc', u: fakeLoc.href }, '*'); } return origReplace.call(this, s, t, null); };
 
 const OrigWorker = window.Worker;
-if (OrigWorker) { window.Worker = function(url, opts) { const absUrl = resolve(url); const w = { onmessage: null, onerror: null, postMessage: () => {}, terminate: () => {}, addEventListener: () => {}, removeEventListener: () => {} }; const p = /^(data:|blob:)/i.test(absUrl) ? _fetch.call(window, absUrl).then(r => r.arrayBuffer()).then(buf => { const arr = new Uint8Array(buf); let bin = ""; for(let i=0; i<arr.length; i++) bin+=String.fromCharCode(arr[i]); return { d: btoa(bin) }; }) : req(absUrl); p.then(r => { const bin = atob(r.d || ''); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); const blob = new Blob([arr], { type: 'application/javascript' }); const real = new OrigWorker(URL.createObjectURL(blob), opts); w.postMessage = m => real.postMessage(m); w.terminate = () => real.terminate(); w.addEventListener = (t, fn) => real.addEventListener(t, fn); w.removeEventListener = (t, fn) => real.removeEventListener(t, fn); real.onmessage = e => w.onmessage?.(e); real.onerror = e => w.onerror?.(e); }).catch(e => w.onerror?.(new ErrorEvent('error', { message: e.message }))); return w; }; }
+if (OrigWorker) { window.Worker = function(url, opts) { const absUrl = resolve(url); const w = { onmessage: null, onerror: null, postMessage: () => {}, terminate: () => {}, addEventListener: () => {}, removeEventListener: () => {} }; const p = /^(data:|blob:)/i.test(absUrl) ? _fetch.call(window, absUrl).then(r => r.arrayBuffer()).then(buf => { const arr = new Uint8Array(buf); return { d: Base64.encode(arr) }; }) : req(absUrl); p.then(r => { const arr = Base64.decode(r.d || ''); const blob = new Blob([arr], { type: 'application/javascript' }); const real = new OrigWorker(URL.createObjectURL(blob), opts); w.postMessage = m => real.postMessage(m); w.terminate = () => real.terminate(); w.addEventListener = (t, fn) => real.addEventListener(t, fn); w.removeEventListener = (t, fn) => real.removeEventListener(t, fn); real.onmessage = e => w.onmessage?.(e); real.onerror = e => w.onerror?.(e); }).catch(e => w.onerror?.(new ErrorEvent('error', { message: e.message }))); return w; }; }
 
 // SharedWorker shim — proxy the script through Gust then run as a plain Worker
 // (SharedWorkers can't share state across tabs in a single-iframe proxy, but at least
@@ -10946,11 +11047,11 @@ if (OrigSharedWorker) {
       ? _fetch.call(window, absUrl).then(r => r.arrayBuffer()).then(buf => {
           const arr = new Uint8Array(buf); let bin = '';
           for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
-          return { d: btoa(bin) };
+          return { d: Base64.encode(bin) };
         })
       : req(absUrl);
     p.then(r => {
-      const bin = atob(r.d || '');
+      const bin = Base64.decodeToString(r.d || '');
       const arr = new Uint8Array(bin.length);
       for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
       const blob = new Blob([arr], { type: 'application/javascript' });
@@ -11310,7 +11411,7 @@ parent.postMessage({ t: 'ready' }, '*');
                 const CHUNK = 32768;
                 for (let i = 0; i < arr.length; i += CHUNK)
                     bin += String.fromCharCode.apply(null, arr.subarray(i, i + CHUNK));
-                const b64 = btoa(bin);
+                const b64 = Base64.encode(bin);
                 const jB64      = JSON.stringify(b64);
                 const jFilename = JSON.stringify(filename);
 
@@ -11352,7 +11453,7 @@ _VIEWER_BASE_CSS +
 'pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs";' +
 'const B64 = ' + jB64 + ';' +
 'const FILENAME = ' + jFilename + ';' +
-'function b64ToBytes(b){const bin=atob(b);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return a;}' +
+'function b64ToBytes(b){if(!b)return new Uint8Array(0);b=b.replace(/\\s/g,"");var r=b.length%4;if(r===2)b+="==";else if(r===3)b+="=";var C="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",E=new Uint8Array(256);for(var k=0;k<64;k++)E[C.charCodeAt(k)]=k;E[61]=0;var len=b.length,bl=(len/4)*3;if(b[len-1]==="=")bl--;if(b[len-2]==="=")bl--;var o=new Uint8Array(bl),p=0;for(var i=0;i<len;i+=4){var e0=E[b.charCodeAt(i)],e1=E[b.charCodeAt(i+1)],e2=E[b.charCodeAt(i+2)],e3=E[b.charCodeAt(i+3)];o[p++]=(e0<<2)|(e1>>4);if(p<bl)o[p++]=((e1&0x0f)<<4)|(e2>>2);if(p<bl)o[p++]=((e2&0x03)<<6)|e3;}return o;}' +
 'const vw=document.getElementById("viewerWrap");' +
 'const loadDiv=document.getElementById("loading");' +
 'const errDiv=document.getElementById("err");' +
@@ -11416,12 +11517,11 @@ _VIEWER_BASE_CSS +
 '    renderAll();' +
 '  });' +
 '}' +
+'function _b64Enc(bytes){var C="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",len=bytes.length,rem=len%3,out=[],o=0,end=len-rem;for(var i=0;i<end;i+=3){var b0=bytes[i],b1=bytes[i+1],b2=bytes[i+2];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2|b2>>6];out[o++]=C[b2&63];}if(rem===1){var b0=bytes[end];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4];out[o++]="=";out[o++]="=";}else if(rem===2){var b0=bytes[end],b1=bytes[end+1];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2];out[o++]="=";}return out.join("");}' +
 'function dlPdf(){' +
 '  try{' +
 '    const bytes=b64ToBytes(B64);' +
-'    var bin="";var chunk=32768;' +
-'    for(var i=0;i<bytes.length;i+=chunk)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk));' +
-'    parent.postMessage({t:"gust:download",data:"data:application/pdf;base64,"+btoa(bin),name:FILENAME},"*");' +
+'    parent.postMessage({t:"gust:download",data:"data:application/pdf;base64,"+_b64Enc(bytes),name:FILENAME},"*");' +
 '  }catch(e){console.error("PDF download failed:",e);}' +
 '}' +
 'window.goFirst=goFirst;window.goPrev=goPrev;window.goNext=goNext;window.goLast=goLast;' +
@@ -11474,7 +11574,7 @@ _VIEWER_BASE_CSS +
                 const CHUNK = 32768;
                 for (let i = 0; i < arr.length; i += CHUNK)
                     bin += String.fromCharCode.apply(null, arr.subarray(i, i + CHUNK));
-                const dataUri   = 'data:' + (mime || 'image/png') + ';base64,' + btoa(bin);
+                const dataUri   = 'data:' + (mime || 'image/png') + ';base64,' + Base64.encode(bin);
                 const jDataUri  = JSON.stringify(dataUri);
                 const jFilename = JSON.stringify(filename);
                 const jMime     = JSON.stringify(mime || '');
@@ -11536,7 +11636,7 @@ _VIEWER_DL_JS +
                 const CHUNK = 32768;
                 for (let i = 0; i < arr.length; i += CHUNK)
                     bin += String.fromCharCode.apply(null, arr.subarray(i, i + CHUNK));
-                const dataUri   = 'data:' + (mime || 'video/mp4') + ';base64,' + btoa(bin);
+                const dataUri   = 'data:' + (mime || 'video/mp4') + ';base64,' + Base64.encode(bin);
                 const jDataUri  = JSON.stringify(dataUri);
                 const jFilename = JSON.stringify(filename);
 
@@ -11565,7 +11665,7 @@ _VIEWER_DL_JS +
                 const CHUNK = 32768;
                 for (let i = 0; i < arr.length; i += CHUNK)
                     bin += String.fromCharCode.apply(null, arr.subarray(i, i + CHUNK));
-                const dataUri   = 'data:' + (mime || 'audio/mpeg') + ';base64,' + btoa(bin);
+                const dataUri   = 'data:' + (mime || 'audio/mpeg') + ';base64,' + Base64.encode(bin);
                 const jDataUri  = JSON.stringify(dataUri);
                 const jFilename = JSON.stringify(filename);
                 const jMime     = JSON.stringify(mime || '');
@@ -11634,13 +11734,14 @@ _VIEWER_DL_JS +
                         '}',
                         'function toggleWrap(){var p=document.getElementById("pre"),b=document.getElementById("wordwrapBtn"),on=p.style.whiteSpace==="pre-wrap";p.style.whiteSpace=on?"pre":"pre-wrap";b.classList.toggle("active",!on);}',
                         'function copyAll(){if(navigator.clipboard){navigator.clipboard.writeText(RAW);}else{var t=document.createElement("textarea");t.value=RAW;document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);}}',
-                        'function dlText(){var e=new TextEncoder(),b=e.encode(RAW),s="",c=32768;for(var i=0;i<b.length;i+=c)s+=String.fromCharCode.apply(null,b.subarray(i,i+c));dl("data:text/plain;base64,"+btoa(s),FILENAME);}',
+                        'function _b64Enc(bytes){var C="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",len=bytes.length,rem=len%3,out=[],o=0,end=len-rem;for(var i=0;i<end;i+=3){var b0=bytes[i],b1=bytes[i+1],b2=bytes[i+2];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2|b2>>6];out[o++]=C[b2&63];}if(rem===1){var b0=bytes[end];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4];out[o++]="=";out[o++]="=";}else if(rem===2){var b0=bytes[end],b1=bytes[end+1];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2];out[o++]="=";}return out.join("");}',
+                        'function dlText(){var e=new TextEncoder(),b=e.encode(RAW);dl("data:text/plain;base64,"+_b64Enc(b),FILENAME);}',
                         'document.getElementById("mimeEl").textContent=MIME;',
                         'document.getElementById("pre").innerHTML=highlight(RAW,EXT);',
                     ].join('\n');
                 }
 
-                const scriptSrc = 'data:text/javascript;base64,' + btoa(unescape(encodeURIComponent(buildScript())));
+                const scriptSrc = 'data:text/javascript;base64,' + Base64.encode(unescape(encodeURIComponent(buildScript())));
 
                 return [
                     '<!DOCTYPE html><html><head><meta charset="utf-8">',
@@ -11722,7 +11823,7 @@ _VIEWER_DL_JS +
                 const CHUNK = 32768;
                 for (let i = 0; i < arr.length; i += CHUNK)
                     bin += String.fromCharCode.apply(null, arr.subarray(i, i + CHUNK));
-                const dataUri   = 'data:' + (mime || 'application/octet-stream') + ';base64,' + btoa(bin);
+                const dataUri   = 'data:' + (mime || 'application/octet-stream') + ';base64,' + Base64.encode(bin);
                 const jDataUri  = JSON.stringify(dataUri);
                 const jFilename = JSON.stringify(filename);
                 const esc_mime  = (mime || 'application/octet-stream').replace(/</g,'&lt;');
@@ -12340,7 +12441,7 @@ _VIEWER_DL_JS +
                                             let bin = '';
                                             const chunk = 32768;
                                             for (let j = 0; j < arr.length; j += chunk) bin += String.fromCharCode.apply(null, arr.subarray(j, j + chunk));
-                                            const dataUri = `data:${mime};base64,${btoa(bin)}`;
+                                            const dataUri = `data:${mime};base64,${Base64.encode(bin)}`;
                                             cssText = cssText.split(m[0]).join(`url("${dataUri}")`);
                                         } else {
                                             cssText = cssText.split(m[0]).join(`url("${absUrl}")`);
@@ -12423,7 +12524,7 @@ _VIEWER_DL_JS +
                                             let bin = '';
                                             const chunk = 32768;
                                             for (let j = 0; j < arr.length; j += chunk) bin += String.fromCharCode.apply(null, arr.subarray(j, j + chunk));
-                                            result = result.split(m[0]).join(`url("data:${fontMime};base64,${btoa(bin)}")`);
+                                            result = result.split(m[0]).join(`url("data:${fontMime};base64,${Base64.encode(bin)}")`);
                                         } else {
                                             result = result.split(m[0]).join(`url("${absUrl}")`);
                                         }
