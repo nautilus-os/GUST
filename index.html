@@ -6067,136 +6067,143 @@
         onerror="(function(){ const reason='The libcurl.js script could not be fetched from cdn.jsdelivr.net. The CDN may be unreachable or blocked.'; window._libcurlLoadError=reason; console.error('[GUST] libcurl.js failed to load:', reason); })();"
     ></script>
     <script>
-        // ── Pure-JS Base64 utility ────────────────────────────────────────────
-        // Custom array-based encoder/decoder using a Uint8Array lookup table.
-        // Designed for maximum throughput in all JS environments.
-        const Base64 = (() => {
-            const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-
-            // Encode table: charCode → index (0-63), initialised once at load time
-            const ENC = new Uint8Array(256);
-            for (let i = 0; i < CHARS.length; i++) ENC[CHARS.charCodeAt(i)] = i;
-            // '=' padding char maps to 0 (handled structurally, not by value)
-            ENC['='.charCodeAt(0)] = 0;
-
-            /**
-             * encode(input) – accepts Uint8Array | ArrayBuffer | string (latin-1 binary)
-             * Returns a standard Base64 string.
-             */
-            function encode(input) {
-                let bytes;
-                if (typeof input === 'string') {
-                    // Treat as latin-1 binary string (encode each char as one byte)
-                    bytes = new Uint8Array(input.length);
-                    for (let i = 0; i < input.length; i++) bytes[i] = input.charCodeAt(i) & 0xff;
-                } else if (input instanceof ArrayBuffer) {
-                    bytes = new Uint8Array(input);
-                } else {
-                    bytes = input; // already Uint8Array / TypedArray
-                }
-
-                const len = bytes.length;
-                const rem = len % 3;
-                const b64Len = (Math.floor(len / 3) * 4) + (rem ? 4 : 0);
-                const out = new Array(b64Len);
-                let o = 0;
-
-                // Process full 3-byte groups
-                const end = len - rem;
-                for (let i = 0; i < end; i += 3) {
-                    const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
-                    out[o++] = CHARS[ b0 >> 2];
-                    out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
-                    out[o++] = CHARS[(b1 & 0x0f) << 2 | b2 >> 6];
-                    out[o++] = CHARS[ b2 & 0x3f];
-                }
-
-                // Remainder (1 or 2 bytes)
-                if (rem === 1) {
-                    const b0 = bytes[end];
-                    out[o++] = CHARS[ b0 >> 2];
-                    out[o++] = CHARS[(b0 & 0x03) << 4];
-                    out[o++] = '=';
-                    out[o++] = '=';
-                } else if (rem === 2) {
-                    const b0 = bytes[end], b1 = bytes[end + 1];
-                    out[o++] = CHARS[ b0 >> 2];
-                    out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
-                    out[o++] = CHARS[(b1 & 0x0f) << 2];
-                    out[o++] = '=';
-                }
-
-                return out.join('');
-            }
-
-            /**
-             * decode(b64) – accepts a Base64 string (with or without padding)
-             * Returns a Uint8Array of the raw bytes.
-             */
-            function decode(b64) {
-                if (!b64) return new Uint8Array(0);
-
-                // Strip whitespace and normalise padding
-                b64 = b64.replace(/\s/g, '');
-                const rem = b64.length % 4;
-                if (rem === 2) b64 += '==';
-                else if (rem === 3) b64 += '=';
-
-                const len = b64.length;
-                let byteLen = (len / 4) * 3;
-                if (b64[len - 1] === '=') byteLen--;
-                if (b64[len - 2] === '=') byteLen--;
-
-                const out = new Uint8Array(byteLen);
-                let o = 0;
-
-                for (let i = 0; i < len; i += 4) {
-                    const e0 = ENC[b64.charCodeAt(i)];
-                    const e1 = ENC[b64.charCodeAt(i + 1)];
-                    const e2 = ENC[b64.charCodeAt(i + 2)];
-                    const e3 = ENC[b64.charCodeAt(i + 3)];
-
-                    out[o++] = (e0 << 2) | (e1 >> 4);
-                    if (o < byteLen) out[o++] = ((e1 & 0x0f) << 4) | (e2 >> 2);
-                    if (o < byteLen) out[o++] = ((e2 & 0x03) << 6) | e3;
-                }
-
-                return out;
-            }
-
-            /**
-             * decodeToString(b64) – convenience: decode Base64 → latin-1 binary string
-             * Returns a string where each character represents one decoded byte.
-             */
-            function decodeToString(b64) {
-                const bytes = decode(b64);
-                // Build in 32 KB chunks to avoid call-stack limits on very large buffers
-                let bin = '';
-                const CHUNK = 32768;
-                for (let i = 0; i < bytes.length; i += CHUNK) {
-                    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-                }
-                return bin;
-            }
-
-            return { encode, decode, decodeToString };
-        })();
-        // ─────────────────────────────────────────────────────────────────────
-
-        // Early stub so openFindBar can call this before the AI IIFE initialises it
-        window._updateFindBarPos = function() {
-            const fb = document.getElementById('findBar');
-            if (!fb) return;
-            const panelIds = ['aiSidebar', 'logs', 'elements'];
-            let panelW = 0;
-            for (const id of panelIds) {
-                const p = document.getElementById(id);
-                if (p && p.offsetWidth > 0) { panelW = p.offsetWidth; break; }
-            }
-            fb.style.right = (panelW > 0 ? panelW + 26 : 16) + 'px';
-        };
-
         (function () {
+            // ── Private state variables ───────────────────────────────────────────────
+            // These replace former window.* leaks – intentionally not exposed on window.
+            let _netStall = 0;
+            let _lastPageLoadTime = 0;
+            // ── Scope-private utilities (Base64 + find-bar stub) ─────────────────
+            // These were previously in raw script scope; they are now enclosed here
+            // so they cannot be enumerated or accessed via the window object.
+            // ── Pure-JS Base64 utility ────────────────────────────────────────────
+            // Custom array-based encoder/decoder using a Uint8Array lookup table.
+            // Designed for maximum throughput in all JS environments.
+            const Base64 = (() => {
+                const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+                // Encode table: charCode → index (0-63), initialised once at load time
+                const ENC = new Uint8Array(256);
+                for (let i = 0; i < CHARS.length; i++) ENC[CHARS.charCodeAt(i)] = i;
+                // '=' padding char maps to 0 (handled structurally, not by value)
+                ENC['='.charCodeAt(0)] = 0;
+
+                /**
+                 * encode(input) – accepts Uint8Array | ArrayBuffer | string (latin-1 binary)
+                 * Returns a standard Base64 string.
+                 */
+                function encode(input) {
+                    let bytes;
+                    if (typeof input === 'string') {
+                        // Treat as latin-1 binary string (encode each char as one byte)
+                        bytes = new Uint8Array(input.length);
+                        for (let i = 0; i < input.length; i++) bytes[i] = input.charCodeAt(i) & 0xff;
+                    } else if (input instanceof ArrayBuffer) {
+                        bytes = new Uint8Array(input);
+                    } else {
+                        bytes = input; // already Uint8Array / TypedArray
+                    }
+
+                    const len = bytes.length;
+                    const rem = len % 3;
+                    const b64Len = (Math.floor(len / 3) * 4) + (rem ? 4 : 0);
+                    const out = new Array(b64Len);
+                    let o = 0;
+
+                    // Process full 3-byte groups
+                    const end = len - rem;
+                    for (let i = 0; i < end; i += 3) {
+                        const b0 = bytes[i], b1 = bytes[i + 1], b2 = bytes[i + 2];
+                        out[o++] = CHARS[ b0 >> 2];
+                        out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
+                        out[o++] = CHARS[(b1 & 0x0f) << 2 | b2 >> 6];
+                        out[o++] = CHARS[ b2 & 0x3f];
+                    }
+
+                    // Remainder (1 or 2 bytes)
+                    if (rem === 1) {
+                        const b0 = bytes[end];
+                        out[o++] = CHARS[ b0 >> 2];
+                        out[o++] = CHARS[(b0 & 0x03) << 4];
+                        out[o++] = '=';
+                        out[o++] = '=';
+                    } else if (rem === 2) {
+                        const b0 = bytes[end], b1 = bytes[end + 1];
+                        out[o++] = CHARS[ b0 >> 2];
+                        out[o++] = CHARS[(b0 & 0x03) << 4 | b1 >> 4];
+                        out[o++] = CHARS[(b1 & 0x0f) << 2];
+                        out[o++] = '=';
+                    }
+
+                    return out.join('');
+                }
+
+                /**
+                 * decode(b64) – accepts a Base64 string (with or without padding)
+                 * Returns a Uint8Array of the raw bytes.
+                 */
+                function decode(b64) {
+                    if (!b64) return new Uint8Array(0);
+
+                    // Strip whitespace and normalise padding
+                    b64 = b64.replace(/\s/g, '');
+                    const rem = b64.length % 4;
+                    if (rem === 2) b64 += '==';
+                    else if (rem === 3) b64 += '=';
+
+                    const len = b64.length;
+                    let byteLen = (len / 4) * 3;
+                    if (b64[len - 1] === '=') byteLen--;
+                    if (b64[len - 2] === '=') byteLen--;
+
+                    const out = new Uint8Array(byteLen);
+                    let o = 0;
+
+                    for (let i = 0; i < len; i += 4) {
+                        const e0 = ENC[b64.charCodeAt(i)];
+                        const e1 = ENC[b64.charCodeAt(i + 1)];
+                        const e2 = ENC[b64.charCodeAt(i + 2)];
+                        const e3 = ENC[b64.charCodeAt(i + 3)];
+
+                        out[o++] = (e0 << 2) | (e1 >> 4);
+                        if (o < byteLen) out[o++] = ((e1 & 0x0f) << 4) | (e2 >> 2);
+                        if (o < byteLen) out[o++] = ((e2 & 0x03) << 6) | e3;
+                    }
+
+                    return out;
+                }
+
+                /**
+                 * decodeToString(b64) – convenience: decode Base64 → latin-1 binary string
+                 * Returns a string where each character represents one decoded byte.
+                 */
+                function decodeToString(b64) {
+                    const bytes = decode(b64);
+                    // Build in 32 KB chunks to avoid call-stack limits on very large buffers
+                    let bin = '';
+                    const CHUNK = 32768;
+                    for (let i = 0; i < bytes.length; i += CHUNK) {
+                        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+                    }
+                    return bin;
+                }
+
+                return { encode, decode, decodeToString };
+            })();
+            // ─────────────────────────────────────────────────────────────────────
+
+            // Early stub so openFindBar can call this before the AI IIFE initialises it
+            window._updateFindBarPos = function() {
+                const fb = document.getElementById('findBar');
+                if (!fb) return;
+                const panelIds = ['aiSidebar', 'logs', 'elements'];
+                let panelW = 0;
+                for (const id of panelIds) {
+                    const p = document.getElementById(id);
+                    if (p && p.offsetWidth > 0) { panelW = p.offsetWidth; break; }
+                }
+                fb.style.right = (panelW > 0 ? panelW + 26 : 16) + 'px';
+            };
+
             // ── Per-instance storage isolation ────────────────────────────────
             // Each downloaded copy of this file gets a unique instance ID so
             // that multiple tabs/windows (all on file://) never share data.
@@ -8640,7 +8647,7 @@
 
             function showNewTab(push = true) {
                 if (!newtab) return;
-                window._netStall = 0;
+                _netStall = 0;
                 _dropCount = 0;
                 hideSettingsPage();
                 newtab.classList.add("active");
@@ -9586,7 +9593,7 @@
             }
 
             async function queueFetch(url, opts = {}, priority = PRIORITY.other) {
-                if (window._netStall) { return Promise.reject(new TypeError('Failed to fetch')); }
+                if (_netStall) { return Promise.reject(new TypeError('Failed to fetch')); }
                 // Guard: if libcurl hasn't initialized yet (or failed), fail cleanly
                 // instead of throwing a cryptic TypeError that leaves the iframe white.
                 if (typeof curl === 'undefined' || curl === null) {
@@ -9800,7 +9807,7 @@
             }
 
             async function doFetch(url, opts = {}) {
-                if (window._netStall) return Promise.reject(new TypeError('Failed to fetch'));
+                if (_netStall) return Promise.reject(new TypeError('Failed to fetch'));
                 const method = opts.method || "GET";
                 const headers = {
                     ...(opts.headers || {})
@@ -11312,7 +11319,7 @@ parent.postMessage({ t: 'ready' }, '*');
                     // Throttle: ignore location.reload() calls within 15s of page load
                     // to stop SPAs like YouTube from reloading mid-initialization.
                     const _now = Date.now();
-                    if (!window._lastPageLoadTime || (_now - window._lastPageLoadTime) > 15000) {
+                    if (!_lastPageLoadTime || (_now - _lastPageLoadTime) > 15000) {
                         log('[nav] location.reload() → reloading', 'info');
                         if (pageUrl) go(pageUrl, false);
                     } else {
@@ -11343,7 +11350,7 @@ parent.postMessage({ t: 'ready' }, '*');
                     return;
                 }
                 if (d.t === "ready") {
-                    window._lastPageLoadTime = Date.now();
+                    _lastPageLoadTime = Date.now();
                     log("Page ready", "info");
                     if (pageUrl) { try { syncCookiesToFrame(new URL(pageUrl).origin); } catch { } }
                     return;
