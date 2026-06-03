@@ -10374,6 +10374,37 @@ try { Object.defineProperty(window, 'sessionStorage', {value: mkStore(sessionSto
 const origIDBOpen = indexedDB.open.bind(indexedDB);
 indexedDB.open = function(name, version) { return origIDBOpen(pfx + name, version); };
 
+// ── Storage-access API stubs ────────────────────────────────────────────────
+// Proxied pages run in a blob-origin iframe where navigator.cookieEnabled is
+// false and document.hasStorageAccess() rejects. Sites like Brave Search gate
+// their cookie/token flow behind these checks and bail out with a "browser
+// does not support storing data" error when they return false/rejected.
+// Our cookie and localStorage shims ARE functional, so we tell the page so.
+try {
+  Object.defineProperty(navigator, 'cookieEnabled', { get: () => true, configurable: true });
+} catch {}
+if (typeof document.hasStorageAccess !== 'function') {
+  document.hasStorageAccess = () => Promise.resolve(true);
+} else {
+  const _origHSA = document.hasStorageAccess.bind(document);
+  document.hasStorageAccess = () => _origHSA().then(() => true, () => true);
+}
+if (typeof document.requestStorageAccess !== 'function') {
+  document.requestStorageAccess = () => Promise.resolve();
+}
+// navigator.storage.persist / estimate — return plausible values so
+// quota-check code paths don't short-circuit into "no storage" branches.
+try {
+  const _origNS = navigator.storage;
+  const _nsProto = _origNS ? Object.getPrototypeOf(_origNS) : null;
+  if (_nsProto && typeof _nsProto.persist === 'function') {
+    const _origPersist = _nsProto.persist.bind(_origNS);
+    _nsProto.persist = () => _origPersist().then(() => true, () => true);
+  } else if (_origNS && !_origNS.persist) {
+    try { _origNS.persist = () => Promise.resolve(true); } catch {}
+  }
+} catch {}
+
 let rid = 0;
 const pending = new Map();
 const sseHandlers = new Map();
@@ -10490,9 +10521,7 @@ async function fetchBlob(url, type) {
     const r = await req(url);
     if (!r.d) return '';
     const arr_rd = Base64.decode(r.d);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    const blob = new Blob([arr], { type: r.m || type || 'application/octet-stream' });
+    const blob = new Blob([arr_rd], { type: r.m || type || 'application/octet-stream' });
     const burl = URL.createObjectURL(blob);
     blobs.set(url, burl);
     if (blobs.size > 500) { const f = blobs.keys().next().value; URL.revokeObjectURL(blobs.get(f)); blobs.delete(f); }
@@ -10703,7 +10732,6 @@ async function rewriteCss(css, base, _depth) {
       const r = await req(importUrl);
       if (r.d) {
         const arr = Base64.decode(r.d);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
         let importCss = new TextDecoder().decode(arr);
         importCss = await rewriteCss(importCss, importUrl, (_depth || 0) + 1);
         css = css.replace(im[0], importCss);
