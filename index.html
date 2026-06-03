@@ -6415,7 +6415,7 @@
             let hist = [];
             let histIdx = -1;
             let navId = 0; 
-            let selectedEngine = (function () { try { return ls.getItem('gust:engine:v1') || 'brave'; } catch { return 'brave'; } })();
+            let selectedEngine = (function () { try { return ls.getItem('gust:engine:v1') || 'ddg'; } catch { return 'ddg'; } })();
 
             let totalRequests = 0;
             let pendingRequests = 0;
@@ -8419,12 +8419,12 @@
             }
 
             function getSearchBase() {
-                const key = selectedEngine || "brave";
+                const key = selectedEngine || "ddg";
                 if (key === "custom") {
                     const customUrl = (function () { try { return ls.getItem(CUSTOM_SEARCH_URL_KEY); } catch { return ""; } })();
                     return (customUrl || SEARCH_ENGINES.custom).replace("{q}", "");
                 }
-                return SEARCH_ENGINES[key] || SEARCH_ENGINES.brave;
+                return SEARCH_ENGINES[key] || SEARCH_ENGINES.ddg;
             }
 
             function getCustomEngineName() {
@@ -10261,6 +10261,8 @@
                 return `(function(){
 if(window.__P) return;
 window.__P = true;
+
+const Base64=(()=>{const C='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';const E=new Uint8Array(256);for(let i=0;i<C.length;i++)E[C.charCodeAt(i)]=i;E['='.charCodeAt(0)]=0;function encode(input){let bytes=typeof input==='string'?(()=>{const b=new Uint8Array(input.length);for(let i=0;i<input.length;i++)b[i]=input.charCodeAt(i)&0xff;return b;})():input instanceof ArrayBuffer?new Uint8Array(input):input;const len=bytes.length,rem=len%3,end=len-rem,out=new Array((Math.floor(len/3)*4)+(rem?4:0));let o=0;for(let i=0;i<end;i+=3){const b0=bytes[i],b1=bytes[i+1],b2=bytes[i+2];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2|b2>>6];out[o++]=C[b2&63];}if(rem===1){const b0=bytes[end];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4];out[o++]='=';out[o++]='=';}else if(rem===2){const b0=bytes[end],b1=bytes[end+1];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2];out[o++]='=';}return out.join('');}function decode(b64){if(!b64)return new Uint8Array(0);b64=b64.replace(/\s/g,'');const r=b64.length%4;if(r===2)b64+='==';else if(r===3)b64+='=';const len=b64.length;let bl=(len/4)*3;if(b64[len-1]==='=')bl--;if(b64[len-2]==='=')bl--;const out=new Uint8Array(bl);let o=0;for(let i=0;i<len;i+=4){const e0=E[b64.charCodeAt(i)],e1=E[b64.charCodeAt(i+1)],e2=E[b64.charCodeAt(i+2)],e3=E[b64.charCodeAt(i+3)];out[o++]=(e0<<2)|(e1>>4);if(o<bl)out[o++]=((e1&15)<<4)|(e2>>2);if(o<bl)out[o++]=((e2&3)<<6)|e3;}return out;}function decodeToString(b64){const bytes=decode(b64);let s='';const CH=32768;for(let i=0;i<bytes.length;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));return s;}return{encode,decode,decodeToString};})();
 
 const BASE = ${JSON.stringify(baseUrl)};
 const ORIGIN = new URL(BASE).origin;
@@ -14110,12 +14112,12 @@ _VIEWER_DL_JS +
                     if (ls.getItem('gust:showclock:v1') !== 'false') setInterval(updateClock, 1000 * 10);
                     loadSavedWallpaper();
                     if (ntEngineLabel) {
-                        if (selectedEngine === 'google' || selectedEngine === 'ddg') {
-                            selectedEngine = 'brave';
-                            try { ls.setItem('gust:engine:v1', 'brave'); } catch { }
+                        if (selectedEngine === 'google' || selectedEngine === 'brave') {
+                            selectedEngine = 'ddg';
+                            try { ls.setItem('gust:engine:v1', 'ddg'); } catch { }
                         }
                         const engineNames = { brave: 'Brave', ddg: 'DuckDuckGo', bing: 'Bing', custom: getCustomEngineName() };
-                        ntEngineLabel.textContent = engineNames[selectedEngine] || 'Brave';
+                        ntEngineLabel.textContent = engineNames[selectedEngine] || 'DuckDuckGo';
                         ntEngineDropdown.querySelectorAll('button').forEach(b => {
                             b.classList.toggle('active', b.dataset.engine === selectedEngine);
                         });
