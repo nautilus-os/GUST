@@ -6068,9 +6068,8 @@
     ></script>
     <script>
         // ── Pure-JS Base64 utility ────────────────────────────────────────────
-        // Replaces window.atob / window.btoa throughout GUST.
-        // Uses a Uint8Array lookup table for maximum throughput and works in any
-        // legacy JS environment that lacks native atob/btoa (Web Workers, etc.).
+        // Custom array-based encoder/decoder using a Uint8Array lookup table.
+        // Designed for maximum throughput in all JS environments.
         const Base64 = (() => {
             const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -6087,7 +6086,7 @@
             function encode(input) {
                 let bytes;
                 if (typeof input === 'string') {
-                    // Treat as latin-1 binary string (same contract as btoa())
+                    // Treat as latin-1 binary string (encode each char as one byte)
                     bytes = new Uint8Array(input.length);
                     for (let i = 0; i < input.length; i++) bytes[i] = input.charCodeAt(i) & 0xff;
                 } else if (input instanceof ArrayBuffer) {
@@ -6167,7 +6166,7 @@
 
             /**
              * decodeToString(b64) – convenience: decode Base64 → latin-1 binary string
-             * Matches the return type of native atob() for drop-in compatibility.
+             * Returns a string where each character represents one decoded byte.
              */
             function decodeToString(b64) {
                 const bytes = decode(b64);
@@ -9904,6 +9903,13 @@
                     } catch { }
                     delete headers.__body_b64__;
                 }
+
+                // ── Sentinel header cleanup ────────────────────────────────────
+                // Unconditionally strip all internal application keys before the
+                // request leaves the process so they never appear in outgoing HTTP.
+                const _INTERNAL_HEADERS = ['__body_b64__', '__gust_priority__', '__gust_tab__', '__proxy_favicon__'];
+                for (const _k of _INTERNAL_HEADERS) { delete headers[_k]; delete headers[_k.toLowerCase()]; }
+                // ─────────────────────────────────────────────────────────────
 
                 let resp;
                 try {
