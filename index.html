@@ -5004,14 +5004,14 @@
                                             <div class="settings-hint">Sent as the <code>User-Agent</code> HTTP header for all proxied requests.</div>
                                             <input type="text" class="settings-input" id="settingsRequestUA"
                                                 style="width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;"
-                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36">
+                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36">
                                         </div>
                                         <div style="margin-bottom: 16px;">
                                             <div class="settings-switch-label">Page navigator.userAgent</div>
                                             <div class="settings-hint">Overrides <code>navigator.userAgent</code> inside loaded pages.</div>
                                             <input type="text" class="settings-input" id="settingsPageUA"
                                                 style="width:100%; margin-top:8px; font-family:var(--mono); font-size:11px;"
-                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36">
+                                                placeholder="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36">
                                         </div>
                                         <hr style="border:none;border-top:1px solid var(--bd);margin:16px 0 10px;">
                                         <div style="display:flex; justify-content:flex-end; gap:8px;">
@@ -10269,7 +10269,7 @@ const ORIGIN = new URL(BASE).origin;
 const SKIP = ${JSON.stringify(proxySkipList)};
 const BLOCK_ENABLED = ${JSON.stringify(!!blockEnabled)};
 const WEBRTC_BLOCK = ${JSON.stringify(!!webrtcBlock)};
-const SPOOF_UA = ${JSON.stringify(pageUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36')};
+const SPOOF_UA = ${JSON.stringify(pageUA || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36')};
 const SPELLCHECK = ${JSON.stringify(!!spellcheck)};
 
 function shouldSkip(url) {
@@ -11428,7 +11428,7 @@ parent.postMessage({ t: 'ready' }, '*');
                 'gust:media:download:v1': false,
                 'gust:media:range:v1':    true,
                 'gust:media:headers:v1':  true,
-                'gust:webrtc:block:v1':   false,
+                'gust:webrtc:block:v1':   true,
             };
             function mediaPref(key) {
                 const saved = ls.getItem(key);
@@ -14845,7 +14845,7 @@ _VIEWER_DL_JS +
                     { id: 'mediaDownloadSwitch', key: 'gust:media:download:v1', defaultOn: false },
                     { id: 'mediaRangeSwitch',    key: 'gust:media:range:v1',    defaultOn: true  },
                     { id: 'mediaHeadersSwitch',  key: 'gust:media:headers:v1',  defaultOn: true  },
-                    { id: 'webrtcBlockSwitch',   key: 'gust:webrtc:block:v1',   defaultOn: false },
+                    { id: 'webrtcBlockSwitch',   key: 'gust:webrtc:block:v1',   defaultOn: true  },
                     { id: 'faviconProxySwitch',  key: 'gust:favicon-proxy:v1',  defaultOn: false },
                 ];
                 _mediaSwitches.forEach(({ id, key, defaultOn }) => {
@@ -15504,10 +15504,24 @@ _VIEWER_DL_JS +
                     pos: 'center'
                 },
                 {
+                    target: '#historyBtn',
+                    icon: '<i class="fas fa-clock-rotate-left"></i>',
+                    title: 'Recent History',
+                    body: 'Jump back to recently visited pages. If you close a tab by accident, open history to recover the URL. No browsing data ever leaves your device, or is saved longer than 10 entries.',
+                    pos: 'below'
+                },
+                {
                     target: '#navPillGroup',
                     icon: '<i class="fas fa-arrow-left"></i>',
                     title: 'Navigation Buttons',
                     body: 'Back (<i class="fas fa-arrow-left" style="font-size:0.8em;"></i>), forward (<i class="fas fa-arrow-right" style="font-size:0.8em;"></i>), reload and home. The home button returns to the new tab page, and you can pause a page reloading by clicking the square in its place.',
+                    pos: 'below'
+                },
+                {
+                    target: '#newTab',
+                    icon: '<i class="fas fa-plus"></i>',
+                    title: 'New Tab',
+                    body: 'Open a new tab with this button or Alt+T. Tabs show favicons and scroll horizontally when you have many open. Use the <i class="fas fa-arrow-left"></i> <i class="fas fa-arrow-right"></i> arrows to scroll them.',
                     pos: 'below'
                 },
                 {
@@ -15533,24 +15547,10 @@ _VIEWER_DL_JS +
                     pos: 'below'
                 },
                 {
-                    target: '#historyBtn',
-                    icon: '<i class="fas fa-clock-rotate-left"></i>',
-                    title: 'Recent History',
-                    body: 'Jump back to recently visited pages. If you close a tab by accident, open history to recover the URL. No browsing data ever leaves your device, or is saved longer than 10 entries.',
-                    pos: 'below'
-                },
-                {
-                    target: '#blockToggle',
-                    icon: '<i class="fas fa-shield-halved"></i>',
-                    title: 'Ad and Tracker Blocking',
-                    body: 'GUST blocks ads and trackers by default. The badge shows your current status. Click on it to toggle it off if a site is not loading correctly.',
-                    pos: 'below-left'
-                },
-                {
-                    target: '#metricsBtn',
-                    icon: '<i class="fas fa-chart-bar"></i>',
-                    title: 'Browser Metrics',
-                    body: 'Live stats at a glance: active requests, queue depth, memory, cache hit rate, network info and page performance. Useful for debugging slow sites.',
+                    target: '#settingsBtn',
+                    icon: '<i class="fas fa-gear"></i>',
+                    title: 'Settings',
+                    body: 'Configure the WISP server, search engine, wallpaper, font size, cache, shortcuts and more. You can also read about Gust or restart the tutorial from here.',
                     pos: 'below-left'
                 },
                 {
@@ -15575,17 +15575,10 @@ _VIEWER_DL_JS +
                     pos: 'below-left'
                 },
                 {
-                    target: '#newTab',
-                    icon: '<i class="fas fa-plus"></i>',
-                    title: 'New Tab',
-                    body: 'Open a new tab with this button or Alt+T. Tabs show favicons and scroll horizontally when you have many open. Use the <i class="fas fa-arrow-left"></i> <i class="fas fa-arrow-right"></i> arrows to scroll them.',
-                    pos: 'below'
-                },
-                {
-                    target: '#settingsBtn',
-                    icon: '<i class="fas fa-gear"></i>',
-                    title: 'Settings',
-                    body: 'Configure the WISP server, search engine, wallpaper, font size, cache, shortcuts and more. You can also read about Gust or restart the tutorial from here.',
+                    target: '#blockToggle',
+                    icon: '<i class="fas fa-shield-halved"></i>',
+                    title: 'Ad and Tracker Blocking',
+                    body: 'GUST blocks ads and trackers by default. The badge shows your current status. Click on it to toggle it off if a site is not loading correctly.',
                     pos: 'below-left'
                 },
                 {
@@ -15595,6 +15588,13 @@ _VIEWER_DL_JS +
                     body: 'Click the chevron to show or hide the bookmarks bar if it takes up too much space. To reenable click the down chevron that appears next to settings.',
                     pos: 'below',
                     targetFallback: '#showBookmarksBtn'
+                },
+                {
+                    target: '#metricsBtn',
+                    icon: '<i class="fas fa-chart-bar"></i>',
+                    title: 'Browser Metrics',
+                    body: 'Live stats at a glance: active requests, queue depth, memory, cache hit rate, network info and page performance. Useful for debugging slow sites.',
+                    pos: 'below-left'
                 },
                 {
                     target: '#ntFavAddBtn',
@@ -15752,7 +15752,7 @@ _VIEWER_DL_JS +
                 }
 
                 card.style.opacity = '0';
-                card.style.transform = 'translateY(6px)';
+                card.style.transform = 'scale(0.92) translateY(10px)';
 
                 dots.innerHTML = tutSteps.map((_, i) =>
                     `<div style="width:${i === idx ? '16px' : '6px'};height:6px;border-radius:3px;background:${i === idx ? 'var(--ac)' : 'rgba(255,255,255,0.2)'};transition:all .2s;"></div>`
@@ -15764,7 +15764,7 @@ _VIEWER_DL_JS +
                 btnNext.innerHTML = idx === tutSteps.length - 1 ? '<i class="fas fa-check" style="margin-right:5px;"></i>Done' : 'Next <i class="fas fa-arrow-right"></i>';
                 btnBack.style.display = idx > 0 ? 'block' : 'none';
 
-                const stepDelay = step.requiresNewTab ? 200 : 120;
+                const stepDelay = step.requiresNewTab ? 200 : 60;
                 setTimeout(() => {
                     const sr = document.getElementById('spotRect');
                     const cloneWrap = document.getElementById('tutorialCloneWrap');
@@ -15864,7 +15864,7 @@ _VIEWER_DL_JS +
 
                     requestAnimationFrame(() => requestAnimationFrame(() => {
                         card.style.opacity = '1';
-                        card.style.transform = 'translateY(0)';
+                        card.style.transform = 'scale(1) translateY(0)';
                     }));
                 }, 80);
             }
@@ -16208,7 +16208,7 @@ _VIEWER_DL_JS +
 
             // Wire up User-Agent settings
             setTimeout(() => {
-                const DEFAULT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+                const DEFAULT_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Safari/537.36';
                 const reqInput  = document.getElementById('settingsRequestUA');
                 const pageInput = document.getElementById('settingsPageUA');
                 const saveBtn   = document.getElementById('settingsSaveUA');
@@ -16710,7 +16710,7 @@ _VIEWER_DL_JS +
                         padding:24px 26px 20px;
                         box-shadow:0 12px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(100,210,255,0.08);
                         pointer-events:all;
-                        transition: opacity .25s, transform .25s;
+                        transition: opacity .15s ease, transform .2s cubic-bezier(0.34, 1.56, 0.64, 1);
                         opacity:0;
                         transform:translateY(8px);
                         z-index:10;
