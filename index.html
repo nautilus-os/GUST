@@ -5479,13 +5479,13 @@
                                 <div class="settings-card">
                                     <div class="settings-card-head"><i class="fas fa-map"></i> Interactive Tour</div>
                                     <div class="settings-card-body">
-                                        <div class="settings-hint" style="margin-bottom:14px;">Walk through 16 steps
+                                        <div class="settings-hint" style="margin-bottom:14px;">Walk through 18 steps
                                             covering navigation, search, bookmarks, ad blocking, metrics, browser logs,
                                             page inspector, tabs, and the new tab page. Takes under a minute.</div>
                                         <div style="display:flex;gap:20px;margin-bottom:18px;">
                                             <span
                                                 style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);"><i
-                                                    class="fas fa-list-check" style="color:var(--ac);"></i> 16
+                                                    class="fas fa-list-check" style="color:var(--ac);"></i> 18
                                                 steps</span>
                                             <span
                                                 style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--tx2);"><i
@@ -5506,79 +5506,7 @@
                                     </div>
                                     <div class="settings-card-body">
                                         <div
-                                            style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                                            <div
-                                                style="color:var(--ac); font-weight:700; font-size:18px; display:flex; align-items:center; gap:10px;">
-                                                <i class="fas fa-wind" style="font-size:22px;"></i>
-                                                GUST Browser
-                                            </div>
-                                            <span
-                                                style="font-size:11px; font-weight:700; letter-spacing:0.05em; color:var(--ac); background:rgba(157,229,255,0.10); border:1px solid rgba(157,229,255,0.35); border-radius:6px; padding:2px 7px; font-family:var(--mono);">v1.0</span>
-                                        </div>
-
-                                        <div
                                             style="display:flex; flex-direction:column; gap:16px; font-size:13px; line-height:1.7; color:var(--tx2);">
-                                            <div>
-                                                <div
-                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
-                                                    <i class="fas fa-globe" style="color:var(--ac);"></i> How it
-                                                    works
-                                                </div>
-                                                Gust is a <strong style="color:var(--tx);">static</strong> web proxy
-                                                    browser that runs entirely inside a single HTML file.
-                                                When you navigate to a URL, Gust fetches the target site's HTML,
-                                                CSS, scripts, and assets through <em>Wisp</em>, then rewrites
-                                                all resource URLs and injects them into a sandboxed iframe. Gust can be run inside any HTML editor, <code
-                                                    style="background:var(--bg3); padding:2px 6px; border-radius:4px; font-size:12px;">iframe</code>, file, or blob. It's ultra lightweight, packed with features, and is near impossible to block for admins.
-                                                
-                                            </div>
-
-                                            <div>
-                                                <div
-                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
-                                                    <i class="fas fa-network-wired" style="color:var(--ac);"></i>
-                                                    WISP + libcurl.js
-                                                </div>
-                                                All network requests are tunnelled through a <strong
-                                                    style="color:var(--tx);">WISP WebSocket server</strong>. Your
-                                                browser opens a WebSocket to the WISP endpoint, which forwards
-                                                TCP/TLS connections on your behalf. The actual HTTP fetching is
-                                                handled by <strong style="color:var(--tx);">libcurl.js</strong>
-                                                &mdash; a port of the curl HTTP library compiled to WebAssembly
-                                                &mdash; giving full HTTPS, redirect, and cookie support inside the
-                                                browser context.
-                                            </div>
-
-                                            <div>
-                                                <div
-                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
-                                                    <i class="fas fa-code" style="color:var(--ac);"></i> Page
-                                                    rendering
-                                                </div>
-                                                Fetched HTML is parsed and rewritten in JavaScript. CSS stylesheets
-                                                and scripts are loaded through the proxy and injected inline or as
-                                                Blob URLs. Images, fonts, and other assets have their URLs rewritten
-                                                to route through the same proxy pipeline. The final document is
-                                                rendered inside a sandboxed <code
-                                                    style="background:var(--bg3); padding:2px 6px; border-radius:4px; font-size:12px;">iframe</code>
-                                                using a generated Blob URL.
-                                            </div>
-
-                                            <div>
-                                                <div
-                                                    style="color:var(--tx); font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
-                                                    <i class="fas fa-shield-halved" style="color:var(--ac);"></i>
-                                                    Privacy &amp; limitations
-                                                </div>
-                                                Because requests flow through the WISP server, your real IP is not
-                                                exposed to the sites you visit. However, the WISP server operator
-                                                may be able to see your traffic.
-                                                Some complex web features (native WebSockets from within pages,
-                                                WebRTC, service workers) cannot be fully proxied and may not work.
-                                                JavaScript inside the iframe is fully sandboxed from the parent
-                                                page.
-                                            </div>
-
                                           <div>
                                                 <div
                                                     style="color:var(--tx); font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:8px;">
@@ -5586,16 +5514,25 @@
                                                     Credits
                                                 </div>
                                                 <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--tx2);">
+                                                    <div style="padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--bd);">
+                                                        <div style="margin-bottom:6px;">
+                                                            <span style="color:var(--tx);font-weight:600;">Nautilus Labs</span>
+                                                            <span style="color:var(--tx3)"> — </span>
+                                                            The team behind GUST
+                                                        </div>
+                                                        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding-left:2px;">
+                                                            <a href="https://github.com/nautilus-os" target="_blank" rel="noopener" style="color:var(--ac);font-size:12px;text-decoration:none;background:rgba(157,229,255,0.08);border:1px solid rgba(157,229,255,0.2);border-radius:5px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px;">Nautilus Labs <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.7;"></i></a><span style="color:var(--tx2);font-size:12px;margin-left:-2px;">:</span>
+                                                            <a href="https://github.com/dinguschan-owo" target="_blank" rel="noopener" style="color:var(--ac);font-size:12px;text-decoration:none;background:rgba(157,229,255,0.08);border:1px solid rgba(157,229,255,0.2);border-radius:5px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px;">dinguschan <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.7;"></i></a><span style="color:var(--tx2);font-size:12px;margin-left:-2px;">,</span>
+                                                            <a href="https://github.com/x8rr" target="_blank" rel="noopener" style="color:var(--ac);font-size:12px;text-decoration:none;background:rgba(157,229,255,0.08);border:1px solid rgba(157,229,255,0.2);border-radius:5px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px;">xor <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.7;"></i></a><span style="color:var(--tx2);font-size:12px;margin-left:-2px;">,</span>
+                                                            <a href="https://github.com/CompactAIOfficial" target="_blank" rel="noopener" style="color:var(--ac);font-size:12px;text-decoration:none;background:rgba(157,229,255,0.08);border:1px solid rgba(157,229,255,0.2);border-radius:5px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px;">lanefiedler <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.7;"></i></a><span style="color:var(--tx2);font-size:12px;margin-left:-2px;">, and</span>
+                                                            <a href="https://github.com/jaysyrk" target="_blank" rel="noopener" style="color:var(--ac);font-size:12px;text-decoration:none;background:rgba(157,229,255,0.08);border:1px solid rgba(157,229,255,0.2);border-radius:5px;padding:2px 8px;display:inline-flex;align-items:center;gap:5px;">jayy <i class="fas fa-arrow-up-right-from-square" style="font-size:10px;opacity:0.7;"></i></a>
+                                                        </div>
+                                                    </div>
                                                     <div>
                                                         <span style="color:var(--tx);font-weight:600;">Wisp Protocol</span>
                                                         <span style="color:var(--tx3)"> — </span>
                                                         Mercury Workshop
                                                         <span style="color:var(--tx3);font-size:11px;margin-left:4px;">WebSocket proxy tunnelling</span>
-                                                    </div>
-                                                    <div>
-                                                        <span style="color:var(--tx);font-weight:600;">Original Gust Framework &amp; JS</span>
-                                                        <span style="color:var(--tx3)"> — </span>
-                                                        lanefiedler731-gif
                                                     </div>
                                                     <div>
                                                         <span style="color:var(--tx);font-weight:600;">libcurl.js</span>
