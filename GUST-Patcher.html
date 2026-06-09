@@ -1635,7 +1635,7 @@ function buildPatchScript(removedPatches) {
   out += '(function(){\n';
   out += '  var b=' + JSON.stringify(b64) + ';\n';
   out += '  var c=decodeURIComponent(escape(atob(b)));\n';
-  out += '  try{eval(c);}catch(e){console.error("[GUST Patcher] patch failed:",e);}\n';
+  out += '  try{new Function(c)();}catch(e){console.error("[GUST Patcher] patch failed:",e);}\n';
   out += '})();\n';
   out += '<\/script>';
   return '\n' + out + '\n';

@@ -4756,7 +4756,7 @@ window.__gustImportScripts = function(...urls) {
       xhr.open('GET', absUrl, false); 
       xhr.send();
       if (xhr.status >= 200 && xhr.status < 400) {
-        (0, eval)(xhr.responseText);
+        new Function(xhr.responseText)();
       }
     } catch(e) {}
   });
