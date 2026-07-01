@@ -1426,13 +1426,15 @@
             border: 0;
             width: 100%;
             height: 100%;
-            background: #fff
+            background: var(--bg0);
         }
 
         .overlay {
             position: absolute;
             inset: 0;
-            background: rgba(10, 12, 16, .92);
+            background: rgba(10, 12, 16, .62);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1497,6 +1499,18 @@
             62%,100% { transform: rotate(0deg)   scale(1); }
         }
 
+        @keyframes gust-qmark-shake {
+            0%,100% { transform: rotate(0deg); }
+            8%       { transform: rotate(-18deg); }
+            16%      { transform: rotate(16deg); }
+            24%      { transform: rotate(-12deg); }
+            32%      { transform: rotate(10deg); }
+            40%      { transform: rotate(-6deg); }
+            48%      { transform: rotate(4deg); }
+            56%      { transform: rotate(-2deg); }
+            62%,100% { transform: rotate(0deg); }
+        }
+
         /* ── Overlay error state: large ringing triangle ────────────────── */
         .overlay-error-icon {
             width: 80px;
@@ -1515,12 +1529,73 @@
             animation: error-alarm-shake 1.8s cubic-bezier(0.36,0.07,0.19,0.97) 0.4s infinite;
             transform-origin: center bottom;
         }
-        #overlayText.overlay-err-text {
-            color: var(--err);
-            font-size: 13px;
-            max-width: 380px;
+        .overlay.error {
+            background: rgba(10, 12, 16, 0.55);
+        }
+        .overlay.error .overlay-card {
+            width: min(520px, 100%);
+            background: rgba(28, 32, 38, 0.92);
+            border: 1px solid rgba(79, 89, 99, 0.4);
+            border-radius: 18px;
+            padding: 30px 28px;
+            box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
             text-align: center;
-            line-height: 1.5;
+        }
+        .overlay.error .overlay-card .overlay-error-icon {
+            margin: 0 auto;
+        }
+        .overlay-error-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.01em;
+            margin-bottom: -2px;
+            text-transform: none;
+        }
+        #overlayText.overlay-err-text {
+            color: #b8c4d0;
+            font-size: 14px;
+            max-width: 420px;
+            text-align: center;
+            line-height: 1.7;
+        }
+        .overlay-error-card {
+            width: min(520px, 100%);
+        }
+        .overlay-err-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .overlay-err-btn {
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-family: var(--ui);
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .overlay-err-btn.reload {
+            background: var(--ac);
+            color: #0c1118;
+            border-color: var(--ac);
+        }
+        .overlay-err-btn.reload:hover {
+            background: var(--ac2);
+            border-color: var(--ac2);
+        }
+        .overlay-err-btn.limited {
+            background: transparent;
+            color: var(--tx3);
+            border-color: var(--bd);
         }
         .overlay-err-btns {
             display: flex;
@@ -3613,6 +3688,38 @@
             flex-shrink: 0;
         }
 
+        .ai-sidebar .panel-resize-handle {
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 40px;
+            background: var(--bd);
+            border-radius: 0 2px 2px 0;
+            cursor: ew-resize;
+            z-index: 10;
+            transition: background .15s;
+        }
+
+        .ai-sidebar .panel-resize-handle:hover {
+            background: var(--ac);
+        }
+
+        .ai-sidebar .panel-resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 1px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 2px;
+            height: 16px;
+            background: repeating-linear-gradient(to bottom,
+                    transparent,
+                    transparent 2px,
+                    rgba(255, 255, 255, 0.3) 2px,
+                    rgba(255, 255, 255, 0.3) 3px);
+        }
+
         .ai-sidebar.hidden {
             display: none;
         }
@@ -3621,7 +3728,8 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 14px;
+            padding: 8px 10px;
+            min-height: 42px;
             border-bottom: 1px solid var(--bd);
             background: var(--bg1);
             flex-shrink: 0;
@@ -4147,7 +4255,9 @@
                 position: fixed;
                 inset: 0;
                 z-index: 999999;
-                background: #0d0f12;
+                background: rgba(10, 12, 16, 0.5);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
                 color: #f0f4f8;
                 font-family: 'Segoe UI', Arial, sans-serif;
                 display: flex;
@@ -4158,11 +4268,11 @@
             .gust-noscript-box {
                 max-width: 520px;
                 width: 100%;
-                background: #1c2026;
-                border: 1px solid #4f5963;
+                background: rgba(28, 32, 38, 0.88);
+                border: 1px solid rgba(79, 89, 99, 0.4);
                 border-radius: 16px;
                 padding: 40px 36px 36px;
-                box-shadow: 0 12px 48px rgba(0,0,0,0.6);
+                box-shadow: 0 12px 48px rgba(0,0,0,0.55);
                 text-align: center;
             }
             .gust-noscript-icon {
@@ -4182,20 +4292,75 @@
                 color: #ffffff;
                 display: block;
                 position: relative;
-                top: 2px;
+                top: 1px;
                 left: 4px;
+                animation: gust-qmark-shake 1.8s cubic-bezier(0.36,0.07,0.19,0.97) infinite;
+                transform-origin: center bottom;
             }
             .gust-noscript-title {
                 font-size: 22px;
                 font-weight: 700;
-                margin-bottom: 12px;
+                margin-bottom: 16px;
                 color: #f0f4f8;
             }
             .gust-noscript-body {
                 font-size: 14px;
                 color: #b8c4d0;
                 line-height: 1.7;
-                margin-bottom: 24px;
+                margin-bottom: 20px;
+            }
+            .overlay-err-btns {
+                display: flex;
+                gap: 10px;
+                margin-top: 6px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .overlay-err-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 6px;
+                padding: 10px 20px;
+                border-radius: var(--radius-sm);
+                font-size: 13px;
+                font-family: var(--ui);
+                font-weight: 600;
+                cursor: pointer;
+                border: 1px solid transparent;
+                transition: background .15s, border-color .15s, color .15s;
+                background: transparent;
+                color: var(--tx);
+                text-align: center;
+                min-width: 140px;
+                text-decoration: none;
+            }
+            .overlay-err-btn:hover {
+                text-decoration: none;
+            }
+            #limited-mode:target + .gust-noscript {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+            .overlay-err-btn.reload {
+                background: var(--err);
+                color: #1a0a0a;
+                border-color: var(--err);
+            }
+            .overlay-err-btn.reload:hover {
+                background: #ffb3b3;
+                border-color: #ffb3b3;
+            }
+            .overlay-err-btn.limited {
+                background: transparent;
+                color: var(--tx3);
+                border-color: var(--bd);
+            }
+            .overlay-err-btn.limited:hover {
+                background: var(--surface);
+                color: var(--tx2);
+                border-color: var(--bd2);
             }
             .gust-noscript-steps {
                 background: #252b33;
@@ -4226,13 +4391,14 @@
                 color: #9de5ff;
             }
         </style>
+        <span id="limited-mode"></span>
         <div class="gust-noscript">
             <div class="gust-noscript-box">
                 <div class="gust-noscript-icon">
                     <i class="fa-brands fa-js"></i>
                     <i class="fa-solid fa-question gust-qmark"></i>
                 </div>
-                <div class="gust-noscript-title">JavaScript Required</div>
+                <div class="gust-noscript-title">Woah there!</div>
                 <div class="gust-noscript-body">
                     GUST needs JavaScript to run. It looks like JavaScript is currently
                     disabled, possibly because this file is being opened as a
@@ -4241,18 +4407,9 @@
                     <code style="background:#252b33;padding:1px 5px;border-radius:4px;font-size:12px;">file:///</code>
                     URL and your browser has JavaScript blocked for local files.
                 </div>
-                <div class="gust-noscript-steps">
-                    <p>To fix this in Chrome / Edge:</p>
-                    <ol>
-                        <li>Go to <strong>Settings <i class="fa-solid fa-arrow-right"></i> Privacy and security <i class="fa-solid fa-arrow-right"></i> Site settings <i class="fa-solid fa-arrow-right"></i> JavaScript</strong></li>
-                        <li>Under <em>Customized behaviors</em>, remove any rule blocking <code>file://*</code></li>
-                        <li>Reload this page</li>
-                    </ol>
-                </div>
-                <div class="gust-noscript-alt">
-                    Alternatively, host GUST on any static file server, paste the contents of this HTML into an HTML editor on the web, or open it from
-                    <a href="https://github.com/nautilus-os/GUST" target="_blank" rel="noopener">GitHub Pages</a>
-                    where JavaScript is always allowed.
+                <div class="overlay-err-btns">
+                    <a class="overlay-err-btn reload" href=""><i class="fas fa-rotate-left" style="margin-right:6px;"></i>Reload page</a>
+                    <a class="overlay-err-btn limited" href="#limited-mode"><i class="fas fa-arrow-right" style="margin-right:6px;"></i>Continue anyways</a>
                 </div>
             </div>
         </div>
@@ -4709,7 +4866,7 @@
                 
                 <div class="bookmark-modal" id="metricsModal" style="display:none;">
                     <div class="bookmark-modal-content"
-                        style="width:780px;max-width:94vw;border:1px solid rgba(100,210,255,0.25);">
+                        style="width:780px;max-width:94vw;border:1px solid var(--bd);box-shadow:0 8px 24px rgba(0,0,0,0.45);">
                         <h3><i class="fas fa-chart-simple"
                                 style="margin-right:8px;font-size:14px;color:var(--ac);opacity:0.8;"></i>Browser Metrics
                         </h3>
@@ -5975,7 +6132,7 @@
                                 <i class="fas fa-wand-magic-sparkles" style="color:var(--ac);opacity:1;font-size:28px;"></i>
                             </div>
                             <h3>GUST Assistant</h3>
-                            <p>Ask anything about the page you're browsing, get help with web content, or just chat.</p>
+                            <p>Ask questions about the page you're browsing, get help with site content, or just chat.</p>
                         </div>
                     </div>
                     <div class="ai-input-area" style="position:relative;">
@@ -8703,6 +8860,7 @@
             }
 
 
+
             function toggleLogs() {
                 if (!logsEl) return;
                 const wasHidden = logsEl.classList.contains("hidden");
@@ -9443,24 +9601,43 @@
                 if (spinner) {
                     spinner.outerHTML = '<div class="overlay-error-icon"><i class="fas fa-triangle-exclamation"></i></div>';
                 }
+                // Wrap error content in a card container
+                overlay.classList.add('error');
+                let card = overlay.querySelector('.overlay-card');
+                if (!card) {
+                    card = document.createElement('div');
+                    card.className = 'overlay-card';
+                    while (overlay.firstChild) {
+                        card.appendChild(overlay.firstChild);
+                    }
+                    overlay.appendChild(card);
+                }
                 // Update text
                 overlayText.classList.add('overlay-err-text');
                 overlayText.textContent = 'libcurl failed to initialize: ' + reason;
+                let title = card.querySelector('.overlay-error-title');
+                if (!title) {
+                    title = document.createElement('div');
+                    title.className = 'overlay-error-title';
+                    title.textContent = 'Uh oh!';
+                    card.insertBefore(title, overlayText);
+                }
                 overlay.classList.remove("hidden");
                 // Inject action buttons and return a Promise that resolves when the user chooses
                 return new Promise(resolve => {
                     // Remove any stale button row from a previous call
-                    overlay.querySelector('.overlay-err-btns')?.remove();
+                    card.querySelector('.overlay-err-btns')?.remove();
                     const btns = document.createElement('div');
                     btns.className = 'overlay-err-btns';
                     btns.innerHTML =
                         '<button class="overlay-err-btn reload"><i class="fas fa-rotate-right" style="margin-right:6px;"></i>Reload page</button>' +
-                        '<button class="overlay-err-btn limited">Continue in limited mode</button>';
-                    overlay.appendChild(btns);
+                        '<button class="overlay-err-btn limited"><i class="fas fa-arrow-right"></i> ‎ Continue anyways</button>';
+                    card.appendChild(btns);
                     btns.querySelector('.reload').addEventListener('click', () => { location.reload(); });
                     btns.querySelector('.limited').addEventListener('click', () => {
                         btns.remove();
                         overlayText.classList.remove('overlay-err-text');
+                        overlay.classList.remove('error');
                         resolve();
                     });
                 });
@@ -9468,6 +9645,15 @@
 
             function hideOverlay() {
                 overlay.classList.add("hidden");
+                overlay.classList.remove('error');
+                const card = overlay.querySelector('.overlay-card');
+                if (card) {
+                    while (card.firstChild) {
+                        overlay.appendChild(card.firstChild);
+                    }
+                    card.remove();
+                }
+                overlayText.classList.remove('overlay-err-text');
                 if (_overlayDotsInterval) { clearInterval(_overlayDotsInterval); _overlayDotsInterval = null; }
             }
 
@@ -12252,8 +12438,30 @@ _VIEWER_DL_JS +
                     // Remove any other base tags to prevent conflicts
                     doc.querySelectorAll('base').forEach(b => { if (b !== base) b.remove(); });
 
-                    // ── Strip <noscript> — page thinks JS is disabled inside blob iframe ──
-                    doc.querySelectorAll('noscript').forEach(n => n.remove());
+                    // ── Preserve <noscript> warnings and remove them only if JS actually runs ──
+                    const noscriptEls = Array.from(doc.querySelectorAll('noscript'));
+                    if (noscriptEls.length) {
+                        noscriptEls.forEach(n => {
+                            const placeholder = doc.createElement('div');
+                            placeholder.className = '_gust_noscript_placeholder';
+                            placeholder.innerHTML = n.innerHTML;
+                            n.parentNode.replaceChild(placeholder, n);
+                        });
+                        const noscriptFix = doc.createElement('script');
+                        noscriptFix.textContent = `
+                            (function() {
+                                function removeNoscriptPlaceholders() {
+                                    document.querySelectorAll('._gust_noscript_placeholder').forEach(el => el.remove());
+                                }
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', removeNoscriptPlaceholders);
+                                } else {
+                                    removeNoscriptPlaceholders();
+                                }
+                            })();
+                        `;
+                        doc.head.prepend(noscriptFix);
+                    }
 
                     // ── Ensure viewport meta exists for correct scaling ────────────────
                     if (!doc.querySelector('meta[name="viewport"]')) {
@@ -15448,6 +15656,13 @@ _VIEWER_DL_JS +
                     pos: 'below'
                 },
                 {
+                    target: '#settingsBtn',
+                    icon: '<i class="fas fa-gear"></i>',
+                    title: 'Settings',
+                    body: 'Configure the WISP server, search engine, wallpaper, font size, cache, shortcuts and more. You can also read about Gust or restart the tutorial from here.',
+                    pos: 'below'
+                },
+                {
                     target: '#navPillGroup',
                     icon: '<i class="fas fa-arrow-left"></i>',
                     title: 'Navigation Buttons',
@@ -15482,13 +15697,6 @@ _VIEWER_DL_JS +
                     title: 'Bookmarks',
                     body: 'Bookmark the current page with this button or Ctrl+D. Your bookmarks appear in the bar below the address bar. Right-click any bookmark to edit or remove it.',
                     pos: 'below'
-                },
-                {
-                    target: '#settingsBtn',
-                    icon: '<i class="fas fa-gear"></i>',
-                    title: 'Settings',
-                    body: 'Configure the WISP server, search engine, wallpaper, font size, cache, shortcuts and more. You can also read about Gust or restart the tutorial from here.',
-                    pos: 'below-left'
                 },
                 {
                     target: '#devToggle',
