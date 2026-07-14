@@ -47,14 +47,15 @@ The short version: most blockers can only block URLs. GUST is a file. You can't 
 
 ---
 
-## Pics
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/93db1bf0-2e4e-431e-a273-79f9229df4f4" />
-<img width="1919" height="969" alt="image" src="https://github.com/user-attachments/assets/fcc15a77-dde1-4d22-bfc7-d809acfe2891" />
-<img width="1920" height="973" alt="image" src="https://github.com/user-attachments/assets/c1388250-65a4-4878-9481-a2539c33079e" />
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3d332a9f-7713-419d-9350-bbe6c104a892" />
-<img width="1920" height="973" alt="image" src="https://github.com/user-attachments/assets/3254ba60-0636-4ae9-962c-7173c0b358de" />
-<img width="1920" height="973" alt="image" src="https://github.com/user-attachments/assets/0914ae53-eb7c-432a-9566-55c6923818ed" />
-<img width="1920" height="973" alt="image" src="https://github.com/user-attachments/assets/17fb9ac8-15c8-4881-b65f-a0dc92324256" />
+## Beauty Shots
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/cb9d573e-1e03-4abf-b74f-643a2f7eac72" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/27889e79-d7cd-4c37-899a-3ba628d8d070" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/bcb54134-3d65-402f-a348-2dda9b933ad3" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/19d59861-fc7e-43f1-8f68-43a34cf53b7d" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/ce7c4635-ff48-48be-a774-2fd95f179122" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/1af1b00c-2439-4532-8aeb-97b4018cc049" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/6fe149db-1370-4157-ab80-c3ceb7eb627e" />
+
 
 ---
 
