@@ -6376,6 +6376,13 @@
                 lastWorkingWisp = url;
             }
             let WISP = (function () { try { return ls.getItem('gust:wisp:v1') || "wss://wisp.mercurywork.shop/"; } catch { return "wss://wisp.mercurywork.shop/"; } })();
+            // Default fallback relay used when the primary WISP is unreachable
+            // (e.g. the primary is down or blocking the client's network). The
+            // fallback path is enabled by default but previously shipped with no
+            // server configured, so it never engaged — leaving fresh installs
+            // dead whenever the primary was unreachable. A distinct public relay
+            // here lets GUST self-heal; users can override it in Settings.
+            const DEFAULT_FALLBACK_WISP = "wss://wisp.run/";
             const $ = s => document.getElementById(s);
             const frame = $('frame');
             let _pendingNavHint = null;
@@ -6421,7 +6428,19 @@
                             frame.src = 'about:blank';
                             go(recoveryUrl, true);
                         } else {
-                            frame.src = 'about:blank';
+                            // No real escape — the page triggered a NATIVE reload() of the
+                            // blob doc (e.g. Next.js hydration / chunk-error recovery).
+                            // Reload the current proxied URL instead of blanking.
+                            // Guard against self-looping: only reload if a page actually
+                            // loaded successfully before (_lastPageLoadTime is set on the
+                            // 'ready' message), and self-throttle by stamping the time so a
+                            // reload that itself fails can't re-fire for 15s. Never reload
+                            // when nothing ever loaded (_lastPageLoadTime === 0) — that path
+                            // is the dead-server / in-flight case and would loop forever.
+                            if (pageUrl && _lastPageLoadTime && (Date.now() - _lastPageLoadTime) > 15000) {
+                                _lastPageLoadTime = Date.now();
+                                go(pageUrl, false);
+                            }
                         }
                     } catch (_) {}
                 }
@@ -8198,11 +8217,12 @@
             function faviconFor(url) {
                 try {
                     const u = new URL(url);
-                    const proxyFavicons = (() => { try { return ls.getItem('gust:favicon-proxy:v1') === '1'; } catch { return false; } })();
-                    if (proxyFavicons) {
-                        return '__proxy_favicon__' + encodeURIComponent(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(u.hostname)}&sz=64`);
-                    }
-                    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(u.hostname)}&sz=64`;
+                    // Always route favicons through the proxy (WISP). Fetching Google's
+                    // favicon service directly from the top-level GUST page would leak
+                    // every visited domain to the network filter and defeat the whole
+                    // "only through the proxy" guarantee. resolveFaviconSrc() turns this
+                    // prefixed value into a proxied blob: URL.
+                    return '__proxy_favicon__' + encodeURIComponent(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(u.hostname)}&sz=64`);
                 } catch {
                     return "";
                 }
@@ -8577,46 +8597,59 @@
             ];
             let wallpaperGradientIdx = 0;
 
+            // Apply a wallpaper, routing any remote URL through the proxy (WISP)
+            // instead of fetching it directly from the top-level GUST page.
+            // data:/blob: URLs are applied as-is. `store` persists the source URL
+            // so it survives reloads (blob URLs don't, so we re-proxy on load).
+            async function applyBgFromUrl(url, store) {
+                if (!ntBg || !url) return;
+                if (/^(data:|blob:)/i.test(url)) {
+                    ntBg.style.backgroundImage = `url(${url})`;
+                    ntBg.style.backgroundSize = "cover";
+                    ntBg.style.backgroundPosition = "center";
+                    if (store) { try { ls.setItem(WALLPAPER_STORAGE_KEY, url); } catch (_) { } }
+                    return;
+                }
+                try {
+                    const r = await queueFetch(url, {}, PRIORITY.image);
+                    if (!r.buf || !r.buf.byteLength) return;
+                    const blobUrl = URL.createObjectURL(new Blob([r.buf], { type: r.mime || 'image/jpeg' }));
+                    ntBg.style.backgroundImage = `url(${blobUrl})`;
+                    ntBg.style.backgroundSize = "cover";
+                    ntBg.style.backgroundPosition = "center";
+                    if (store) { try { ls.setItem(WALLPAPER_STORAGE_KEY, url); } catch (_) { } }
+                } catch (_) { /* leave the gradient fallback showing */ }
+            }
+
             function setNewTabWallpaper() {
                 if (!ntBg) return;
                 const w = Math.max(900, window.innerWidth);
                 const h = Math.max(600, window.innerHeight);
                 const imgUrl = `https://picsum.photos/${w}/${h}?random=${Math.random()}`;
                 wallpaperGradientIdx = (wallpaperGradientIdx + 1) % WALLPAPER_GRADIENTS.length;
-                const fallback = WALLPAPER_GRADIENTS[wallpaperGradientIdx];
-                ntBg.style.backgroundImage = fallback;
+                ntBg.style.backgroundImage = WALLPAPER_GRADIENTS[wallpaperGradientIdx];
                 ntBg.style.backgroundSize = "cover";
                 ntBg.style.backgroundPosition = "center";
-                const img = new Image();
-                img.onload = () => {
-                    ntBg.style.backgroundImage = `url(${imgUrl})`;
-                    try { ls.setItem(WALLPAPER_STORAGE_KEY, imgUrl); } catch (_) { }
-                };
-                img.onerror = () => { ntBg.style.backgroundImage = fallback; };
-                img.src = imgUrl;
+                applyBgFromUrl(imgUrl, true);
             }
 
             function applyWallpaperUrl(url) {
                 if (!ntBg || !url) return;
-                ntBg.style.backgroundImage = `url(${url})`;
-                ntBg.style.backgroundSize = "cover";
-                ntBg.style.backgroundPosition = "center";
-                try { ls.setItem(WALLPAPER_STORAGE_KEY, url); } catch (_) { }
+                applyBgFromUrl(url, true);
             }
 
             function loadSavedWallpaper() {
                 if (!ntBg) return;
                 ntBg.style.backgroundSize = "cover";
                 ntBg.style.backgroundPosition = "center";
+                ntBg.style.backgroundImage = WALLPAPER_GRADIENTS[0];
                 try {
                     const saved = ls.getItem(WALLPAPER_STORAGE_KEY);
                     if (saved && (saved.startsWith("http") || saved.startsWith("data:"))) {
-                        ntBg.style.backgroundImage = `url(${saved})`;
-                        return;
+                        applyBgFromUrl(saved, false);
                     }
                 } catch (_) { }
-                
-                ntBg.style.backgroundImage = WALLPAPER_GRADIENTS[0];}
+            }
 
             function loadFavorites() {
                 try {
@@ -9898,7 +9931,7 @@
                     try {
                         const r = await doFetch(job.url, job.opts);
 
-                        if (job.opts.method !== "POST" && r.status >= 200 && r.status < 400) {
+                        if (job.opts.method !== "POST" && r.status >= 200 && r.status < 400 && r.buf && r.buf.byteLength > 0) {
                             const _cc = (r.headers?.['cache-control'] || '').toLowerCase();
                             const _noStore = _cc.includes('no-store') || _cc.includes('private');
                             if (!_noStore) {
@@ -10384,8 +10417,17 @@
                 return `(function(){
 if(window.__P) return;
 window.__P = true;
+window.__perr = window.__perr || [];
+addEventListener('error', e => { try { if (e.target && e.target !== window && (e.target.src||e.target.href)) window.__perr.push('RESLOAD-FAIL: '+String(e.target.src||e.target.href).slice(-55)); else window.__perr.push((e.message||'')+' @ '+((e.filename||'').slice(0,60))+':'+e.lineno); } catch(_){} }, true);
+addEventListener('unhandledrejection', e => { try { window.__perr.push('REJECT: '+String(e.reason&&e.reason.message||e.reason).slice(0,120)); } catch(_){} });
+// All proxy communication targets the top-level GUST window, not the immediate
+// parent. For the top frame these are identical; for a nested proxied iframe
+// (also a blob running this runtime) window.top is GUST, so its fetches, nav,
+// and streams route to the real proxy instead of a middle frame that ignores
+// them. GUST replies to ev.source, so each frame gets its own responses.
+const parent = window.top;
 
-const Base64=(()=>{const C='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';const E=new Uint8Array(256);for(let i=0;i<C.length;i++)E[C.charCodeAt(i)]=i;E['='.charCodeAt(0)]=0;function encode(input){let bytes=typeof input==='string'?(()=>{const b=new Uint8Array(input.length);for(let i=0;i<input.length;i++)b[i]=input.charCodeAt(i)&0xff;return b;})():input instanceof ArrayBuffer?new Uint8Array(input):input;const len=bytes.length,rem=len%3,end=len-rem,out=new Array((Math.floor(len/3)*4)+(rem?4:0));let o=0;for(let i=0;i<end;i+=3){const b0=bytes[i],b1=bytes[i+1],b2=bytes[i+2];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2|b2>>6];out[o++]=C[b2&63];}if(rem===1){const b0=bytes[end];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4];out[o++]='=';out[o++]='=';}else if(rem===2){const b0=bytes[end],b1=bytes[end+1];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2];out[o++]='=';}return out.join('');}function decode(b64){if(!b64)return new Uint8Array(0);b64=b64.replace(/\s/g,'');const r=b64.length%4;if(r===2)b64+='==';else if(r===3)b64+='=';const len=b64.length;let bl=(len/4)*3;if(b64[len-1]==='=')bl--;if(b64[len-2]==='=')bl--;const out=new Uint8Array(bl);let o=0;for(let i=0;i<len;i+=4){const e0=E[b64.charCodeAt(i)],e1=E[b64.charCodeAt(i+1)],e2=E[b64.charCodeAt(i+2)],e3=E[b64.charCodeAt(i+3)];out[o++]=(e0<<2)|(e1>>4);if(o<bl)out[o++]=((e1&15)<<4)|(e2>>2);if(o<bl)out[o++]=((e2&3)<<6)|e3;}return out;}function decodeToString(b64){const bytes=decode(b64);let s='';const CH=32768;for(let i=0;i<bytes.length;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));return s;}return{encode,decode,decodeToString};})();
+const Base64=(()=>{const C='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';const E=new Uint8Array(256);for(let i=0;i<C.length;i++)E[C.charCodeAt(i)]=i;E['='.charCodeAt(0)]=0;function encode(input){let bytes=typeof input==='string'?(()=>{const b=new Uint8Array(input.length);for(let i=0;i<input.length;i++)b[i]=input.charCodeAt(i)&0xff;return b;})():input instanceof ArrayBuffer?new Uint8Array(input):input;const len=bytes.length,rem=len%3,end=len-rem,out=new Array((Math.floor(len/3)*4)+(rem?4:0));let o=0;for(let i=0;i<end;i+=3){const b0=bytes[i],b1=bytes[i+1],b2=bytes[i+2];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2|b2>>6];out[o++]=C[b2&63];}if(rem===1){const b0=bytes[end];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4];out[o++]='=';out[o++]='=';}else if(rem===2){const b0=bytes[end],b1=bytes[end+1];out[o++]=C[b0>>2];out[o++]=C[(b0&3)<<4|b1>>4];out[o++]=C[(b1&15)<<2];out[o++]='=';}return out.join('');}function decode(b64){if(!b64)return new Uint8Array(0);b64=b64.replace(/\\s/g,'');const r=b64.length%4;if(r===2)b64+='==';else if(r===3)b64+='=';const len=b64.length;let bl=(len/4)*3;if(b64[len-1]==='=')bl--;if(b64[len-2]==='=')bl--;const out=new Uint8Array(bl);let o=0;for(let i=0;i<len;i+=4){const e0=E[b64.charCodeAt(i)],e1=E[b64.charCodeAt(i+1)],e2=E[b64.charCodeAt(i+2)],e3=E[b64.charCodeAt(i+3)];out[o++]=(e0<<2)|(e1>>4);if(o<bl)out[o++]=((e1&15)<<4)|(e2>>2);if(o<bl)out[o++]=((e2&3)<<6)|e3;}return out;}function decodeToString(b64){const bytes=decode(b64);let s='';const CH=32768;for(let i=0;i<bytes.length;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));return s;}return{encode,decode,decodeToString};})();
 
 const BASE = ${JSON.stringify(baseUrl)};
 const ORIGIN = new URL(BASE).origin;
@@ -10490,9 +10532,29 @@ Object.defineProperty(document, 'cookie', {
 });
 
 const pfx = '_s_' + ORIGIN + '_';
-const mkStore = s => ({ getItem: k => s.getItem(pfx+k), setItem: (k,v) => s.setItem(pfx+k,v), removeItem: k => s.removeItem(pfx+k), clear: () => Object.keys(s).filter(k=>k.startsWith(pfx)).forEach(k=>s.removeItem(k)), key: i => { const ks = Object.keys(s).filter(k=>k.startsWith(pfx)); return ks[i]?.slice(pfx.length)||null; }, get length() { return Object.keys(s).filter(k=>k.startsWith(pfx)).length; } });
-try { Object.defineProperty(window, 'localStorage', {value: mkStore(localStorage)}); } catch {}
-try { Object.defineProperty(window, 'sessionStorage', {value: mkStore(sessionStorage)}); } catch {}
+// Back the storage shim with native storage when it works, but on a file://
+// host the blob iframe has an opaque origin where localStorage/sessionStorage
+// THROW SecurityError on ANY access — even evaluating the global. Probe safely
+// (the native store is passed as a thunk so evaluating it can't throw at the
+// call site) and fall back to an in-memory Map. Without this, sites that touch
+// storage during early init — e.g. next-themes reading its key inside a
+// try/catch — throw and silently abort, leaving the page in the wrong theme
+// and half-styled (light-dark() colours flip, background goes white, etc.).
+const mkStore = getNative => {
+  let nat = null;
+  try { nat = getNative(); nat.getItem('__gust_probe__'); } catch (e) { nat = null; }
+  const mem = new Map();
+  const B = nat ? {
+    g: k => nat.getItem(pfx+k), s: (k,v) => nat.setItem(pfx+k,v), d: k => nat.removeItem(pfx+k),
+    ks: () => Object.keys(nat).filter(k=>k.startsWith(pfx)).map(k=>k.slice(pfx.length))
+  } : {
+    g: k => mem.has(k) ? mem.get(k) : null, s: (k,v) => mem.set(k, String(v)), d: k => mem.delete(k),
+    ks: () => [...mem.keys()]
+  };
+  return { getItem: k => { const v = B.g(k); return v == null ? null : v; }, setItem: (k,v) => B.s(k,v), removeItem: k => B.d(k), clear: () => B.ks().forEach(k => B.d(k)), key: i => B.ks()[i] ?? null, get length() { return B.ks().length; } };
+};
+try { Object.defineProperty(window, 'localStorage', {value: mkStore(() => localStorage), configurable: true}); } catch {}
+try { Object.defineProperty(window, 'sessionStorage', {value: mkStore(() => sessionStorage), configurable: true}); } catch {}
 
 const origIDBOpen = indexedDB.open.bind(indexedDB);
 indexedDB.open = function(name, version) { return origIDBOpen(pfx + name, version); };
@@ -10540,13 +10602,13 @@ window.addEventListener('message', e => {
   if (!d) return;
   if (d.t === 'cookieSync') {
     if (d.origin !== ORIGIN || typeof d.cookie !== 'string') return;
-    d.cookie.split(/;\s*/).forEach(p => {
+    d.cookie.split(/;\\s*/).forEach(p => {
       const m = p.match(/^([^=]+)=([^;]*)/);
       if (m) cookies.set(m[1].trim(), m[2]);
     });
     try { sessionStorage.setItem('_c_' + ORIGIN, JSON.stringify([...cookies])); } catch {}
   }
-  if (d.t === 'r') { const p = pending.get(d.i); if (p) { pending.delete(d.i); clearTimeout(p.tm); d.e ? p.rj(new Error(d.e)) : p.rs(d); } }
+  if (d.t === 'r') { console.log('[REQDIAG-IN]', d.i, d.e || ('ok s='+d.s)); const p = pending.get(d.i); if (p) { pending.delete(d.i); clearTimeout(p.tm); d.e ? p.rj(new Error(d.e)) : p.rs(d); } }
   if (d.t === 'sse') { const h = sseHandlers.get(d.i); if (h) { if (d.error) { h.onerror?.(new Event('error')); sseHandlers.delete(d.i); } else if (d.done) { sseHandlers.delete(d.i); } else if (d.chunk) { h.onchunk?.(d.chunk); } } }
   if (d.t === 'streamStart') { const h = streamHandlers.get(d.i); if (h) h.onstart?.(d.status, d.headers); }
   if (d.t === 'streamData') { const h = streamHandlers.get(d.i); if (h && d.d) { const arr = Base64.decode(d.d); h.ondata?.(arr); } }
@@ -10617,6 +10679,7 @@ function req(url, opts = {}) {
     // the pending map to accumulate zombie entries that never resolve or reject.
     const tm = setTimeout(() => { pending.delete(i); rj(new Error('Timeout')); }, 45000);
     pending.set(i, { rs, rj, tm });
+    console.log('[REQDIAG-OUT]', i, (opts&&opts.method)||'GET', url);
     parent.postMessage({ t: 'q', i, url, opts }, '*');
   });
 }
@@ -10641,7 +10704,10 @@ async function fetchBlob(url, type) {
   if (blobs.has(url)) return blobs.get(url);
   if (blobPromises.has(url)) return blobPromises.get(url);
   const promise = (async () => {
-    const r = await req(url);
+    // Send the browser's standard image Accept so content-negotiating endpoints
+    // (notably Next.js's /_next/image optimizer) return real bytes instead of an
+    // empty/error body. The */* fallback keeps it valid for video/audio/other too.
+    const r = await req(url, { headers: { 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' } });
     if (!r.d) return '';
     const arr_rd = Base64.decode(r.d);
     const blob = new Blob([arr_rd], { type: r.m || type || 'application/octet-stream' });
@@ -10658,6 +10724,7 @@ async function fetchBlob(url, type) {
 const _fetch = window.fetch;
 window.fetch = async function(input, init = {}) {
   let url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input?.url || String(input)));
+  console.log('[REQDIAG-FETCH-ENTRY]', (init&&init.method)||'GET', url);
   if (/^blob:/i.test(url)) return _fetch.call(window, input, init);
   url = resolve(url);
   if (shouldSkip(url)) return new Response('', { status: 200 });
@@ -10683,7 +10750,14 @@ window.fetch = async function(input, init = {}) {
       setTimeout(() => { resolve(new Response(stream, { status, headers: new Headers(responseHeaders) })); }, 50);
     });
   }
-  const r = await req(url, { method, headers, body });
+  // Honour AbortSignal (from init or the Request) so SPAs that cancel stale
+  // fetches don't hang on a promise that only settles after the 45s req() timeout.
+  const signal = init.signal || (isRequest ? input.signal : null);
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  const reqPromise = req(url, { method, headers, body });
+  const r = await (signal
+    ? Promise.race([reqPromise, new Promise((_, rj) => signal.addEventListener('abort', () => rj(new DOMException('Aborted', 'AbortError')), { once: true }))])
+    : reqPromise);
   const arr = Base64.decode(r.d || '');
   return new Response(arr, { status: r.s || 200, headers: new Headers(r.h || {}) });
 };
@@ -10792,33 +10866,39 @@ Object.assign(XMLHttpRequest, { UNSENT: 0, OPENED: 1, HEADERS_RECEIVED: 2, LOADI
 
 const elMap = [ { p: HTMLImageElement.prototype, a: ['src'] }, { p: HTMLVideoElement.prototype, a: ['src', 'poster'] }, { p: HTMLAudioElement.prototype, a: ['src'] }, { p: HTMLSourceElement.prototype, a: ['src'] }, { p: HTMLTrackElement.prototype, a: ['src'] }, { p: HTMLEmbedElement.prototype, a: ['src'] }, { p: HTMLObjectElement.prototype, a: ['data'] }, { p: HTMLInputElement.prototype, a: ['src'] } ];
 const loadingEls = new WeakMap();
-const pendingLoads = new Set();
-const loadedUrls = new Set();
+let pendingLoadCount = 0;
 const MAX_CONCURRENT_MEDIA = 24;
 
-elMap.forEach(({ p, a }) => { a.forEach(attr => { const desc = Object.getOwnPropertyDescriptor(p, attr); if (!desc) return; Object.defineProperty(p, attr, { get() { return this.getAttribute('data-real-' + attr) || this.getAttribute(attr) || ''; }, set(val) { 
-if (!val || /^(data:|blob:|javascript:|about:)/i.test(val)) { if (desc.set) desc.set.call(this, val); return; } 
-const absUrl = resolve(val); 
-if (shouldSkip(absUrl)) return; 
-const el = this; 
+elMap.forEach(({ p, a }) => { a.forEach(attr => { const desc = Object.getOwnPropertyDescriptor(p, attr); if (!desc) return; Object.defineProperty(p, attr, { get() { return this.getAttribute('data-real-' + attr) || this.getAttribute(attr) || ''; }, set(val) {
+if (!val || /^(data:|blob:|javascript:|about:)/i.test(val)) { if (desc.set) desc.set.call(this, val); return; }
+const absUrl = resolve(val);
+if (shouldSkip(absUrl)) return;
+const el = this;
 const currentReal = el.getAttribute('data-real-' + attr);
 if (currentReal === absUrl) return;
-if (loadedUrls.has(absUrl) && pendingLoads.has(absUrl)) return;
-el.setAttribute('data-real-' + attr, absUrl); 
-if (loadingEls.has(el)) loadingEls.get(el).cancel = true; 
-const state = { cancel: false }; 
-loadingEls.set(el, state); 
+el.setAttribute('data-real-' + attr, absUrl);
+if (loadingEls.has(el)) loadingEls.get(el).cancel = true;
+const state = { cancel: false };
+loadingEls.set(el, state);
 
 loadMedia();
+// Every element with this src calls its own loadMedia — fetchBlob() below
+// already dedupes concurrent fetches of the same URL (one network request,
+// shared promise), so each duplicate element (same avatar/icon used twice
+// on a page) still gets the resolved blob applied to itself. Gating on
+// "is this URL already loading" here (as a prior version did) meant only
+// the first of several identical <img> tags ever got its blob set — every
+// duplicate silently kept its original https src forever.
 async function loadMedia() {
-  if (pendingLoads.has(absUrl)) return;
-  while (pendingLoads.size >= MAX_CONCURRENT_MEDIA) await new Promise(r => setTimeout(r, 50));
+  while (pendingLoadCount >= MAX_CONCURRENT_MEDIA) await new Promise(r => setTimeout(r, 50));
   if (state.cancel) return;
-  pendingLoads.add(absUrl);
+  pendingLoadCount++;
   try {
     const burl = await fetchBlob(absUrl);
     if (state.cancel) return;
-    loadedUrls.add(absUrl);
+    // Empty proxy response → don't blank the element (that's what produced a
+    // broken-image icon over the alt text). Signal error and leave its src alone.
+    if (!burl) { el.dispatchEvent(new Event('error')); return; }
     el.setAttribute('data-blob-' + attr, burl);
     if (desc.set) desc.set.call(el, burl);
     else el.setAttribute(attr, burl);
@@ -10826,7 +10906,7 @@ async function loadMedia() {
   } catch (e) {
     if (!state.cancel) el.dispatchEvent(new Event('error'));
   } finally {
-    pendingLoads.delete(absUrl);
+    pendingLoadCount--;
   }
 }
 }, configurable: true }); }); });
@@ -10844,6 +10924,99 @@ const rewritten = await Promise.all(parts.map(async part => {
 }));
 this.setAttribute('srcset', rewritten.filter(Boolean).join(', '));
 this.removeAttribute('data-srcset-loading'); }, configurable: true }); });
+
+// Neutralize innerHTML/outerHTML/insertAdjacentHTML-inserted markup: the native
+// HTML parser fetches <img src>/<video src>/<source src>/poster the instant
+// elements are parsed into a *live* document — before any JS (our property
+// setters above, the MutationObserver below) gets a chance to reroute them
+// through the proxy. That's a direct, unproxied network request. <template>
+// content is inert (its media never loads per spec), so parse there first, move
+// live media attrs to the reserved data-gust-src/-srcset/-poster (NOT plain
+// data-src — sites use that themselves for their own lazy-loading, and
+// clobbering it would overwrite their real lazy URL), then let the
+// MutationObserver + processEl() route them through the proxy once they land
+// in the real document, exactly like any other lazy image.
+function _sanitizeMediaHTML(html) {
+  if (!html || !/<(img|video|audio|source)\b/i.test(html)) return html;
+  try {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html;
+    tpl.content.querySelectorAll('img,video,audio,source').forEach(el => {
+      ['src', 'poster'].forEach(attr => {
+        const v = el.getAttribute(attr);
+        if (v && !/^(data:|blob:)/i.test(v)) { el.removeAttribute(attr); el.setAttribute('data-gust-' + attr, v); }
+      });
+      const srcset = el.getAttribute('srcset');
+      if (srcset && !/^(data:|blob:)/i.test(srcset)) { el.removeAttribute('srcset'); el.setAttribute('data-gust-srcset', srcset); }
+    });
+    return tpl.innerHTML;
+  } catch { return html; }
+}
+[Element.prototype, typeof ShadowRoot !== 'undefined' ? ShadowRoot.prototype : null].forEach(proto => {
+  if (!proto) return;
+  const ihDesc = Object.getOwnPropertyDescriptor(proto, 'innerHTML');
+  if (ihDesc && ihDesc.set) Object.defineProperty(proto, 'innerHTML', { get: ihDesc.get, set(v) { ihDesc.set.call(this, _sanitizeMediaHTML(v)); }, configurable: true });
+});
+const _ohDesc = Object.getOwnPropertyDescriptor(Element.prototype, 'outerHTML');
+if (_ohDesc && _ohDesc.set) Object.defineProperty(Element.prototype, 'outerHTML', { get: _ohDesc.get, set(v) { _ohDesc.set.call(this, _sanitizeMediaHTML(v)); }, configurable: true });
+// DOMParser().parseFromString('text/html') starts img/video fetches immediately
+// during parsing even though the result document has no browsing context — this
+// is how client-side-routing frameworks (Turbo/Hotwire snapshot diffing, React
+// Router document morphing) build their next-page DOM before swapping it in, and
+// it's a second unproxied-fetch vector alongside innerHTML.
+const _origParseFromString = DOMParser.prototype.parseFromString;
+DOMParser.prototype.parseFromString = function(str, type, ...rest) {
+  if (type === 'text/html') str = _sanitizeMediaHTML(str);
+  return _origParseFromString.call(this, str, type, ...rest);
+};
+const _origInsertAdjacentHTML = Element.prototype.insertAdjacentHTML;
+Element.prototype.insertAdjacentHTML = function(pos, html) { return _origInsertAdjacentHTML.call(this, pos, _sanitizeMediaHTML(html)); };
+
+// NOTE: dynamically-injected external scripts (set via el.src at runtime) are
+// left to load directly. Intercepting the src setter and swapping to a blob:
+// URL breaks module-based chunk loaders (rspack/webpack on GitHub) — the loader
+// sets .src then reads it back / relies on immediate load semantics, and the
+// async blob swap runs after the element is already inserted, which corrupts
+// chunk execution. Direct load is the browser's native (working) path here.
+
+// ── Route dynamically-inserted stylesheet <link>s through the proxy ─────────
+// React 19 / Next.js (app router) load route CSS at hydration and on client
+// navigation by creating <link rel="stylesheet"> elements and setting .href.
+// The setAttribute hook alone missed the property path, so that CSS was fetched
+// directly (bypassing WISP) and dropped on filtered networks. React also
+// suspends content reveal until the link fires 'load', so a missed sheet shows
+// up as "half the page renders, then the styles never arrive". We fetch the CSS
+// through the proxy, inline its url()/@import into a self-contained sheet, and
+// hand the <link> a blob: URL so it still loads and fires onload.
+let _linkHrefDesc = Object.getOwnPropertyDescriptor(HTMLLinkElement.prototype, 'href');
+function _proxyStylesheetLink(el, absUrl) {
+  req(absUrl).then(async r => {
+    let css = new TextDecoder().decode(Base64.decode(r.d || ''));
+    css = await rewriteCss(css, absUrl);
+    const blobUrl = URL.createObjectURL(new Blob([css], { type: 'text/css;charset=utf-8' }));
+    try { el.removeAttribute('integrity'); } catch (e) {}   // SRI won't match rewritten CSS on a blob: URL
+    if (_linkHrefDesc && _linkHrefDesc.set) _linkHrefDesc.set.call(el, blobUrl); else el.setAttribute('href', blobUrl);
+  }).catch(() => { try { if (_linkHrefDesc && _linkHrefDesc.set) _linkHrefDesc.set.call(el, absUrl); else el.setAttribute('href', absUrl); } catch (e) {} });
+}
+function _isStylesheetLink(el) {
+  const rel = (el.rel || el.getAttribute('rel') || '').toLowerCase();
+  return rel.includes('stylesheet') || (rel.includes('preload') && ((el.as || el.getAttribute('as') || '') === 'style'));
+}
+try {
+  if (_linkHrefDesc && _linkHrefDesc.set) {
+    Object.defineProperty(HTMLLinkElement.prototype, 'href', {
+      get() { return this.getAttribute('data-original-href') || _linkHrefDesc.get.call(this); },
+      set(val) {
+        if (!val || /^(data:|blob:)/i.test(val) || !_isStylesheetLink(this)) { _linkHrefDesc.set.call(this, val); return; }
+        const abs = resolve(val);
+        if (shouldSkip(abs)) return;
+        this.setAttribute('data-original-href', abs);
+        _proxyStylesheetLink(this, abs);
+      },
+      configurable: true
+    });
+  }
+} catch (e) {}
 
 async function rewriteCss(css, base, _depth) {
   if ((_depth || 0) > 4) return css;
@@ -10898,7 +11071,7 @@ const origAppend = Node.prototype.appendChild;
 const origInsert = Node.prototype.insertBefore;
 
 const origSetAttr = Element.prototype.setAttribute;
-Element.prototype.setAttribute = function(name, value) { const tag = this.tagName; if (tag === 'LINK' && name === 'href' && (this.rel || '').includes('stylesheet')) { if (value && !/^(data:|blob:)/i.test(value)) { const url = resolve(value); if (shouldSkip(url)) return; const link = this; req(url).then(async r => { const arr = Base64.decode(r.d || ''); let css = new TextDecoder().decode(arr); css = await rewriteCss(css, url); const style = document.createElement('style'); style.textContent = css; if (link.parentNode) link.parentNode.replaceChild(style, link); }).catch(() => origSetAttr.call(this, name, value)); return; } } if ((tag === 'IMG' || tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE') && (name === 'src' || name === 'poster')) { if (value && !/^(data:|blob:)/i.test(value)) { this[name] = value; return; } } return origSetAttr.call(this, name, value); };
+Element.prototype.setAttribute = function(name, value) { const tag = this.tagName; if (tag === 'LINK' && name === 'href' && (this.rel || '').includes('stylesheet')) { if (value && !/^(data:|blob:)/i.test(value)) { this.href = value; return; } } if ((tag === 'IMG' || tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE') && (name === 'src' || name === 'poster')) { if (value && !/^(data:|blob:)/i.test(value)) { this[name] = value; return; } } return origSetAttr.call(this, name, value); };
 
 const processedEls = new WeakMap(); // url -> true, so we re-process if src changed
 function processEl(el) {
@@ -10909,26 +11082,46 @@ function processEl(el) {
   const lastSrc = processedEls.get(el) || '';
   if (lastSrc === currentSrc && processedEls.has(el)) return;
   processedEls.set(el, currentSrc);
+  // Scripts rewritten to data:/blob: URLs keep their real URL in
+  // data-original-src. Expose it via the .src property so webpack's
+  // automatic-publicPath scan (getElementsByTagName('script')[i].src,
+  // used when document.currentScript is null — i.e. every module script)
+  // finds an http(s) URL instead of throwing "Automatic publicPath is
+  // not supported in this browser" and killing the whole bundle.
+  if (tag === 'SCRIPT') {
+    const orig = el.getAttribute('data-original-src');
+    if (orig) patchScriptNode(el, orig);
+    return;
+  }
   if (tag === 'IMG' || tag === 'VIDEO' || tag === 'AUDIO' || tag === 'SOURCE') {
     const src = el.getAttribute('src');
     if (src && !/^(data:|blob:)/i.test(src) && !el.getAttribute('data-real-src')) el.src = src;
-    
-    const lazySrc = el.getAttribute('data-src') || el.getAttribute('data-lazy') || el.getAttribute('data-original') || el.getAttribute('data-lazy-src');
+
+    // data-gust-src is GUST's own neutralization marker (set server-side or by
+    // _sanitizeMediaHTML before a real src ever reaches the parser) — always
+    // trustworthy and checked first. The site's own lazy-load attrs follow.
+    const lazySrc = el.getAttribute('data-gust-src') || el.getAttribute('data-src') || el.getAttribute('data-lazy') || el.getAttribute('data-original') || el.getAttribute('data-lazy-src');
     if (lazySrc && !/^(data:|blob:)/i.test(lazySrc) && !el.getAttribute('data-real-src')) {
       el.src = lazySrc;
+      el.removeAttribute('data-gust-src');
       el.removeAttribute('data-src');
       el.removeAttribute('data-lazy');
       el.removeAttribute('data-original');
       el.removeAttribute('data-lazy-src');
     }
-    const srcset = el.getAttribute('srcset') || el.getAttribute('data-srcset');
+    const srcset = el.getAttribute('srcset') || el.getAttribute('data-gust-srcset') || el.getAttribute('data-srcset');
     if (srcset && !/blob:/.test(srcset)) {
       el.srcset = srcset;
+      el.removeAttribute('data-gust-srcset');
       if (el.getAttribute('data-srcset')) el.removeAttribute('data-srcset');
     }
     if (tag === 'VIDEO') {
-      const poster = el.getAttribute('poster');
-      if (poster && !/^(data:|blob:)/i.test(poster) && !el.getAttribute('data-real-poster')) el.poster = poster;
+      const poster = el.getAttribute('poster') || el.getAttribute('data-gust-poster') || el.getAttribute('data-poster');
+      if (poster && !/^(data:|blob:)/i.test(poster) && !el.getAttribute('data-real-poster')) {
+        el.poster = poster;
+        el.removeAttribute('data-gust-poster');
+        if (el.getAttribute('data-poster')) el.removeAttribute('data-poster');
+      }
     }
   }
   // Defuse anchor hrefs: store real URL in data-gust-href, set href to javascript:void(0)
@@ -10944,6 +11137,16 @@ function processEl(el) {
     }
     const tgt = (el.getAttribute('target') || '').toLowerCase();
     if (tgt && tgt !== '_self') el.setAttribute('target', '_self');
+  }
+  // Backstop for stylesheet <link>s inserted with rel set after href (so the
+  // href setter above saw no rel yet) or built via setAttribute. data-original-href
+  // marks ones already routed through the proxy, so we never double-process.
+  if (tag === 'LINK' && _isStylesheetLink(el) && !el.getAttribute('data-original-href')) {
+    const lhref = el.getAttribute('href');
+    if (lhref && !/^(data:|blob:)/i.test(lhref)) {
+      const abs = resolve(lhref);
+      if (!shouldSkip(abs)) { el.setAttribute('data-original-href', abs); _proxyStylesheetLink(el, abs); }
+    }
   }
   if (el.getAttribute('loading') === 'lazy') el.setAttribute('loading', 'eager');
   const style = el.getAttribute('style');
@@ -10982,6 +11185,36 @@ document.querySelectorAll('*').forEach(processEl);
 const fakeLoc = new URL(BASE);
 const locProxy = new Proxy({}, { get(_, p) { if (p === 'href') return fakeLoc.href; if (p === 'origin') return fakeLoc.origin; if (p === 'protocol') return fakeLoc.protocol; if (p === 'host') return fakeLoc.host; if (p === 'hostname') return fakeLoc.hostname; if (p === 'port') return fakeLoc.port; if (p === 'pathname') return fakeLoc.pathname; if (p === 'search') return fakeLoc.search; if (p === 'hash') return fakeLoc.hash; if (p === 'assign' || p === 'replace') return u => { try { const _r=resolve(u); const du=new URL(_r); const bu=new URL(BASE); if(du.origin===bu.origin&&du.pathname===bu.pathname&&du.search===bu.search) return; parent.postMessage({t:'n',u:_r},'*'); } catch { parent.postMessage({t:'n',u:resolve(u)},'*'); } }; if (p === 'reload') return () => parent.postMessage({ t: 'rl' }, '*'); if (p === 'toString' || p === Symbol.toPrimitive) return () => fakeLoc.href; if (p === 'ancestorOrigins') return { length: 0 }; }, set(_, p, v) { if (p === 'href') { if (!v || /^about:/i.test(v) || /^javascript:/i.test(v)) return true; try { const _r=resolve(v); const du=new URL(_r); const bu=new URL(BASE); if(du.origin===bu.origin&&du.pathname===bu.pathname&&du.search===bu.search) return true; parent.postMessage({t:'n',u:_r},'*'); return true; } catch {} parent.postMessage({ t: 'n', u: resolve(v) }, '*'); return true; } if (p === 'hash') { fakeLoc.hash = v; window.dispatchEvent(new HashChangeEvent('hashchange')); return true; } if (p === 'search') { parent.postMessage({ t: 'n', u: fakeLoc.origin + fakeLoc.pathname + v + fakeLoc.hash }, '*'); return true; } return true; } });
 try { Object.defineProperty(window, 'location', { value: locProxy }); } catch {}
+// __gustLoc: alias for locProxy that page JS is textually rewritten to use
+// (window.location itself is unforgeable, so GUST rewrites location references
+// in every proxied script to this global). Assignment navigates like location=.
+try { Object.defineProperty(window, '__gustLoc', { get: () => locProxy, set(v) { if (v) { try { locProxy.href = String(v); } catch {} } }, configurable: true }); } catch {}
+// __gustLoc dollar: transparent accessor for ANY-receiver dot-location reads.
+// Proxied scripts rewrite X.location to X.__gustLoc$ (see _locRecvRe) because
+// minified code aliases the global (var P=window; then P.location) in a form the
+// literal window/document rewrite can't catch — and window.location itself is
+// non-configurable, so it can't be overridden directly. This accessor returns
+// the location proxy ONLY when the receiver is the window or document; for any
+// other object it reads the receiver's own location (undefined for most),
+// i.e. it is a no-op everywhere except the global. Without it, React Router
+// reads the blob:null pathname and route-scoped deferred data never loads.
+// ponytail: ceiling — an Object.create(null) receiver holding a real location
+// key won't inherit this and reads undefined; a full AST rewriter if that bites.
+try {
+  Object.defineProperty(Object.prototype, '__gustLoc$', {
+    get() {
+      if (this === window || this === document) return locProxy;
+      try { return this.location; } catch { return undefined; }
+    },
+    set(v) {
+      if (this === window || this === document) { try { locProxy.href = String(v); } catch {} return true; }
+      try { this.location = v; } catch {}
+      return true;
+    },
+    enumerable: false,
+    configurable: true
+  });
+} catch {}
 // Fix 3a: Override document.location — this IS configurable on all major browsers.
 try { Object.defineProperty(document, 'location', { get: () => locProxy, set(v) { if (v && typeof v === 'string') parent.postMessage({ t: 'n', u: resolve(v) }, '*'); }, configurable: true }); } catch {}
 try {
@@ -11095,7 +11328,10 @@ document.addEventListener('click', e => {
   parent.postMessage({ t: 'n', u: resolve(href) }, '*');
 }, true);
 document.addEventListener('auxclick', e => { if (e.button !== 1) return; const a = e.target?.closest?.('a, area'); if (!a) return; const href = a._gustHref || a.getAttribute('data-gust-href') || a.getAttribute('href'); if (!href || /^(javascript:|#)/i.test(href)) return; e.preventDefault(); e.stopPropagation(); parent.postMessage({ t: 'n', u: resolve(href) }, '*'); }, true);
-document.addEventListener('submit', e => { const form = e.target; if (!form || form.tagName !== 'FORM') return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const action = resolve(form.action || BASE); const method = (form.method || 'GET').toUpperCase(); const fd = new FormData(form); if (method === 'GET') { parent.postMessage({ t: 'n', u: action.split('?')[0] + '?' + new URLSearchParams(fd).toString(), form: 1 }, '*'); } else { parent.postMessage({ t: 'n', u: action, m: 'POST', b: new URLSearchParams(fd).toString(), form: 1 }, '*'); } }, true);
+// Bubble phase + defaultPrevented check: a SPA's own submit handler (search
+// boxes, JS-validated logins) runs first and its preventDefault wins — we only
+// proxy-navigate forms the page left to native submission.
+document.addEventListener('submit', e => { const form = e.target; if (!form || form.tagName !== 'FORM') return; if (e.defaultPrevented) return; e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); const action = resolve(form.action || BASE); const method = (form.method || 'GET').toUpperCase(); const fd = new FormData(form); if (method === 'GET') { parent.postMessage({ t: 'n', u: action.split('?')[0] + '?' + new URLSearchParams(fd).toString(), form: 1 }, '*'); } else { parent.postMessage({ t: 'n', u: action, m: 'POST', b: new URLSearchParams(fd).toString(), form: 1 }, '*'); } }, false);
 
 const _open = window.open;
 window.open = function(url, target, features) { if (!url || url === 'about:blank') return null; const resolved = resolve(url); parent.postMessage({ t: 'n', u: resolved }, '*'); return { closed: false, close: () => {}, focus: () => {}, blur: () => {}, postMessage: () => {}, location: { href: resolved }, document: { write: () => {}, close: () => {} } }; };
@@ -11335,10 +11571,13 @@ parent.postMessage({ t: 'ready' }, '*');
             window.addEventListener("message", async ev => {
                 const d = ev.data;
                 if (!d?.t) return;
-                // Only accept messages from our own iframe or self — reject anything else.
-                // This prevents third-party iframes embedded inside proxied pages from
-                // sending navigation or fetch commands directly to the parent.
-                if (ev.source !== frame.contentWindow && ev.source !== window) return;
+                if (ev.source == null) return;
+                // Accept the top frame, self, or any proxied descendant iframe — every
+                // nested iframe is now rendered as a blob running the proxy runtime and
+                // talks to window.top directly, so there are no unproxied foreign frames
+                // to spoof commands. Request replies go back to ev.source (below) so each
+                // frame receives only its own responses.
+                const _replyTo = ev.source;
 
                 if (d.t === 'hint') {
                     if (d.u && typeof d.u === 'string') _pendingNavHint = d.u;
@@ -11376,7 +11615,7 @@ parent.postMessage({ t: 'ready' }, '*');
                             signal: msgSignal
                         }, priority);
                         if (r.skipped) {
-                            frame.contentWindow?.postMessage({
+                            _replyTo?.postMessage({
                                 t: 'r',
                                 i,
                                 s: 200,
@@ -11391,7 +11630,7 @@ parent.postMessage({ t: 'ready' }, '*');
                         else log(`<i class="fas fa-check" style="color:var(--ok)"></i>${url.slice(0, 45)} (${(r.buf.byteLength / 1024).toFixed(0)}K)`, "ok");
                         // Clone buf for transfer — buf may be referenced by cache so we send a copy
                         const transferBuf = r.buf.slice(0);
-                        frame.contentWindow?.postMessage({
+                        _replyTo?.postMessage({
                             t: 'r',
                             i,
                             s: r.status,
@@ -11402,7 +11641,7 @@ parent.postMessage({ t: 'ready' }, '*');
                     } catch (e) {
                         if (e.name === 'AbortError') return;
                         log(`<i class="fas fa-xmark" style="color:var(--err)"></i>${url.slice(0, 45)} - ${e.message}`, "err");
-                        frame.contentWindow?.postMessage({
+                        _replyTo?.postMessage({
                             t: 'r',
                             i,
                             e: e.message
@@ -12210,6 +12449,12 @@ _VIEWER_DL_JS +
 
                 if (activeTabId === initiatorTabId && !isInvalidInternal(url)) {
                     frame.onload = null;
+                    // Mark this as a GUST-initiated load. The iframe is sandboxed, so
+                    // frame.contentWindow.location.href throws for EVERY load (opaque
+                    // origin) — including this about:blank clear. Without this flag the
+                    // native-escape interceptor treats our own blanking as an escape and
+                    // can re-enter go(), which blanks again → infinite load loop.
+                    _blobLoadPending = true;
                     frame.src = 'about:blank';
                 }
 
@@ -12601,6 +12846,7 @@ _VIEWER_DL_JS +
   document.addEventListener('submit', function(e) {
     var form = e.target;
     if (!form || form.tagName !== 'FORM') return;
+    if (e.defaultPrevented) return;   // page JS handled this form itself
     var dest = form.getAttribute('data-gust-action') || form.action;
     if (!dest || /^(javascript:|blob:|data:)/i.test(dest)) return;
     e.preventDefault();
@@ -12614,7 +12860,7 @@ _VIEWER_DL_JS +
       var qs = new URLSearchParams(fd).toString();
       try { parent.postMessage({t:'n',u:dest.split('?')[0]+(qs?'?'+qs:''),form:1},'*'); } catch(err) {}
     }
-  }, true);
+  }, false);
 })();`;
                     // Insert right after the proxy script so it runs immediately
                     proxyScript.insertAdjacentElement('afterend', clickRouterScript);
@@ -12764,6 +13010,151 @@ _VIEWER_DL_JS +
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
 
 
+                    // ── ES module graph proxy loader ───────────────────────────────
+                    // type="module" scripts and their static/dynamic-string imports load
+                    // directly from the blob iframe (blob:null origin) and fail on any
+                    // origin without CORS headers — i.e. most Vite/Rollup/esbuild SPAs
+                    // (eightyeightthirty.one, x8r.dev). We fetch each module through WISP,
+                    // rewrite its import specifiers to per-module blob URLs (post-order over
+                    // the graph) and rewrite import.meta.url to the real module URL, so the
+                    // whole graph runs off blobs routed through the proxy.
+                    // ponytail: regex specifier rewrite + DAG-only. A cross-chunk cycle
+                    // leaves one back-edge on its real URL (logged); a bare bundler-external
+                    // specifier is left as-is. Full correctness (string-literal false matches,
+                    // cycles, bare specifiers) needs an AST bundler — the module-rewriter ceiling.
+                    const _esmBlobCache = new Map();   // absUrl -> blobUrl (null = resolving/cycle marker)
+                    const _esmInflight = new Map();    // absUrl -> Promise<blobUrl>
+                    const _esmMax = Math.max(1, parseInt((() => { try { return ls.getItem('gust:render:modulelimit'); } catch(e) { return null; } })() || '600', 10));
+                    // ── location rewrite ────────────────────────────────────────────
+                    // window.location is unforgeable inside the blob iframe, so SPAs
+                    // reading location.search/pathname see blob garbage (DDG re-renders
+                    // its homepage, routers 404). Since every proxied script's source
+                    // passes through GUST, rewrite location references to __gustLoc —
+                    // the runtime's locProxy alias backed by the real page URL.
+                    // ponytail: regex, not AST — covers member reads/writes and bare
+                    // location.prop / location=; a naked `location` passed as a value
+                    // (new URL(x, location)) is left alone. AST rewriter if this fails.
+                    const _locMemberRe = /(?<![$\w.])(?:window|self|globalThis|document)\s*\.\s*location(?![$\w])/g;
+                    // Any-receiver member access: `e.location`, `t.location`, `P.location` —
+                    // minified bundles alias the global (`var P=window; …P.location.pathname`),
+                    // which the literal window|self|globalThis|document rule above cannot see.
+                    // This is NOT cosmetic: React Router / the history lib read location this
+                    // exact way, so without it they get the unforgeable blob:null pathname, the
+                    // `/:owner/:repo` route never matches, and route-scoped deferred queries
+                    // (GitHub's tree-commit-info — the "latest commit per file" column) never
+                    // fire, leaving the file list stuck on skeleton loaders forever. Rewritten
+                    // to the runtime's transparent Object.prototype.__gustLoc$ accessor, which
+                    // returns the location proxy ONLY when the receiver is window/document and
+                    // behaves like a plain `.location` read for everything else.
+                    const _locRecvRe = /(?<=[$\w\)\]])(\?\.|\.)\s*location(?![$\w])/g;
+                    const _locPropRe = /(?<![$\w.])location\s*\.\s*(href|search|pathname|hash|host|hostname|origin|port|protocol|assign|replace|reload|toString|ancestorOrigins)\b/g;
+                    const _locAssignRe = /(?<![$\w.])location\s*=(?![=])/g;
+                    function rewriteLocationRefs(src) {
+                        if (!src || src.indexOf('location') === -1) return src;
+                        return src.replace(_locMemberRe, '__gustLoc')
+                                  .replace(_locRecvRe, '$1__gustLoc$$')
+                                  .replace(_locPropRe, '__gustLoc.$1')
+                                  .replace(_locAssignRe, '__gustLoc=');
+                    }
+                    // import / export … from "spec"   |   import "spec"   |   import("spec")
+                    const _esmPatterns = [
+                        /((?:^|[^.\w$])(?:import|export)\b[^'"()]*?\bfrom\s*)(['"])([^'"\n]+)(\2)/g,
+                        /((?:^|[^.\w$])import\s*)(['"])([^'"\n]+)(\2)/g,
+                        /((?:^|[^.\w$])import\s*\(\s*)(['"])([^'"\n]+)(\2)/g,
+                    ];
+                    // UTF-8 JS source -> data: URL. base64 (not percent-encoding) keeps the URL
+                    // compact; charset=utf-8 avoids the Latin-1 mis-decode that turns non-ASCII
+                    // bytes in minified bundles into SyntaxErrors.
+                    function _toDataModule(text) {
+                        const bytes = new TextEncoder().encode(text);
+                        let bin = ''; const chunk = 32768;
+                        for (let j = 0; j < bytes.length; j += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(j, j + chunk));
+                        return 'data:text/javascript;charset=utf-8;base64,' + Base64.encode(bin);
+                    }
+                    async function transformModuleSource(src, moduleUrl) {
+                        const specs = new Set();
+                        for (const re of _esmPatterns) { re.lastIndex = 0; let m; while ((m = re.exec(src))) specs.add(m[3]); }
+                        const specMap = new Map();
+                        await Promise.all([...specs].map(async spec => {
+                            // Only proxy relative or http(s) specifiers; leave data:/blob:/bare (bundler externals).
+                            if (/^(data:|blob:|about:|node:)/i.test(spec)) return;
+                            if (!/^(https?:\/\/|\/|\.)/i.test(spec)) return;
+                            let dep;
+                            try { dep = new URL(spec, moduleUrl).href; } catch { return; }
+                            await proxyEsmModule(dep);   // fetch+transform+cache as a data: URL (for the import map)
+                            // Rewrite the specifier to the ABSOLUTE REAL URL, not the module's
+                            // data: URL: the import map injected after the graph walk maps real
+                            // URL -> data: URL. Name-based resolution keeps every module a single
+                            // instance (cycle back-edges resolve to the same data: URL once cached)
+                            // and avoids inlining each dep's full data: URL into its importers —
+                            // which would nest exponentially on a deep graph. Only if the fetch
+                            // failed does the real URL survive with no map entry (direct load).
+                            specMap.set(spec, dep);
+                        }));
+                        let out = rewriteLocationRefs(src).replace(/\bimport\.meta\.url\b/g, JSON.stringify(moduleUrl));
+                        for (const re of _esmPatterns) {
+                            out = out.replace(re, (full, pre, q, spec, q2) => {
+                                const rep = specMap.get(spec);
+                                return rep ? pre + q + rep + q2 : full;
+                            });
+                        }
+                        return out;
+                    }
+                    async function proxyEsmModule(absUrl) {
+                        if (_esmBlobCache.has(absUrl)) { const v = _esmBlobCache.get(absUrl); return v === null ? absUrl : v; }
+                        if (_esmInflight.has(absUrl)) return _esmInflight.get(absUrl);
+                        if (_esmBlobCache.size >= _esmMax) { log(`<i class="fas fa-triangle-exclamation" style="color:var(--warn)"></i> module graph exceeded ${_esmMax} — remaining chunks load direct`, "warn"); return absUrl; }
+                        const promise = (async () => {
+                            _esmBlobCache.set(absUrl, null);   // in-progress → cycle back-edges resolve to real URL
+                            let src;
+                            try {
+                                const r = await Promise.race([
+                                    queueFetch(absUrl, { signal: tabCtrl.signal }, PRIORITY.js),
+                                    new Promise((_, rj) => setTimeout(() => rj(new Error('module fetch timeout')), 12000))
+                                ]);
+                                if (!r.buf || !r.buf.byteLength) throw new Error('empty');
+                                src = new TextDecoder('utf-8').decode(new Uint8Array(r.buf));
+                            } catch (e) {
+                                _esmBlobCache.delete(absUrl);   // fetch failed → let the browser try the real URL
+                                return absUrl;
+                            }
+                            const out = await transformModuleSource(src, absUrl);
+                            // data: URL, NOT blob:. On a file:// host the proxied page runs in an
+                            // opaque-origin (blob:null) iframe; Chrome blocks it from loading any
+                            // blob: URL the parent minted ("Not allowed to load local resource"),
+                            // so every ES-module <script src=blob:> silently failed and React apps
+                            // never booted (infinite spinner on github user pages, etc.). data:
+                            // URLs carry no origin and load fine from an opaque document — the same
+                            // reason classic proxied scripts already use data:. Import specifiers
+                            // stay as real URLs (see transformModuleSource) so data: URLs never
+                            // nest; the injected import map maps each real URL -> its data: URL.
+                            const dataUrl = _toDataModule(out);
+                            _esmBlobCache.set(absUrl, dataUrl);
+                            return dataUrl;
+                        })();
+                        _esmInflight.set(absUrl, promise);
+                        promise.finally(() => _esmInflight.delete(absUrl));
+                        return promise;
+                    }
+
+                    // Inline module scripts (script type="module" with inline import code): rewrite
+                    // their imports against the page URL so their graph also routes through WISP.
+                    await Promise.all([...doc.querySelectorAll('script[type="module"]:not([src])')].map(async scr => {
+                        const code = scr.textContent;
+                        if (!code || !/\bimport\b|\bexport\b/.test(code)) return;
+                        try { scr.textContent = await transformModuleSource(code, url); } catch {}
+                    }));
+
+                    // Inline classic scripts: rewrite location references (skip GUST's
+                    // own injected scripts and non-JS payloads like application/json).
+                    doc.querySelectorAll('script:not([src]):not([data-gust-injected])').forEach(scr => {
+                        const t = (scr.getAttribute('type') || '').toLowerCase();
+                        if (t && t !== 'text/javascript' && t !== 'application/javascript' && t !== 'module') return;
+                        const code = scr.textContent;
+                        if (!code || code.indexOf('location') === -1) return;
+                        try { scr.textContent = rewriteLocationRefs(code); } catch {}
+                    });
+
                     // JS - keep as external scripts to preserve defer/module semantics.
                     // Next.js / React / Vite apps commonly emit 30-80+ script tags (classic chunks
                     // + ES module chunks). We keep up to 150 total to avoid cutting off critical
@@ -12771,6 +13162,18 @@ _VIEWER_DL_JS +
                     // the same pass so their relative load order is preserved.
                     const _scriptLimit = Math.max(1, parseInt((() => { try { return ls.getItem('gust:render:scriptlimit'); } catch(e) { return null; } })() || '250', 10));
                     const allScripts = [...doc.querySelectorAll("script[src]")].slice(0, _scriptLimit);
+                    // Non-module <script src> are fetched through the proxy and re-pointed at a
+                    // data: URL. The browser decodes a data: URL inline (no network request), so
+                    // this both routes the fetch through WISP and preserves external-script
+                    // semantics — defer/async ordering still work because it's still an external
+                    // script. Previously these loaded directly from the blob iframe, bypassing the
+                    // proxy; on a filtered network framework chunks (e.g. /_next/static/chunks/*)
+                    // were blocked, so React never hydrated and only the SSR half of the page
+                    // rendered. data: also sidesteps the script-tag serialisation hazards of
+                    // inlining source. Module scripts keep their real external URL — their
+                    // relative/bare imports must resolve against the real origin, not a data: URL.
+                    const _toProxy = [];
+                    const _modulesToProxy = [];
                     allScripts.forEach(scr => {
                         const src = scr.getAttribute("src");
                         if (!src || /^(data:|blob:)/i.test(src)) return;
@@ -12780,9 +13183,88 @@ _VIEWER_DL_JS +
                             return;
                         }
                         scr.setAttribute("data-original-src", jsUrl);
-                        scr.setAttribute("src", jsUrl);
+                        const isModule = (scr.getAttribute('type') || '').toLowerCase() === 'module';
+                        if (isModule) {
+                            _modulesToProxy.push({ scr, jsUrl });
+                        } else {
+                            _toProxy.push({ scr, jsUrl });
+                        }
                         log("JS: " + jsUrl.slice(0, 40));
                     });
+                    // Load each module entry's graph through the proxy → data: URL. On any
+                    // failure the entry keeps its real URL (browser attempts a direct load).
+                    await Promise.all(_modulesToProxy.map(async ({ scr, jsUrl }) => {
+                        try {
+                            const dataUrl = await proxyEsmModule(jsUrl);
+                            if (activeTabId !== initiatorTabId) return;
+                            scr.removeAttribute('integrity');
+                            scr.removeAttribute('crossorigin');
+                            scr.setAttribute('src', dataUrl);
+                        } catch (e) {
+                            try { scr.setAttribute('src', jsUrl); } catch (_) {}
+                        }
+                    }));
+                    // Emit ONE import map: real module URL -> its proxied data: URL. Module
+                    // sources keep absolute REAL URLs as import specifiers (see
+                    // transformModuleSource); the browser resolves them here by name. This is
+                    // what lets the whole graph load off data: URLs from the opaque iframe with
+                    // a single instance per module (cycles included), and it reroutes any
+                    // runtime import(realUrl) — webpack lazy chunks, dynamic imports — through
+                    // the already-proxied data: URLs instead of an unproxied network fetch.
+                    // A <script type=importmap> must precede every module <script>.
+                    if (_esmBlobCache.size) {
+                        const _imports = {};
+                        for (const [abs, data] of _esmBlobCache) {
+                            if (data && data !== abs && /^data:/.test(data)) _imports[abs] = data;
+                        }
+                        if (Object.keys(_imports).length) {
+                            // Only one import map is allowed per document — if the page ships its
+                            // own, merge our real->data: entries into it (page entries win on
+                            // conflict) instead of adding a second, which would break both.
+                            const existing = doc.querySelector('script[type="importmap"]');
+                            if (existing) {
+                                let map = { imports: {} };
+                                try { map = JSON.parse(existing.textContent || '{}'); } catch {}
+                                map.imports = Object.assign({}, _imports, map.imports || {});
+                                existing.textContent = JSON.stringify(map);
+                            } else {
+                                const im = doc.createElement('script');
+                                im.type = 'importmap';
+                                im.setAttribute('data-gust-injected', '1');
+                                im.textContent = JSON.stringify({ imports: _imports });
+                                if (doc.head) doc.head.insertBefore(im, doc.head.firstChild);
+                                else doc.documentElement.insertBefore(im, doc.documentElement.firstChild);
+                            }
+                        }
+                    }
+                    // Fetch concurrently; 12s per-script timeout falls back to a direct external
+                    // load so one stalled chunk can't freeze the whole render.
+                    await Promise.all(_toProxy.map(async ({ scr, jsUrl }) => {
+                        try {
+                            const jsR = await Promise.race([
+                                queueFetch(jsUrl, { signal: tabCtrl.signal }, PRIORITY.js),
+                                new Promise((_, rj) => setTimeout(() => rj(new Error('script fetch timeout')), 12000))
+                            ]);
+                            if (activeTabId !== initiatorTabId) return;
+                            if (jsR.buf && jsR.buf.byteLength) {
+                                // Decode → rewrite location refs to __gustLoc → re-encode as UTF-8 bytes.
+                                const jsText = rewriteLocationRefs(new TextDecoder('utf-8').decode(new Uint8Array(jsR.buf)));
+                                const bytes = new TextEncoder().encode(jsText);
+                                let bin = '';
+                                const chunk = 32768;
+                                for (let j = 0; j < bytes.length; j += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(j, j + chunk));
+                                scr.removeAttribute('integrity');   // SRI hash won't match a data: URL; bytes already came via our proxy
+                                // charset=utf-8 is required: without it the browser decodes the data: URL as
+                                // ASCII/Latin-1, so any non-ASCII byte outside a string literal (common in
+                                // minified bundles) becomes an "Invalid or unexpected token" SyntaxError.
+                                scr.setAttribute('src', 'data:text/javascript;charset=utf-8;base64,' + Base64.encode(bin));
+                            } else {
+                                scr.setAttribute('src', jsUrl);   // empty → external fallback
+                            }
+                        } catch (e) {
+                            try { scr.setAttribute('src', jsUrl); } catch (_) {}   // failed/timeout → external
+                        }
+                    }));
 
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
 
@@ -12800,16 +13282,26 @@ _VIEWER_DL_JS +
                         }
                     });
 
-                    // ── Absolutify iframe src and relax sandbox for embedded content ───
+                    // ── Proxy nested iframes through WISP (never load real URLs directly) ──
+                    // Pointing a nested iframe at its real URL made the browser fetch it
+                    // directly from the blob/null origin — a full proxy bypass that also
+                    // errored on X-Frame-Options/CSP frame-ancestors. Instead fetch the
+                    // embed's HTML through the proxy and render it as a self-contained blob
+                    // with the runtime injected, so it and its subresources/links route
+                    // through window.top → GUST exactly like the top frame.
+                    const _iframesToProxy = [];
                     doc.querySelectorAll('iframe[src]').forEach(ifr => {
                         const s = ifr.getAttribute('src');
                         if (s && !/^(data:|blob:|javascript:|about:)/i.test(s)) {
-                            try { ifr.setAttribute('src', new URL(s, url).href); } catch {}
+                            try {
+                                const iu = new URL(s, url).href;
+                                if (shouldSkip(iu)) ifr.removeAttribute('src');
+                                else _iframesToProxy.push({ ifr, iu });
+                            } catch { ifr.removeAttribute('src'); }
                         }
-                        // Remove overly-restrictive sandbox attributes that block media embeds
+                        // Relax overly-restrictive sandbox so the injected runtime can run.
                         const sandbox = ifr.getAttribute('sandbox');
                         if (sandbox !== null) {
-                            // Keep allow-scripts and allow-same-origin; add them if missing
                             const parts = new Set(sandbox.split(/\s+/).filter(Boolean));
                             parts.add('allow-scripts');
                             parts.add('allow-same-origin');
@@ -12818,6 +13310,39 @@ _VIEWER_DL_JS +
                             ifr.setAttribute('sandbox', [...parts].join(' '));
                         }
                     });
+                    await Promise.all(_iframesToProxy.map(async ({ ifr, iu }) => {
+                        try {
+                            const ir = await Promise.race([
+                                queueFetch(iu, { signal: tabCtrl.signal }, PRIORITY.html),
+                                new Promise((_, rj) => setTimeout(() => rj(new Error('iframe fetch timeout')), 12000))
+                            ]);
+                            if (activeTabId !== initiatorTabId) return;
+                            const mime = (ir.mime || '').toLowerCase();
+                            let html = (ir.buf && ir.buf.byteLength) ? new TextDecoder('utf-8').decode(new Uint8Array(ir.buf)) : '';
+                            const isHtml = html && (mime.includes('html') || (!mime && /^\s*<(!doctype|html|head|body|meta|div|iframe)/i.test(html)));
+                            if (!isHtml) { ifr.removeAttribute('src'); return; }   // non-HTML/empty embed → blank, never a direct load
+                            const idoc = new DOMParser().parseFromString(html, 'text/html');
+                            if (!idoc.head) idoc.documentElement.insertBefore(idoc.createElement('head'), idoc.documentElement.firstChild);
+                            const ibase = idoc.createElement('base'); ibase.href = iu; idoc.head.prepend(ibase);
+                            const ips = idoc.createElement('script');
+                            ips.textContent = makeProxyScript(iu, blockEnabled && !((() => { try { const al = JSON.parse(ls.getItem('gust:adblock:allowlist:v1') || '[]'); return al.includes(new URL(iu).hostname); } catch(e) { return false; } })()), mediaPref('gust:webrtc:block:v1'), (() => { try { return ls.getItem('gust:ua:page:v1') || null; } catch { return null; } })(), (() => { try { return ls.getItem('gust:spellcheck:v1') === 'true'; } catch { return false; } })());
+                            idoc.head.insertBefore(ips, idoc.head.firstChild);
+                            // Same native-parser-fetch leak as the top-level doc (see comment
+                            // above the equivalent pass on `doc`): neutralize before serializing.
+                            idoc.querySelectorAll('img, video, audio, source').forEach(el => {
+                                ['src', 'poster'].forEach(attr => {
+                                    const v = el.getAttribute(attr);
+                                    if (v && !/^(data:|blob:)/i.test(v)) { el.removeAttribute(attr); el.setAttribute('data-gust-' + attr, v); }
+                                });
+                                const srcset = el.getAttribute('srcset');
+                                if (srcset && !/^(data:|blob:)/i.test(srcset)) { el.removeAttribute('srcset'); el.setAttribute('data-gust-srcset', srcset); }
+                            });
+                            const iBlob = URL.createObjectURL(new Blob(["<!DOCTYPE html>\n" + idoc.documentElement.outerHTML], { type: 'text/html;charset=utf-8' }));
+                            ifr.setAttribute('src', iBlob);
+                        } catch (e) {
+                            try { ifr.removeAttribute('src'); } catch(_) {}   // fetch failed/timeout → blank, never a direct load
+                        }
+                    }));
 
                     if (blockEnabled) {
                         doc.querySelectorAll('img[src], iframe[src]').forEach(el => {
@@ -12866,6 +13391,27 @@ _VIEWER_DL_JS +
                     ]);
 
                     if (tabCtrl.signal.aborted || activeTabId !== initiatorTabId) return;
+
+                    // Neutralize real media URLs before serializing to the iframe's blob HTML.
+                    // The browser's native HTML parser fetches <img src>/<video poster>/<source
+                    // src|srcset> directly off the attribute the instant it builds these elements
+                    // — that happens at the engine level, entirely independent of the injected
+                    // runtime's JS property/setAttribute overrides (those only intercept JS-driven
+                    // changes made *after* parsing). Left alone, every media element leaks one
+                    // direct, unproxied fetch before the runtime's processEl() ever runs. Move the
+                    // real URL to a reserved data-gust-* attribute (data-src/data-lazy/etc. are
+                    // left alone since sites use those themselves) so the parser sees nothing to
+                    // fetch; processEl() promotes it back to a proxied `.src=` after the document
+                    // is live. The imagePromises warm-cache pass above already ran against the
+                    // real `src` values, so this doesn't affect cache warming.
+                    doc.querySelectorAll('img, video, audio, source').forEach(el => {
+                        ['src', 'poster'].forEach(attr => {
+                            const v = el.getAttribute(attr);
+                            if (v && !/^(data:|blob:)/i.test(v)) { el.removeAttribute(attr); el.setAttribute('data-gust-' + attr, v); }
+                        });
+                        const srcset = el.getAttribute('srcset');
+                        if (srcset && !/^(data:|blob:)/i.test(srcset)) { el.removeAttribute('srcset'); el.setAttribute('data-gust-srcset', srcset); }
+                    });
 
                     const highlightStyle = doc.createElement('style');
                     highlightStyle.textContent = `
@@ -12934,7 +13480,7 @@ _VIEWER_DL_JS +
 
                     // ── Fallback retry logic ──────────────────────────────────
                     const _fbEnabled = (() => { try { return ls.getItem('gust:fallback:enabled') !== '0'; } catch { return true; } })();
-                    const _fbWisp    = (() => { try { return ls.getItem('gust:fallback:wisp') || ''; } catch { return ''; } })();
+                    const _fbWisp    = (() => { try { return ls.getItem('gust:fallback:wisp') || DEFAULT_FALLBACK_WISP; } catch { return DEFAULT_FALLBACK_WISP; } })();
                     const _fbRetries = (() => { try { return Math.max(1, parseInt(ls.getItem('gust:fallback:retries') || '3', 10)); } catch { return 3; } })();
                     const _fbDelay   = (() => { try { return Math.max(0, parseInt(ls.getItem('gust:fallback:delay')   || '3', 10)); } catch { return 3; } })();
                     const _fb5xx     = (() => { try { return ls.getItem('gust:fallback:5xx')     !== '0'; } catch { return true; } })();
@@ -14836,11 +15382,11 @@ _VIEWER_DL_JS +
                         var prev = translationOriginals.get(nodesAndTexts[i].node);
                         if (prev !== undefined) texts[i] = prev;
                     });
-                    fetch('https://libretranslate.com/translate', {
+                    queueFetch('https://libretranslate.com/translate', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ q: texts, source: 'en', target: targetLang })
-                    }).then(function(r) { return r.json(); }).then(function(data) {
+                    }, PRIORITY.html).then(function(r) { return JSON.parse(new TextDecoder().decode(r.buf)); }).then(function(data) {
                         var translated;
                         if (Array.isArray(data)) {
                             translated = data.map(function(d) { return typeof d === 'string' ? d : (d && d.translatedText) || ''; });
@@ -16137,12 +16683,6 @@ _VIEWER_DL_JS +
                 }
             }, 300);
 
-            try {
-                if (ls.getItem(TUTORIAL_KEY) !== 'done') {
-                    _gustAnimLocked = true;
-                }
-            } catch(e) {}
-
             // Delay tutorial until after libcurl init completes
             let _libcurlInitDone = false;
             let _tutorialWaiting = false;
@@ -16159,7 +16699,7 @@ _VIEWER_DL_JS +
                 _libcurlInitDone = true;
                 _maybeStartTutorial();
             };
-            _tutorialWaiting = true;
+            // Auto-show of the welcome tour removed — it's still available from Settings → Tutorial.
 
             // ── Fullscreen logic ──────────────────────────────────────────────
             function _doRequestFullscreen() {
@@ -16278,7 +16818,7 @@ _VIEWER_DL_JS +
                 const fbReset  = document.getElementById('settingsFallbackWispReset');
                 const fbStatus = document.getElementById('settingsFallbackWispStatus');
                 if (fbInput) {
-                    try { fbInput.value = ls.getItem('gust:fallback:wisp') || ''; } catch(e) {}
+                    try { fbInput.value = ls.getItem('gust:fallback:wisp') || DEFAULT_FALLBACK_WISP; } catch(e) {}
                 }
                 if (fbSave) {
                     fbSave.addEventListener('click', () => {
@@ -16293,8 +16833,8 @@ _VIEWER_DL_JS +
                 if (fbReset) {
                     fbReset.addEventListener('click', () => {
                         try { ls.removeItem('gust:fallback:wisp'); } catch(e) {}
-                        if (fbInput) fbInput.value = '';
-                        if (fbStatus) showStatusMsg(fbStatus, 'Cleared.', 'ok');
+                        if (fbInput) fbInput.value = DEFAULT_FALLBACK_WISP;
+                        if (fbStatus) showStatusMsg(fbStatus, 'Reset to default.', 'ok');
                     });
                 }
 
