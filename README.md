@@ -2,7 +2,7 @@
 
 # GUST, by [Nautilus Labs](https://github.com/nautilus-os)
 
-![version](https://img.shields.io/badge/version-1.0-blue?style=flat-square)
+![version](https://img.shields.io/badge/version-2.0-blue?style=flat-square)
 ![license](https://img.shields.io/badge/license-AGPLv3-green?style=flat-square)
 ![no service workers](https://img.shields.io/badge/service%20workers-absolutely%20not-red?style=flat-square)
 ![totally working svg](https://img.shields.io/badge/svg%20functionality-gorgeous%20and%20beautiful-blue?style=flat-square)
