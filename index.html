@@ -5682,13 +5682,15 @@
         html[data-skin] #skinPuzzleBtn { display: none !important; }
 
         #extPanel, #extPopupWrap {
-            position: fixed; z-index: 100002; background: var(--bg1, #1e2025); color: var(--tx, #e6e6e6);
+            position: fixed; z-index: 100002; background: var(--bg2, #22252d); color: var(--tx, #e6e6e6);
             border: 1px solid var(--bd, rgba(255,255,255,.12)); border-radius: 12px;
-            box-shadow: 0 12px 40px rgba(0,0,0,.5); display: none; overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0,0,0,.5); display: block; overflow: hidden; pointer-events: none;
+            opacity: 0; visibility: hidden; transform: scale(.92) translateY(-6px); transform-origin: top left;
+            transition: opacity .18s, transform .18s cubic-bezier(.34,1.56,.64,1);
         }
         #extPanel { width: 320px; max-height: 70vh; overflow-y: auto; padding: 8px; font-family: var(--ui); }
-        #extPanel.open, #extPopupWrap.open { display: block; }
-        #extPanel .exp-title { font-size: 12px; font-weight: 600; color: var(--tx2); padding: 6px 8px 8px; letter-spacing: .02em; }
+        #extPanel.open, #extPopupWrap.open { opacity: 1; visibility: visible; transform: scale(1) translateY(0); pointer-events: all; animation: ctx-bounce .22s cubic-bezier(.34,1.56,.64,1) both; }
+        #extPanel.closing, #extPopupWrap.closing { opacity: 0; visibility: visible; transform: scale(.92) translateY(-6px); pointer-events: none; animation: ctx-bounce-out .14s ease-in both; }
         #extPanel .exp-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; }
         #extPanel .exp-row:hover { background: var(--surface2, rgba(255,255,255,.06)); }
         #extPanel .exp-ico { width: 22px; height: 22px; flex-shrink: 0; display: grid; place-items: center; }
@@ -23189,6 +23191,13 @@ _VIEWER_DL_JS +
                     pos: 'below'
                 },
                 {
+                    target: '#extPuzzleBtn',
+                    icon: '<i class="fas fa-puzzle-piece"></i>',
+                    title: 'Extensions',
+                    body: 'Open the extensions button to manage installed add-ons, launch extension popups, and install new ones from the built-in store.',
+                    pos: 'below-left'
+                },
+                {
                     target: '#devToggle',
                     icon: '<i class="fas fa-server"></i>',
                     title: 'Browser Logs',
@@ -23389,9 +23398,20 @@ _VIEWER_DL_JS +
                 card.style.opacity = '0';
                 card.style.transform = 'scale(0.92) translateY(10px)';
 
-                dots.innerHTML = tutSteps.map((_, i) =>
-                    `<div style="width:${i === idx ? '16px' : '6px'};height:6px;border-radius:3px;background:${i === idx ? 'var(--ac)' : 'rgba(255,255,255,0.2)'};transition:all .2s;"></div>`
-                ).join('');
+                dots.innerHTML = '';
+                tutSteps.forEach((_, i) => {
+                    const dot = document.createElement('button');
+                    dot.type = 'button';
+                    dot.className = 'tutorial-dot';
+                    dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+                    dot.style.cssText = `width:${i === idx ? '18px' : '7px'};height:7px;border:none;border-radius:3.5px;background:${i === idx ? 'var(--ac)' : 'rgba(255,255,255,0.2)'};transition:all .2s;cursor:pointer;padding:0;`;
+                    dot.addEventListener('click', () => {
+                        if (i === idx) return;
+                        tutIdx = i;
+                        showTutStep(i);
+                    });
+                    dots.appendChild(dot);
+                });
 
                 title.innerHTML = step.title;
                 body.innerHTML = step.body;
@@ -28375,6 +28395,7 @@ _VIEWER_DL_JS +
                     if (popupWrap.classList.contains('open') && popupWrap.dataset.ext === id) { closePopup(); return; }
                     closePopup();
                     popupWrap.dataset.ext = id; popupWrap.innerHTML = '';
+                    popupWrap.classList.remove('closing');
                     let f = null;
                     try { f = await GustExt.mountPage(popupWrap, id, GustExt.popupPath(id), { w: '360px', h: '200px' }); } catch (e) { return; }
                     if (!f) return;
@@ -28385,7 +28406,7 @@ _VIEWER_DL_JS +
                         let el = (anchor && anchor.isConnected) ? anchor : extBar.querySelector('[data-ext="' + id + '"]');
                         if (!el || !el.isConnected) el = puzzle;
                         const a = el.getBoundingClientRect(); const r = popupWrap.getBoundingClientRect();
-                        popupWrap.style.top = Math.max(8, Math.min(a.bottom + 6, window.innerHeight - r.height - 8)) + 'px';
+                        popupWrap.style.top = Math.max(8, Math.min(a.bottom + 15, window.innerHeight - r.height - 8)) + 'px';
                         popupWrap.style.left = Math.max(8, Math.min(a.left, window.innerWidth - r.width - 8)) + 'px';
                     };
                     // Chrome popup semantics: the frame grows to fit the content (up to
@@ -28406,16 +28427,33 @@ _VIEWER_DL_JS +
                     try { new ResizeObserver(fit).observe(f.contentDocument.body); } catch (e) { }
                     place();
                 }
-                function closePopup() { popupWrap.classList.remove('open'); popupWrap.innerHTML = ''; popupWrap.dataset.ext = ''; }
+                function closePopup() {
+                    if (!popupWrap.classList.contains('open') && !popupWrap.classList.contains('closing')) {
+                        popupWrap.innerHTML = '';
+                        popupWrap.dataset.ext = '';
+                        popupWrap.style.top = '';
+                        popupWrap.style.left = '';
+                        return;
+                    }
+                    popupWrap.classList.remove('open');
+                    popupWrap.classList.add('closing');
+                    setTimeout(() => {
+                        popupWrap.classList.remove('closing');
+                        popupWrap.innerHTML = '';
+                        popupWrap.dataset.ext = '';
+                        popupWrap.style.top = '';
+                        popupWrap.style.left = '';
+                    }, 180);
+                }
                 GustExt._togglePopupFn = id => togglePopup(id, null);
 
                 function openPanel() {
                     if (panel.classList.contains('open')) { closePanel(); return; }
                     closePopup();
+                    closeOtherPopups();
                     const list = GustExt.list();
                     const themes = GustExt.themeList();
-                    let html = '<div class="exp-title">Extensions</div>' +
-                        '<div class="exp-install" id="extInstallBtn"><i class="fas fa-plus"></i><span>Load extension (.crx / .zip)</span></div>' +
+                    let html = '<div class="exp-install" id="extInstallBtn"><i class="fas fa-plus"></i><span>Load extension (.crx / .zip)</span></div>' +
                         '<div class="exp-install" id="extStoreBtn"><i class="fas fa-store"></i><span>Browse the Chrome Web Store</span></div>';
                     if (!list.length && !themes.length) html += '<div class="exp-empty">No extensions installed.<br>Load a .crx or .zip to get started.</div>';
                     else {
@@ -28460,13 +28498,29 @@ _VIEWER_DL_JS +
                         const del = row.querySelector('.exp-del'); if (del) del.addEventListener('click', async ev => { ev.stopPropagation(); if (confirm('Remove this extension?')) { await GustExt.uninstall(id); reopenPanel(); } });
                         const opt = row.querySelector('.exp-opt'); if (opt) opt.addEventListener('click', ev => { ev.stopPropagation(); closePanel(); GustExt.openPage(id, GustExt.optionsPath(id)); });
                     });
+                    panel.classList.remove('closing');
                     panel.classList.add('open');
                     const a = puzzle.getBoundingClientRect(); const r = panel.getBoundingClientRect();
-                    panel.style.top = (a.bottom + 6) + 'px';
+                    panel.style.top = (a.bottom + 15) + 'px';
                     panel.style.left = Math.max(8, Math.min(a.right - r.width, window.innerWidth - r.width - 8)) + 'px';
                 }
                 function reopenPanel() { panel.classList.remove('open'); openPanel(); }
-                function closePanel() { panel.classList.remove('open'); }
+                function closePanel() {
+                    if (!panel.classList.contains('open') && !panel.classList.contains('closing')) return;
+                    panel.classList.remove('open');
+                    panel.classList.add('closing');
+                    setTimeout(() => panel.classList.remove('closing'), 180);
+                }
+                function closeOtherPopups() {
+                    ['historyPopup', 'siteInfoPopup', 'adblockModal'].forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el && el.classList.contains('open')) {
+                            el.classList.remove('open');
+                            el.classList.add('closing');
+                            setTimeout(() => el.classList.remove('closing'), 180);
+                        }
+                    });
+                }
 
                 fileInput.addEventListener('change', async () => {
                     const file = fileInput.files && fileInput.files[0]; fileInput.value = '';
@@ -28500,6 +28554,20 @@ _VIEWER_DL_JS +
                 GustExt._installUI = installFromStore;
 
                 puzzle.addEventListener('click', ev => { ev.stopPropagation(); openPanel(); });
+                document.addEventListener('mousedown', ev => {
+                    if (panel.classList.contains('open') && !panel.contains(ev.target) && ev.target !== puzzle && !puzzle.contains(ev.target)) closePanel();
+                    if (popupWrap.classList.contains('open') && !popupWrap.contains(ev.target) && !ev.target.closest('.ext-action-btn') && ev.target !== puzzle) closePopup();
+                }, true);
+                document.addEventListener('keydown', ev => { if (ev.key === 'Escape') { closePanel(); closePopup(); } });
+
+                const closeOtherPopupLike = () => {
+                    if (panel.classList.contains('open')) {
+                        closePanel();
+                    }
+                    if (popupWrap.classList.contains('open')) {
+                        closePopup();
+                    }
+                };
                 document.addEventListener('mousedown', ev => {
                     if (panel.classList.contains('open') && !panel.contains(ev.target) && ev.target !== puzzle && !puzzle.contains(ev.target)) closePanel();
                     if (popupWrap.classList.contains('open') && !popupWrap.contains(ev.target) && !ev.target.closest('.ext-action-btn') && ev.target !== puzzle) closePopup();
@@ -28553,7 +28621,7 @@ _VIEWER_DL_JS +
                         transform:translateY(8px);
                         z-index:10;
                     ">
-            <div id="tutorialDots" style="display:flex;gap:5px;margin-bottom:16px;"></div>
+            <div id="tutorialDots" style="display:flex;gap:5px;margin-bottom:16px;align-items:center;"></div>
             <div id="tutorialArrow"
                 style="position:absolute;width:12px;height:12px;background:var(--bg2);border:1px solid var(--ac);display:none;transform:rotate(45deg);z-index:-1;">
             </div>
