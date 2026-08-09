@@ -1505,30 +1505,10 @@
             }
         }
 
-        /* ── Boot benchmark splash: GUST mark + spinner ─────────────────── */
-        .boot-bench-logo {
-            width: 96px; height: 96px; border-radius: 26px;
-            display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at 50% 35%, rgba(157,229,255,.22), rgba(157,229,255,.04) 70%);
-            box-shadow: 0 0 0 1px rgba(157,229,255,.18), 0 14px 60px rgba(157,229,255,.14);
-            animation: boot-bench-breathe 2.4s ease-in-out infinite;
-        }
-        .boot-bench-logo i {
-            font-size: 46px; color: #9de5ff;
-            filter: drop-shadow(0 2px 10px rgba(157,229,255,.55));
-            animation: boot-bench-gust 3s ease-in-out infinite;
-        }
+        /* ── Boot benchmark splash: spinner + text ─────────────────── */
         .boot-bench-txt {
             font-size: 13px; color: var(--tx2); font-family: var(--mono, monospace);
             letter-spacing: .04em;
-        }
-        @keyframes boot-bench-breathe {
-            0%,100% { transform: scale(1);    box-shadow: 0 0 0 1px rgba(157,229,255,.18), 0 14px 60px rgba(157,229,255,.12); }
-            50%     { transform: scale(1.06); box-shadow: 0 0 0 1px rgba(157,229,255,.32), 0 18px 80px rgba(157,229,255,.28); }
-        }
-        @keyframes boot-bench-gust {
-            0%,100% { transform: translateX(-3px) rotate(-4deg); opacity: .82; }
-            50%     { transform: translateX(3px)  rotate(4deg);  opacity: 1;   }
         }
 
         @keyframes error-alarm-ring {
@@ -14761,7 +14741,6 @@ window._libcurlReady = true;
                 el.className = 'overlay splash boot-bench';
                 el.style.cssText = 'z-index:99995;gap:22px;';
                 el.innerHTML =
-                    '<div class="boot-bench-logo"><i class="fas fa-wind"></i></div>' +
                     '<div class="boot-bench-spin"><div class="spinner"></div></div>' +
                     '<div class="boot-bench-txt" id="bootBenchTxt">Benchmarking relays…</div>';
                 document.body.appendChild(el);
@@ -23664,7 +23643,9 @@ _VIEWER_DL_JS +
                 _libcurlInitDone = true;
                 _maybeStartTutorial();
             };
-            // Auto-show of the welcome tour removed — it's still available from Settings → Tutorial.
+            // Re-enable the welcome tour so it appears automatically after the browser is ready.
+            _tutorialWaiting = true;
+            _maybeStartTutorial();
 
             // ── Fullscreen logic ──────────────────────────────────────────────
             function _doRequestFullscreen() {
@@ -28610,143 +28591,6 @@ _VIEWER_DL_JS +
         </div>
     </div>
 
-    <!-- ═══════════════ V4 release announcement (shown once on launch) ═══════════════ -->
-    <style id="v4AnnounceStyles">
-        #v4Announce {
-            position: fixed; inset: 0; z-index: 200000; display: none;
-            align-items: center; justify-content: center; padding: 24px;
-            background: rgba(8, 10, 13, 0.66); backdrop-filter: blur(10px) saturate(1.1);
-            -webkit-backdrop-filter: blur(10px) saturate(1.1);
-            font-family: var(--ui);
-        }
-        #v4Announce.open { display: flex; animation: v4-fade .28s ease; }
-        @keyframes v4-fade { from { opacity: 0; } to { opacity: 1; } }
-        .v4-card {
-            position: relative; width: min(760px, 100%); max-height: calc(100vh - 48px);
-            overflow: hidden auto; border-radius: 22px;
-            background:
-                radial-gradient(120% 90% at 50% -10%, rgba(157, 229, 255, 0.10), transparent 60%),
-                linear-gradient(180deg, #14181d 0%, #0f1216 100%);
-            border: 1px solid rgba(157, 229, 255, 0.18);
-            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
-            animation: v4-rise .34s cubic-bezier(.2, .8, .3, 1);
-        }
-        @keyframes v4-rise { from { transform: translateY(16px) scale(.985); opacity: 0; } to { transform: none; opacity: 1; } }
-        /* soft moving sheen across the header — subtle, single accent, not saturated */
-        .v4-hero { position: relative; padding: 44px 44px 28px; overflow: hidden; }
-        .v4-hero::after {
-            content: ''; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
-            background: linear-gradient(100deg, transparent, rgba(157, 229, 255, 0.07), transparent);
-            transform: skewX(-18deg); animation: v4-sheen 4.5s ease-in-out infinite; pointer-events: none;
-        }
-        @keyframes v4-sheen { 0% { left: -45%; } 55%, 100% { left: 130%; } }
-        .v4-pill {
-            display: inline-flex; align-items: center; gap: 7px; font-family: var(--mono);
-            font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
-            color: var(--ac); background: rgba(157, 229, 255, 0.08);
-            border: 1px solid rgba(157, 229, 255, 0.28); border-radius: 999px; padding: 5px 13px;
-        }
-        .v4-pill .v4-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ac);
-            box-shadow: 0 0 0 0 rgba(157, 229, 255, .5); animation: v4-ping 1.8s ease-out infinite; }
-        @keyframes v4-ping { 0% { box-shadow: 0 0 0 0 rgba(157, 229, 255, .45); } 70%, 100% { box-shadow: 0 0 0 7px rgba(157, 229, 255, 0); } }
-        .v4-title { margin: 20px 0 6px; font-size: 48px; line-height: 1.02; font-weight: 700; letter-spacing: -.02em; color: var(--tx); }
-        .v4-title b { color: var(--ac); font-weight: 700; }
-        .v4-sub { font-size: 15px; line-height: 1.6; color: var(--tx2); max-width: 52ch; }
-        .v4-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 4px 44px 8px; }
-        .v4-feat {
-            display: flex; gap: 13px; padding: 15px 16px; border-radius: 13px;
-            background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);
-            transition: border-color .15s, transform .15s, background .15s;
-        }
-        .v4-feat:hover { border-color: rgba(157, 229, 255, 0.30); transform: translateY(-2px); background: rgba(157, 229, 255, 0.03); }
-        .v4-feat i { color: var(--ac); font-size: 17px; width: 22px; text-align: center; margin-top: 2px; flex-shrink: 0; }
-        .v4-feat .v4-ft { font-size: 13.5px; font-weight: 600; color: var(--tx); margin-bottom: 3px; }
-        .v4-feat .v4-fd { font-size: 12px; line-height: 1.5; color: var(--tx3); }
-        .v4-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px 44px 34px; }
-        .v4-note { font-size: 12px; color: var(--tx3); }
-        .v4-cta {
-            background: var(--ac); color: #06121a; border: none; border-radius: 10px;
-            font-family: var(--ui); font-size: 14px; font-weight: 700; letter-spacing: .01em;
-            padding: 11px 26px; cursor: pointer; transition: filter .12s, transform .12s;
-        }
-        .v4-cta:hover { filter: brightness(1.08); }
-        .v4-cta:active { transform: translateY(1px); }
-        .v4-x {
-            position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; z-index: 2;
-            border: none; border-radius: 9px; background: rgba(255, 255, 255, 0.05);
-            color: var(--tx2); cursor: pointer; display: grid; place-items: center; font-size: 15px;
-            transition: background .12s, color .12s;
-        }
-        .v4-x:hover { background: rgba(255, 255, 255, 0.10); color: var(--tx); }
-        @media (max-width: 560px) {
-            .v4-grid { grid-template-columns: 1fr; }
-            .v4-hero { padding: 40px 26px 22px; }
-            .v4-grid, .v4-foot { padding-left: 26px; padding-right: 26px; }
-            .v4-title { font-size: 38px; }
-            .v4-foot { flex-direction: column; align-items: stretch; }
-            .v4-cta { width: 100%; }
-        }
-    </style>
-    <div id="v4Announce" role="dialog" aria-modal="true" aria-labelledby="v4Title">
-        <div class="v4-card">
-            <button class="v4-x" id="v4Close" aria-label="Dismiss"><i class="fas fa-xmark"></i></button>
-            <div class="v4-hero">
-                <span class="v4-pill"><span class="v4-dot"></span>Now Available</span>
-                <h1 class="v4-title" id="v4Title">GUST <b>V4</b> is here.</h1>
-                <p class="v4-sub">The biggest release yet — a full browser-in-a-browser with real browser skins,
-                    live extensions, and a tougher, faster proxy. Everything below is new in V4.</p>
-            </div>
-            <div class="v4-grid">
-                <div class="v4-feat"><i class="fas fa-masks-theater"></i><div>
-                    <div class="v4-ft">Browser Skins</div>
-                    <div class="v4-fd">Mask GUST as Chrome, Brave, Firefox, Opera GX or Zen — chrome, menus and new-tab pages included.</div></div></div>
-                <div class="v4-feat"><i class="fas fa-sliders"></i><div>
-                    <div class="v4-ft">GUST+ Studio</div>
-                    <div class="v4-fd">Mix and match parts from any mask, repaint every color, and reshape the whole UI.</div></div></div>
-                <div class="v4-feat"><i class="fas fa-puzzle-piece"></i><div>
-                    <div class="v4-ft">Real Extensions</div>
-                    <div class="v4-fd">Install real MV2/MV3 extensions and Chrome themes straight from the Web Store by ID.</div></div></div>
-                <div class="v4-feat"><i class="fab fa-discord"></i><div>
-                    <div class="v4-ft">Discord Anywhere</div>
-                    <div class="v4-fd">A full Discord client tunnelled through the proxy — servers, DMs, messages and more.</div></div></div>
-                <div class="v4-feat"><i class="fas fa-bolt"></i><div>
-                    <div class="v4-ft">Faster, Tougher Proxy</div>
-                    <div class="v4-fd">A benchmarked WISP relay pool with auto-failover, plus deep fixes for modern SPAs.</div></div></div>
-                <div class="v4-feat"><i class="fas fa-shield-halved"></i><div>
-                    <div class="v4-ft">Built-in Everywhere</div>
-                    <div class="v4-fd">Vendored libcurl boots with only a relay reachable — no external CDN required.</div></div></div>
-            </div>
-            <div class="v4-foot">
-                <span class="v4-note">Version 4.0 &middot; by Nautilus Labs</span>
-                <button class="v4-cta" id="v4Go">Explore V4</button>
-            </div>
-        </div>
-    </div>
-    <script>
-        (function () {
-            // Show the V4 announcement once per install. localStorage on file:// GUST
-            // can throw (opaque origin) — probe through a thunk and fall back to always-show.
-            var KEY = 'gust:v4-announce:seen:v1';
-            var store = (function () { try { localStorage.getItem(KEY); return localStorage; } catch (e) { return null; } })();
-            var seen = false;
-            try { seen = store && store.getItem(KEY) === '1'; } catch (e) {}
-            if (seen) return;
-            var el = document.getElementById('v4Announce');
-            if (!el) return;
-            function dismiss() {
-                el.classList.remove('open');
-                try { store && store.setItem(KEY, '1'); } catch (e) {}
-                setTimeout(function () { el.style.display = 'none'; }, 200);
-            }
-            document.getElementById('v4Close').addEventListener('click', dismiss);
-            document.getElementById('v4Go').addEventListener('click', dismiss);
-            el.addEventListener('click', function (e) { if (e.target === el) dismiss(); });
-            document.addEventListener('keydown', function (e) {
-                if (e.key === 'Escape' && el.classList.contains('open')) dismiss();
-            });
-            requestAnimationFrame(function () { el.classList.add('open'); });
-        })();
-    </script>
 </body>
 
 </html>
